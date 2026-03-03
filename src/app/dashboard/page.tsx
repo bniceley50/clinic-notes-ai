@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { loadCurrentUser } from "@/lib/auth/loader";
 
 export default async function DashboardPage() {
@@ -133,6 +134,13 @@ export default async function DashboardPage() {
             </dd>
           </div>
         </dl>
+
+        <Link
+          href="/sessions"
+          className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+        >
+          Go to Sessions
+        </Link>
 
         <form action="/api/auth/logout" method="POST">
           <button
