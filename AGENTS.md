@@ -118,8 +118,17 @@ If gate fails: stop, fix only what is required to get gate green, gate again. No
 Current goal: Scaffold repo and complete Milestone 0
 Last known good checkpoint: (none - project not started)
 Current schema: (none - no tables yet)
-Open decisions: Auth method (magic link vs OAuth vs email+password)
+Open decisions: (none for Milestone 0 - all locked, see D006-D012)
 ```
+
+**Locked decisions (D006–D012):**
+- D006: Auth — Supabase email magic link only for Milestone 0
+- D007: Jobs — DB-backed job rows with one controlled worker path; one active job per session enforced by DB constraint
+- D008: Retention — Soft-delete rows; hard-delete artifacts/blobs only after TTL
+- D009: RLS — Strict single-owner; provider owns own records, admin read-all, service role for workers only
+- D010: Prompts — Versioned prompt files in repo (`/prompts/*.md`)
+- D011: Audit — Auth, job lifecycle, note edit, export; no raw PHI in audit payloads
+- D012: PHI gate — Fake/sanitized data only until formal checklist passes
 
 **Installed shadcn/ui components (CLI-initialized only):**
 - (none yet)
@@ -141,7 +150,7 @@ Open decisions: Auth method (magic link vs OAuth vs email+password)
 | **D** | Polish & launch - search, templates, bulk export, docs |
 
 **Current milestone:** 0
-**Next decision point:** Auth provider choice (Supabase Auth magic link vs OAuth vs email/password)
+**Next decision point:** None for Milestone 0 (all locked). Next gate: audio recording method (Browser MediaRecorder vs upload-only) at Milestone A.
 
 ## 12) Multi-Agent Protocol
 

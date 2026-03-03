@@ -13,10 +13,13 @@ This application is designed to handle Protected Health Information (PHI) eventu
 
 ## Authentication
 
-- **Method:** Supabase Auth (method TBD — decision gate at Milestone 0)
-- **Session:** JWT signed with `AUTH_COOKIE_SECRET` (HS256), stored in httpOnly cookie
-- **Flags:** `SameSite=Lax`, `Secure` in production
+Two-layer design: Supabase Auth verifies identity, the app mints its own session.
+
+- **Identity provider:** Supabase Auth email magic link (D006 — locked for Milestone 0)
+- **Session layer:** After Supabase Auth confirms identity, the app mints a custom JWT (HS256 via `jose`) signed with `AUTH_COOKIE_SECRET`. This JWT carries app-specific claims (`practiceId`, `role`, `jti` for revocation) that Supabase Auth tokens do not include.
+- **Transport:** httpOnly cookie (`SameSite=Lax`, `Secure` in production). Mobile clients use `Authorization: Bearer <jwt>` with the same token format.
 - **TTL:** 8 hours default (`SESSION_TTL_SECONDS`)
+- **Revocation:** JTI-based revocation on logout (checked on every request)
 - **Dev bypass:** `ALLOW_DEV_LOGIN=1` only in `NODE_ENV=development`
 
 ## Authorization
