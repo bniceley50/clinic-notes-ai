@@ -6,19 +6,8 @@
 --
 -- NOTE: RLS policies live in 00002_rls_policies.sql.
 -- NOTE: Indexes live in 00003_indexes.sql.
-
--- ── Helper: org membership check ─────────────────────────────
--- Used by RLS policies in 00002. Defined here so it exists
--- before any policy references it.
-
-CREATE OR REPLACE FUNCTION public.is_org_member(check_org_id UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE user_id = auth.uid()
-      AND org_id = check_org_id
-  );
-$$ LANGUAGE sql SECURITY DEFINER;
+-- NOTE: is_org_member() helper is defined after the profiles table
+--       because SQL-language functions validate relations at creation.
 
 -- ── 1. orgs ──────────────────────────────────────────────────
 
@@ -44,6 +33,20 @@ CREATE TABLE public.profiles (
   CONSTRAINT chk_profiles_role CHECK (role IN ('provider', 'admin')),
   CONSTRAINT uq_profiles_user_org UNIQUE (user_id, org_id)
 );
+
+-- ── Helper: org membership check ─────────────────────────────
+-- Used by RLS policies in 00002. Defined after profiles table
+-- because SQL-language functions validate referenced relations
+-- at creation time.
+
+CREATE OR REPLACE FUNCTION public.is_org_member(check_org_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE user_id = auth.uid()
+      AND org_id = check_org_id
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
 
 -- ── 3. sessions ──────────────────────────────────────────────
 -- UNIQUE (id, org_id) supports composite FK from child tables
