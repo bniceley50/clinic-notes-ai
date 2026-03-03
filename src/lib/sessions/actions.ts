@@ -6,13 +6,21 @@
  * These are called from client components via React server actions.
  * Each action resolves the current user from the loader and
  * sets org_id/created_by from the authenticated context.
+ *
+ * Returns { error: string } on validation/DB failure so the UI
+ * can render a usable message instead of an uncaught crash.
  */
 
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/lib/auth/loader";
 import { createSession } from "./queries";
 
-export async function createSessionAction(formData: FormData) {
+export type ActionResult = { error: string | null };
+
+export async function createSessionAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
   const user = await requireAppUser();
 
   const rawLabel = formData.get("patient_label");
@@ -20,7 +28,7 @@ export async function createSessionAction(formData: FormData) {
     typeof rawLabel === "string" ? rawLabel.trim() : "";
 
   if (!patientLabel) {
-    throw new Error("Patient label is required");
+    return { error: "Patient label is required" };
   }
 
   const sessionType = formData.get("session_type");
@@ -37,7 +45,7 @@ export async function createSessionAction(formData: FormData) {
   });
 
   if (error || !data) {
-    throw new Error(error ?? "Failed to create session");
+    return { error: error ?? "Failed to create session" };
   }
 
   redirect(`/sessions/${data.id}`);
