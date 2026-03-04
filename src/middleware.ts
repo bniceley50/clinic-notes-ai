@@ -18,6 +18,11 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Worker endpoint uses bearer token auth in-route, not cookie session auth.
+  if (/^\/api\/jobs\/[^/]+\/worker$/.test(pathname)) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/_next/")) {
     return NextResponse.next();
   }
