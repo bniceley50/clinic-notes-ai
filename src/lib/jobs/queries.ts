@@ -112,3 +112,46 @@ export async function getMyJob(
 
   return { data: data as JobRow, error: null };
 }
+
+/**
+ * Fetch a job by ID without ownership check. Used by the worker
+ * endpoint to validate transitions before applying updates.
+ */
+export async function getJobById(
+  jobId: string,
+): Promise<JobRow | null> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("id", jobId)
+    .single();
+
+  if (error) return null;
+  return data as JobRow;
+}
+
+/**
+ * Update worker-owned fields on a job. Only callable from the
+ * backend worker endpoint — never from browser code.
+ */
+export async function updateJobWorkerFields(
+  jobId: string,
+  fields: Record<string, unknown>,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", jobId)
+    .select(JOB_COLUMNS)
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data as JobRow, error: null };
+}
