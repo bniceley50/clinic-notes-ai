@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useReducer } from "react";
+import { useState } from "react";
 
 export type JobSnapshot = {
   id: string;
@@ -11,6 +11,7 @@ export type JobSnapshot = {
   note_type: string;
   attempt_count: number;
   error_message: string | null;
+  audio_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -23,86 +24,43 @@ const JOB_STATUS_STYLE: Record<string, string> = {
   cancelled: "ql-chip",
 };
 
-const POLL_INTERVAL_MS = 3_000;
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
-
-type State = {
-  jobs: JobSnapshot[];
-  polling: Set<string>;
-};
-
-type Action =
-  | { type: "init"; jobs: JobSnapshot[] }
-  | { type: "update"; job: JobSnapshot }
-  | { type: "stop_polling"; id: string };
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "init": {
-      const polling = new Set<string>();
-      for (const j of action.jobs) {
-        if (ACTIVE_STATUSES.has(j.status)) polling.add(j.id);
-      }
-      return { jobs: action.jobs, polling };
-    }
-    case "update": {
-      const jobs = state.jobs.map((j) =>
-        j.id === action.job.id ? action.job : j,
-      );
-      const polling = new Set(state.polling);
-      if (!ACTIVE_STATUSES.has(action.job.status)) {
-        polling.delete(action.job.id);
-      }
-      return { jobs, polling };
-    }
-    case "stop_polling": {
-      const polling = new Set(state.polling);
-      polling.delete(action.id);
-      return { ...state, polling };
-    }
-  }
-}
 
 type Props = {
   initialJobs: JobSnapshot[];
 };
 
 export function JobStatusPanel({ initialJobs }: Props) {
-  const [state, dispatch] = useReducer(reducer, initialJobs, (jobs) => {
-    const polling = new Set<string>();
-    for (const j of jobs) {
-      if (ACTIVE_STATUSES.has(j.status)) polling.add(j.id);
-    }
-    return { jobs, polling };
-  });
+  const [jobs, setJobs] = useState(initialJobs);
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const pollJob = useCallback(async (jobId: string) => {
+  async function handleCancel(jobId: string) {
+    setPendingJobId(jobId);
+    setError(null);
+
     try {
-      const res = await fetch(`/api/jobs/${jobId}`);
-      if (!res.ok) {
-        dispatch({ type: "stop_polling", id: jobId });
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; job?: JobSnapshot }
+        | null;
+
+      if (!response.ok || !payload?.job) {
+        setError(payload?.error ?? "Failed to cancel job");
         return;
       }
-      const job: JobSnapshot = await res.json();
-      dispatch({ type: "update", job });
-    } catch {
-      dispatch({ type: "stop_polling", id: jobId });
+
+      setJobs((current) =>
+        current.map((job) => (job.id === jobId ? payload.job! : job)),
+      );
+    } finally {
+      setPendingJobId(null);
     }
-  }, []);
+  }
 
-  useEffect(() => {
-    if (state.polling.size === 0) return;
-
-    const interval = setInterval(() => {
-      for (const jobId of state.polling) {
-        pollJob(jobId);
-      }
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(interval);
-  }, [state.polling, pollJob]);
-
-  if (state.jobs.length === 0) {
+  if (jobs.length === 0) {
     return (
       <p className="ql-subtitle">
         No jobs yet. Start one above.
@@ -112,7 +70,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
 
   return (
     <div className="ql-grid">
-      {state.jobs.map((job) => (
+      {error ? (
+        <p className="ql-alert ql-alert-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {jobs.map((job) => (
         <div key={job.id} className="ql-panel">
           <div className="ql-copy-row">
             <span className="ql-section-title" style={{ margin: 0 }}>
@@ -173,6 +136,24 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </div>
           )}
 
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              color: "var(--ql-text-muted)",
+              fontSize: 11,
+            }}
+          >
+            <span>
+              Audio: {job.audio_storage_path ? "Uploaded" : "Pending"}
+            </span>
+            {job.audio_storage_path ? (
+              <span className="ql-mono">{job.audio_storage_path}</span>
+            ) : null}
+          </div>
+
           {job.error_message && (
             <p className="ql-alert ql-alert-error" style={{ marginTop: 8 }}>
               {job.error_message}
@@ -204,6 +185,19 @@ export function JobStatusPanel({ initialJobs }: Props) {
               </span>
             )}
           </div>
+
+          {ACTIVE_STATUSES.has(job.status) ? (
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="ql-button-secondary"
+                disabled={pendingJobId === job.id}
+                onClick={() => handleCancel(job.id)}
+              >
+                {pendingJobId === job.id ? "Cancelling..." : "Cancel Job"}
+              </button>
+            </div>
+          ) : null}
         </div>
       ))}
     </div>

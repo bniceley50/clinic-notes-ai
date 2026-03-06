@@ -32,6 +32,12 @@ export type CreateSessionInput = {
   session_type?: "intake" | "follow-up" | "general";
 };
 
+export type UpdateSessionInput = {
+  patient_label?: string | null;
+  session_type?: "intake" | "follow-up" | "general";
+  status?: "active" | "completed" | "archived";
+};
+
 const SESSION_COLUMNS =
   "id, org_id, created_by, patient_label, session_type, status, created_at, updated_at, completed_at";
 
@@ -69,6 +75,7 @@ export async function listMySessions(
     .select(SESSION_COLUMNS)
     .eq("org_id", user.orgId)
     .eq("created_by", user.userId)
+    .neq("status", "archived")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -97,4 +104,52 @@ export async function getMySession(
   }
 
   return { data: data as SessionRow, error: null };
+}
+
+export async function updateMySession(
+  user: AppUser,
+  sessionId: string,
+  input: UpdateSessionInput,
+): Promise<{ data: SessionRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const update: Record<string, string | null> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if ("patient_label" in input) {
+    update.patient_label = input.patient_label?.trim() || null;
+  }
+
+  if (input.session_type) {
+    update.session_type = input.session_type;
+  }
+
+  if (input.status) {
+    update.status = input.status;
+    update.completed_at =
+      input.status === "completed" ? new Date().toISOString() : null;
+  }
+
+  const { data, error } = await db
+    .from("sessions")
+    .update(update)
+    .eq("id", sessionId)
+    .eq("org_id", user.orgId)
+    .eq("created_by", user.userId)
+    .select(SESSION_COLUMNS)
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data as SessionRow, error: null };
+}
+
+export async function archiveMySession(
+  user: AppUser,
+  sessionId: string,
+): Promise<{ data: SessionRow | null; error: string | null }> {
+  return updateMySession(user, sessionId, { status: "archived" });
 }
