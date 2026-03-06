@@ -11,8 +11,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SessionDetailManager } from "@/components/sessions/SessionDetailManager";
 import { AudioUpload } from "@/components/jobs/AudioUpload";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
-import { NoteViewer } from "@/components/session/NoteViewer";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
+import { NoteWorkspace } from "@/components/session/NoteWorkspace";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -97,12 +97,17 @@ export default async function SessionDetailPage({ params }: Props) {
       )}
 
       {latestNote ? (
-        <NoteViewer
+        <NoteWorkspace
+          sessionId={session.id}
+          noteId={latestNote.id}
           noteType={latestNote.note_type}
+          sessionType={session.session_type}
+          sessionCreatedAt={session.created_at}
           sessionDate={sessionDate}
           patientLabel={session.patient_label ?? "Patient A"}
           providerName={user.profile.display_name}
-          content={latestNote.content}
+          initialContent={latestNote.content}
+          initialUpdatedAt={latestNote.updated_at}
         />
       ) : (
         <section className="ql-panel">
