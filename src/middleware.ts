@@ -18,7 +18,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Worker endpoint uses bearer token auth in-route, not cookie session auth.
-  if (/^\/api\/jobs\/[^/]+\/worker$/.test(pathname)) {
+  if (
+    /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
+    pathname === "/api/jobs/runner"
+  ) {
     return NextResponse.next();
   }
 
