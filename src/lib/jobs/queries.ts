@@ -107,6 +107,25 @@ export async function getJobsForSession(
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
+export async function listQueuedJobs(): Promise<{
+  data: JobRow[];
+  error: string | null;
+}> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("status", "queued")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data ?? []) as JobRow[], error: null };
+}
+
 export async function getActiveJobForSession(
   user: AppUser,
   sessionId: string,

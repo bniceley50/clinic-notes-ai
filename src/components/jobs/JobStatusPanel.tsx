@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 export type JobSnapshot = {
   id: string;
@@ -12,9 +13,19 @@ export type JobSnapshot = {
   attempt_count: number;
   error_message: string | null;
   audio_storage_path: string | null;
+  transcript_storage_path: string | null;
+  draft_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
+
+function isJobSnapshot(value: unknown): value is JobSnapshot {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return "id" in value && "status" in value && "stage" in value;
+}
 
 const JOB_STATUS_STYLE: Record<string, string> = {
   queued: "ql-chip is-running",
@@ -31,9 +42,42 @@ type Props = {
 };
 
 export function JobStatusPanel({ initialJobs }: Props) {
+  const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
+
+  const applyJobUpdate = useCallback(
+    (nextJob: JobSnapshot) => {
+      let shouldRefresh = false;
+
+      setJobs((current) =>
+        current.map((job) => {
+          if (job.id !== nextJob.id) {
+            return job;
+          }
+
+          if (
+            ACTIVE_STATUSES.has(job.status) &&
+            !ACTIVE_STATUSES.has(nextJob.status)
+          ) {
+            shouldRefresh = true;
+          }
+
+          return nextJob;
+        }),
+      );
+
+      if (shouldRefresh) {
+        router.refresh();
+      }
+    },
+    [router],
+  );
 
   async function handleCancel(jobId: string) {
     setPendingJobId(jobId);
@@ -52,13 +96,90 @@ export function JobStatusPanel({ initialJobs }: Props) {
         return;
       }
 
-      setJobs((current) =>
-        current.map((job) => (job.id === jobId ? payload.job! : job)),
-      );
+      applyJobUpdate(payload.job);
     } finally {
       setPendingJobId(null);
     }
   }
+
+  useEffect(() => {
+    const activeJobs = jobs.filter((job) => ACTIVE_STATUSES.has(job.status));
+    if (activeJobs.length === 0) {
+      return;
+    }
+
+    const cleanups: Array<() => void> = [];
+
+    for (const job of activeJobs) {
+      let pollId: number | null = null;
+      const eventSource = new EventSource(`/api/jobs/${job.id}/events`);
+
+      const startPolling = () => {
+        if (pollId !== null) return;
+        pollId = window.setInterval(async () => {
+          try {
+            const response = await fetch(`/api/jobs/${job.id}`);
+            const payload = (await response.json().catch(() => null)) as
+              | JobSnapshot
+              | { error?: string }
+              | null;
+
+            if (!response.ok || !isJobSnapshot(payload)) {
+              return;
+            }
+
+            applyJobUpdate(payload);
+
+            if (!ACTIVE_STATUSES.has(payload.status)) {
+              if (pollId !== null) {
+                window.clearInterval(pollId);
+                pollId = null;
+              }
+            }
+          } catch {
+            // Keep the interval alive for transient network failures.
+          }
+        }, 2000);
+      };
+
+      const handleJobEvent = (event: MessageEvent<string>) => {
+        try {
+          const payload = JSON.parse(event.data) as JobSnapshot;
+          applyJobUpdate(payload);
+          if (!ACTIVE_STATUSES.has(payload.status)) {
+            eventSource.close();
+            if (pollId !== null) {
+              window.clearInterval(pollId);
+              pollId = null;
+            }
+          }
+        } catch {
+          startPolling();
+        }
+      };
+
+      const handleError = () => {
+        eventSource.close();
+        startPolling();
+      };
+
+      eventSource.addEventListener("job", handleJobEvent as EventListener);
+      eventSource.onerror = handleError;
+
+      cleanups.push(() => {
+        eventSource.close();
+        if (pollId !== null) {
+          window.clearInterval(pollId);
+        }
+      });
+    }
+
+    return () => {
+      for (const cleanup of cleanups) {
+        cleanup();
+      }
+    };
+  }, [applyJobUpdate, jobs]);
 
   if (jobs.length === 0) {
     return (
@@ -151,6 +272,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </span>
             {job.audio_storage_path ? (
               <span className="ql-mono">{job.audio_storage_path}</span>
+            ) : null}
+            {job.transcript_storage_path ? (
+              <span className="ql-mono">{job.transcript_storage_path}</span>
+            ) : null}
+            {job.draft_storage_path ? (
+              <span className="ql-mono">{job.draft_storage_path}</span>
             ) : null}
           </div>
 

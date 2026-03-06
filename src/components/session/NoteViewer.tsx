@@ -9,6 +9,7 @@ type NoteViewerProps = {
   sessionDate: string;
   patientLabel: string;
   providerName: string;
+  content?: string;
 };
 
 type Section = {
@@ -93,6 +94,7 @@ export function NoteViewer({
   sessionDate,
   patientLabel,
   providerName,
+  content,
 }: NoteViewerProps) {
   const [copied, setCopied] = useState(false);
   const supportedType = getSupportedType(noteType);
@@ -106,12 +108,14 @@ export function NoteViewer({
       "",
     ];
 
-    const sections = NOTE_SECTIONS[supportedType].map(
-      (section) => `${section.heading}\n${section.body}`,
-    );
+    const sections = content
+      ? [content]
+      : NOTE_SECTIONS[supportedType].map(
+          (section) => `${section.heading}\n${section.body}`,
+        );
 
     return [...header, ...sections].join("\n");
-  }, [patientLabel, providerName, sessionDate, supportedType]);
+  }, [content, patientLabel, providerName, sessionDate, supportedType]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(copyOutput);
@@ -143,14 +147,23 @@ export function NoteViewer({
         <div>SOURCE: CLINIC NOTES AI | AI-GENERATED — REVIEW REQUIRED</div>
       </div>
 
-      <div className="ql-note-copy">
-        {NOTE_SECTIONS[supportedType].map((section) => (
-          <div className="ql-note-section" key={section.heading}>
-            <div className="ql-section-title">{section.heading}</div>
-            <div>{section.body}</div>
-          </div>
-        ))}
-      </div>
+      {content ? (
+        <pre
+          className="ql-note-copy"
+          style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}
+        >
+          {content}
+        </pre>
+      ) : (
+        <div className="ql-note-copy">
+          {NOTE_SECTIONS[supportedType].map((section) => (
+            <div className="ql-note-section" key={section.heading}>
+              <div className="ql-section-title">{section.heading}</div>
+              <div>{section.body}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
