@@ -1,27 +1,53 @@
 "use client";
 
-import { useActionState } from "react";
-import {
-  createSessionAction,
-  type ActionResult,
-} from "@/lib/sessions/actions";
-
-const initial: ActionResult = { error: null };
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function CreateSessionForm() {
-  const [state, action, pending] = useActionState(
-    createSessionAction,
-    initial,
-  );
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(formData: FormData) {
+    setPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patient_label: formData.get("patient_label"),
+          session_type: formData.get("session_type"),
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; session?: { id: string } }
+        | null;
+
+      if (!response.ok || !payload?.session?.id) {
+        setError(payload?.error ?? "Failed to create session");
+        return;
+      }
+
+      router.push(`/sessions/${payload.session.id}`);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={action} className="ql-panel">
+    <form action={handleSubmit} className="ql-panel">
       <p className="ql-kicker">Create</p>
       <h2 className="ql-panel-title">New Session</h2>
 
-      {state.error && (
+      {error && (
         <p className="ql-alert ql-alert-error" role="alert">
-          {state.error}
+          {error}
         </p>
       )}
 
