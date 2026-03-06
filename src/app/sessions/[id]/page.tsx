@@ -3,8 +3,11 @@ import Link from "next/link";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMySession } from "@/lib/sessions/queries";
 import { getJobsForSession } from "@/lib/jobs/queries";
+import { AppShell } from "@/components/layout/AppShell";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
+import { AudioUpload } from "@/components/jobs/AudioUpload";
+import { NoteViewer } from "@/components/session/NoteViewer";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -29,83 +32,92 @@ export default async function SessionDetailPage({ params }: Props) {
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
   );
+  const latestJob = jobs[0];
+  const sessionDate = new Date(session.created_at).toLocaleDateString();
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/sessions"
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          &larr; All Sessions
+    <AppShell
+      title={session.patient_label || "Untitled session"}
+      subtitle={`${user.org.name} | ${session.session_type}`}
+      displayName={user.profile.display_name}
+      orgName={user.org.name}
+      actions={
+        <Link href="/sessions" className="ql-button-secondary">
+          All Sessions
         </Link>
-        <span
-          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-            session.status === "active"
-              ? "bg-green-50 text-green-700"
-              : session.status === "completed"
-                ? "bg-blue-50 text-blue-700"
-                : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {session.status}
-        </span>
-      </div>
-
-      <div className="mt-6 rounded-lg border bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">
-          {session.patient_label || "Untitled session"}
-        </h1>
-
-        <dl className="mt-6 space-y-3 text-sm">
-          <div className="flex justify-between border-b pb-2">
-            <dt className="font-medium text-gray-600">Type</dt>
-            <dd className="text-gray-900">{session.session_type}</dd>
+      }
+    >
+      <section className="ql-panel">
+        <div className="ql-copy-row">
+          <div>
+            <p className="ql-kicker">Clinical Workspace</p>
+            <h2 className="ql-panel-title">Session Summary</h2>
           </div>
-          <div className="flex justify-between border-b pb-2">
-            <dt className="font-medium text-gray-600">Status</dt>
-            <dd className="text-gray-900">{session.status}</dd>
+          <span
+            className={[
+              "ql-chip",
+              session.status === "active"
+                ? "is-active"
+                : session.status === "completed"
+                  ? "is-complete"
+                  : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {session.status}
+          </span>
+        </div>
+
+        <div className="ql-meta-grid" style={{ marginTop: 10 }}>
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Type</div>
+            <div className="ql-meta-value">{session.session_type}</div>
           </div>
-          <div className="flex justify-between border-b pb-2">
-            <dt className="font-medium text-gray-600">Created</dt>
-            <dd className="text-gray-900">
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Status</div>
+            <div className="ql-meta-value">{session.status}</div>
+          </div>
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Created</div>
+            <div className="ql-meta-value">
               {new Date(session.created_at).toLocaleString()}
-            </dd>
-          </div>
-          <div className="flex justify-between border-b pb-2">
-            <dt className="font-medium text-gray-600">Last Updated</dt>
-            <dd className="text-gray-900">
-              {new Date(session.updated_at).toLocaleString()}
-            </dd>
-          </div>
-          {session.completed_at && (
-            <div className="flex justify-between border-b pb-2">
-              <dt className="font-medium text-gray-600">Completed</dt>
-              <dd className="text-gray-900">
-                {new Date(session.completed_at).toLocaleString()}
-              </dd>
             </div>
-          )}
-          <div className="flex justify-between border-b pb-2">
-            <dt className="font-medium text-gray-600">Session ID</dt>
-            <dd className="font-mono text-xs text-gray-500">{session.id}</dd>
           </div>
-          <div className="flex justify-between">
-            <dt className="font-medium text-gray-600">Organization</dt>
-            <dd className="text-gray-900">{user.org.name}</dd>
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Last Updated</div>
+            <div className="ql-meta-value">
+              {new Date(session.updated_at).toLocaleString()}
+            </div>
           </div>
-        </dl>
-      </div>
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Completed</div>
+            <div className="ql-meta-value">
+              {session.completed_at
+                ? new Date(session.completed_at).toLocaleString()
+                : "-"}
+            </div>
+          </div>
+          <div className="ql-meta-item">
+            <div className="ql-meta-label">Session ID</div>
+            <div className="ql-meta-value ql-mono">{session.id}</div>
+          </div>
+        </div>
+      </section>
 
-      {/* ── Jobs ──────────────────────────────────────────────── */}
-
-      <h2 className="mt-10 text-lg font-semibold text-gray-900">Jobs</h2>
-
-      <div className="mt-4">
+      <div className="ql-grid ql-grid-2">
+        <AudioUpload />
         <CreateJobForm sessionId={session.id} hasActiveJob={hasActiveJob} />
       </div>
 
       <JobStatusPanel initialJobs={jobs} />
-    </main>
+
+      <NoteViewer
+        noteType={latestJob?.note_type ?? "soap"}
+        sessionDate={sessionDate}
+        patientLabel={session.patient_label ?? "Patient A"}
+        providerName={user.profile.display_name}
+      />
+    </AppShell>
   );
 }

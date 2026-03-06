@@ -16,11 +16,11 @@ export type JobSnapshot = {
 };
 
 const JOB_STATUS_STYLE: Record<string, string> = {
-  queued: "bg-yellow-50 text-yellow-700",
-  running: "bg-blue-50 text-blue-700",
-  complete: "bg-green-50 text-green-700",
-  failed: "bg-red-50 text-red-700",
-  cancelled: "bg-gray-100 text-gray-600",
+  queued: "ql-chip is-running",
+  running: "ql-chip is-running",
+  complete: "ql-chip is-complete",
+  failed: "ql-chip is-error",
+  cancelled: "ql-chip",
 };
 
 const POLL_INTERVAL_MS = 3_000;
@@ -104,46 +104,67 @@ export function JobStatusPanel({ initialJobs }: Props) {
 
   if (state.jobs.length === 0) {
     return (
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="ql-subtitle">
         No jobs yet. Start one above.
       </p>
     );
   }
 
   return (
-    <div className="mt-6 space-y-3">
+    <div className="ql-grid">
       {state.jobs.map((job) => (
-        <div key={job.id} className="rounded-lg border bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-900 uppercase">
+        <div key={job.id} className="ql-panel">
+          <div className="ql-copy-row">
+            <span className="ql-section-title" style={{ margin: 0 }}>
               {job.note_type}
             </span>
             <span
-              className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                JOB_STATUS_STYLE[job.status] ?? "bg-gray-100 text-gray-600"
-              }`}
+              className={JOB_STATUS_STYLE[job.status] ?? "ql-chip"}
             >
               {job.status}
             </span>
           </div>
 
           {ACTIVE_STATUSES.has(job.status) && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <div style={{ marginTop: 10 }}>
+              <div
+                className="ql-copy-row"
+                style={{ color: "var(--ql-text-muted)", fontSize: 11, marginBottom: 4 }}
+              >
                 <span>{job.stage}</span>
                 <span>{job.progress}%</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-gray-100">
+              <div
+                style={{
+                  height: 6,
+                  width: "100%",
+                  border: "1px solid var(--ql-border)",
+                  borderRadius: "2px",
+                  background: "#f9f9f9",
+                }}
+              >
                 <div
-                  className="h-1.5 rounded-full bg-blue-500 transition-all duration-500"
-                  style={{ width: `${job.progress}%` }}
+                  style={{
+                    height: "100%",
+                    background: "var(--ql-primary-soft)",
+                    width: `${job.progress}%`,
+                  }}
                 />
               </div>
             </div>
           )}
 
           {!ACTIVE_STATUSES.has(job.status) && (
-            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                color: "var(--ql-text-muted)",
+                fontSize: 11,
+              }}
+            >
               <span>Stage: {job.stage}</span>
               <span>Progress: {job.progress}%</span>
               {job.attempt_count > 0 && (
@@ -153,16 +174,32 @@ export function JobStatusPanel({ initialJobs }: Props) {
           )}
 
           {job.error_message && (
-            <p className="mt-2 text-xs text-red-600">{job.error_message}</p>
+            <p className="ql-alert ql-alert-error" style={{ marginTop: 8 }}>
+              {job.error_message}
+            </p>
           )}
 
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
-              {new Date(job.created_at).toLocaleString()}
-            </p>
+          <div className="ql-copy-row" style={{ marginTop: 8 }}>
+            <p className="ql-subtitle">{new Date(job.created_at).toLocaleString()}</p>
             {ACTIVE_STATUSES.has(job.status) && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "var(--ql-link)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 6,
+                    background: "var(--ql-link)",
+                  }}
+                />
                 Live
               </span>
             )}
