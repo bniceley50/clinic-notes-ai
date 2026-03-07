@@ -176,3 +176,54 @@ export async function getLatestNoteForSession(
 
   return { data: (data ?? null) as NoteRow | null, error: null };
 }
+
+export async function getMyNote(
+  user: AppUser,
+  sessionId: string,
+  noteId: string,
+): Promise<{ data: NoteRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("notes")
+    .select(NOTE_COLUMNS)
+    .eq("id", noteId)
+    .eq("session_id", sessionId)
+    .eq("org_id", user.orgId)
+    .eq("created_by", user.userId)
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data as NoteRow, error: null };
+}
+
+export async function updateMyNoteContent(
+  user: AppUser,
+  sessionId: string,
+  noteId: string,
+  content: string,
+): Promise<{ data: NoteRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("notes")
+    .update({
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
+    .eq("session_id", sessionId)
+    .eq("org_id", user.orgId)
+    .eq("created_by", user.userId)
+    .select(NOTE_COLUMNS)
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data as NoteRow, error: null };
+}
