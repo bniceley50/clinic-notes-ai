@@ -1,155 +1,129 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-const NOTE_TYPE_OPTIONS = [
-  { value: "soap", label: "SOAP" },
-  { value: "dap", label: "DAP" },
-  { value: "birp", label: "BIRP" },
-] as const;
+import { useState, useRef, type ChangeEvent } from "react";
 
 type Props = {
-  sessionId: string;
-  hasActiveJob: boolean;
+  jobId: string;
+  onUploaded: (storagePath: string) => void;
 };
 
-export function AudioUpload({ sessionId, hasActiveJob }: Props) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const ACCEPTED_TYPES = "audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,audio/x-wav";
+const MAX_SIZE_MB = 50;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-  async function handleSubmit(formData: FormData) {
-    setPending(true);
+export function AudioUpload({ jobId, onUploaded }: Props) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     setError(null);
+    setFileName(file.name);
+
+    if (!file.type.startsWith("audio/")) {
+      setError(`Invalid file type: ${file.type}. Please select an audio file.`);
+      return;
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      setError(
+        `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`,
+      );
+      return;
+    }
+
+    setUploading(true);
 
     try {
-      const noteType =
-        typeof formData.get("note_type") === "string"
-          ? String(formData.get("note_type"))
-          : "soap";
-      const file = formData.get("file");
+      const form = new FormData();
+      form.append("file", file);
 
-      if (!(file instanceof File) || file.size === 0) {
-        setError("Select an audio file before queuing the upload.");
-        return;
-      }
-
-      const createResponse = await fetch("/api/jobs", {
+      const res = await fetch(`/api/jobs/${jobId}/upload`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          note_type: noteType,
-        }),
+        body: form,
       });
 
-      const createPayload = (await createResponse.json().catch(() => null)) as
-        | { error?: string; job?: { id: string } }
-        | null;
-
-      if (!createResponse.ok || !createPayload?.job?.id) {
-        setError(createPayload?.error ?? "Failed to create job");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Upload failed" }));
+        setError(body.error || `Upload failed (${res.status})`);
         return;
       }
 
-      const uploadFormData = new FormData();
-      uploadFormData.set("file", file);
-
-      const uploadResponse = await fetch(
-        `/api/jobs/${createPayload.job.id}/upload`,
-        {
-          method: "POST",
-          body: uploadFormData,
-        },
-      );
-
-      const uploadPayload = (await uploadResponse.json().catch(() => null)) as
-        | { error?: string }
-        | null;
-
-      if (!uploadResponse.ok) {
-        setError(uploadPayload?.error ?? "Failed to upload audio");
-        return;
-      }
-
-      router.refresh();
+      const body = await res.json();
+      onUploaded(body.audio_storage_path);
+    } catch {
+      setError("Network error during upload");
     } finally {
-      setPending(false);
+      setUploading(false);
     }
   }
 
   return (
-    <section className="ql-panel" data-testid="audio-upload-panel">
-      <p className="ql-kicker">Audio Intake</p>
-      <h2 className="ql-panel-title">Upload Recording</h2>
-      <div className="ql-alert">
-        Uploading audio creates a queued job for this session and stores the file
-        in Supabase Storage for the next pipeline step.
-      </div>
+    <div
+      className="mt-3 p-3"
+      data-testid="audio-upload-panel"
+      style={{
+        border: "1px dashed #746EB1",
+        borderRadius: "2px",
+        backgroundColor: "#F9F9FF",
+      }}
+    >
+      <label
+        htmlFor={`audio-upload-${jobId}`}
+        className="flex cursor-pointer items-center justify-center gap-2 text-sm font-medium"
+        style={{
+          color: uploading ? "#777777" : "#517AB7",
+          cursor: uploading ? "not-allowed" : "pointer",
+        }}
+      >
+        {uploading ? (
+          <>
+            <span
+              className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
+              style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
+            />
+            Uploading {fileName}…
+          </>
+        ) : (
+          <>
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+            Upload audio file
+          </>
+        )}
+      </label>
 
-      {error ? (
-        <p
-          className="ql-alert ql-alert-error"
-          role="alert"
-          style={{ marginTop: 8 }}
-        >
+      <input
+        ref={inputRef}
+        id={`audio-upload-${jobId}`}
+        type="file"
+        accept={ACCEPTED_TYPES}
+        disabled={uploading}
+        onChange={handleFileChange}
+        className="sr-only"
+        data-testid="audio-file-input"
+      />
+
+      {error && (
+        <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
           {error}
         </p>
-      ) : null}
-
-      {hasActiveJob ? (
-        <p className="ql-alert ql-alert-warning" style={{ marginTop: 8 }}>
-          This session already has an active job. Cancel it before queuing another.
-        </p>
-      ) : null}
-
-      <form action={handleSubmit} className="ql-filter-row" style={{ marginTop: 12 }}>
-        <div className="ql-field" style={{ width: 160 }}>
-          <label className="ql-label" htmlFor="note_type">
-            Note Type
-          </label>
-          <select
-            id="note_type"
-            name="note_type"
-            defaultValue="soap"
-            disabled={hasActiveJob || pending}
-            className="ql-select"
-            data-testid="job-note-type"
-          >
-            {NOTE_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="ql-field" style={{ minWidth: 240, flex: "1 1 240px" }}>
-          <label className="ql-label" htmlFor="audio-file">
-            Recording File
-          </label>
-          <input
-            id="audio-file"
-            name="file"
-            type="file"
-            accept="audio/*,.webm"
-            disabled={hasActiveJob || pending}
-            className="ql-input"
-            data-testid="audio-file-input"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={hasActiveJob || pending}
-          className="ql-button"
-          style={{ marginTop: 17 }}
-          data-testid="queue-upload-button"
-        >
-          {pending ? "Uploading..." : "Queue Upload"}
-        </button>
-      </form>
-    </section>
+      )}
+    </div>
   );
 }

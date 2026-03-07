@@ -2,14 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { listMySessions } from "@/lib/sessions/queries";
-import { AppShell } from "@/components/layout/AppShell";
 import { CreateSessionForm } from "@/components/sessions/CreateSessionForm";
-import { CompactFilterBar } from "@/components/ui/CompactFilterBar";
-import { StatCard } from "@/components/ui/StatCard";
+import { AppShell } from "@/components/layout/AppShell";
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString();
-}
+/* Status → CareLogic-aligned chip class */
+const SESSION_STATUS_CHIP: Record<string, string> = {
+  active:    "chip-running",
+  completed: "chip-complete",
+  archived:  "chip-cancelled",
+};
 
 export default async function SessionsPage() {
   const result = await loadCurrentUser();
@@ -20,127 +21,99 @@ export default async function SessionsPage() {
 
   const { user } = result;
   const { data: sessions, error } = await listMySessions(user);
-  const activeCount = sessions.filter((session) => session.status === "active").length;
-  const completedCount = sessions.filter(
-    (session) => session.status === "completed",
-  ).length;
 
   return (
     <AppShell
-      title="Sessions"
-      subtitle={`${user.profile.display_name} | ${user.org.name}`}
-      displayName={user.profile.display_name}
-      orgName={user.org.name}
-      actions={
-        <Link href="/dashboard" className="ql-button-secondary">
-          Dashboard
-        </Link>
-      }
+      user={{
+        displayName: user.profile.display_name,
+        orgName: user.org.name,
+        role: user.role,
+      }}
     >
-      <div className="ql-grid ql-grid-3">
-        <StatCard label="Total" value={sessions.length} note="Session records" />
-        <StatCard label="Active" value={activeCount} note="Open work" />
-        <StatCard label="Completed" value={completedCount} note="Closed work" />
+      {/* Page header */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-base font-bold uppercase tracking-wider" style={{ color: "#517AB7" }}>
+            Sessions
+          </h1>
+          <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
+            {user.org.name} — {user.profile.display_name}
+          </p>
+        </div>
       </div>
 
+      {/* Create session form */}
       <CreateSessionForm />
 
-      <section className="ql-grid">
-        <CompactFilterBar>
-          <div className="ql-field" style={{ width: 220 }}>
-            <label className="ql-label" htmlFor="session-search">
-              Patient Label
-            </label>
-            <input
-              id="session-search"
-              className="ql-input"
-              defaultValue=""
-              placeholder="Filter current worklist"
-              readOnly
-            />
-          </div>
-          <div className="ql-field" style={{ width: 140 }}>
-            <label className="ql-label" htmlFor="session-status">
-              Status
-            </label>
-            <select id="session-status" className="ql-select" defaultValue="all" disabled>
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-          <div className="ql-field" style={{ width: 140 }}>
-            <label className="ql-label" htmlFor="session-type">
-              Type
-            </label>
-            <select id="session-type" className="ql-select" defaultValue="all" disabled>
-              <option value="all">All</option>
-              <option value="general">General</option>
-              <option value="intake">Intake</option>
-              <option value="follow-up">Follow-up</option>
-            </select>
-          </div>
-          <button className="ql-button-secondary" type="button">
-            Refresh
-          </button>
-        </CompactFilterBar>
+      {/* Error state */}
+      {error && (
+        <p className="mt-4 text-sm font-medium" style={{ color: "#CC2200" }}>
+          Failed to load sessions: {error}
+        </p>
+      )}
 
-        {error ? (
-          <div className="ql-alert ql-alert-error">
-            Failed to load sessions: {error}
-          </div>
-        ) : (
-          <div className="ql-table-wrap">
-            <table className="ql-table ql-table-dense">
-              <thead>
-                <tr>
-                  <th>Patient Label</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Updated</th>
-                  <th>Open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>No sessions yet. Create one above.</td>
-                  </tr>
-                ) : (
-                  sessions.map((session) => (
-                    <tr key={session.id}>
-                      <td>{session.patient_label || "Untitled session"}</td>
-                      <td>{session.session_type}</td>
-                      <td>
-                        <span
-                          className={[
-                            "ql-chip",
-                            session.status === "active"
-                              ? "is-active"
-                              : session.status === "completed"
-                                ? "is-complete"
-                                : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                        >
-                          {session.status}
-                        </span>
-                      </td>
-                      <td>{formatDateTime(session.created_at)}</td>
-                      <td>{formatDateTime(session.updated_at)}</td>
-                      <td>
-                        <Link href={`/sessions/${session.id}`}>Open Record</Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {/* Sessions table */}
+      <div className="mt-6 card-ql overflow-hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Patient Label</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.length === 0 && !error && (
+              <tr>
+                <td colSpan={5} className="text-center py-8" style={{ color: "#777777" }}>
+                  No sessions yet. Create one above.
+                </td>
+              </tr>
+            )}
+            {sessions.map((s) => (
+              <tr key={s.id}>
+                <td className="font-medium" style={{ color: "#0B1215" }}>
+                  {s.patient_label || "Untitled session"}
+                </td>
+                <td>
+                  <span
+                    className="inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
+                    style={{ backgroundColor: "#F0F0F0", color: "#333333" }}
+                  >
+                    {s.session_type}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                      SESSION_STATUS_CHIP[s.status] ?? "chip-cancelled"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                </td>
+                <td className="text-xs" style={{ color: "#777777" }}>
+                  {new Date(s.created_at).toLocaleString()}
+                </td>
+                <td className="text-right">
+                  <Link
+                    href={`/sessions/${s.id}`}
+                    className="text-xs font-semibold no-underline rounded-[2px] px-3 py-1"
+                    style={{
+                      color: "#517AB7",
+                      border: "1px solid #E7E9EC",
+                    }}
+                  >
+                    Open →
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </AppShell>
   );
 }

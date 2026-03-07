@@ -19,9 +19,9 @@
 
 ## Current State
 
-- **Milestone:** 0 (Foundation)
-- **Working features:** None yet — project not started
-- **Open decisions:** Auth method (magic link vs OAuth vs email+password)
+- **Milestone:** A (complete)
+- **Working features:** Magic link auth, dev-login bypass, session CRUD, job creation and polling, audio upload infrastructure, stub pipeline, transcript viewer, note editor, Copy for CareLogic, DOCX export, CareLogic-aligned workspace shell, and Milestone A E2E coverage
+- **Open decisions:** Milestone B execution work remains: real Whisper + Claude integration, kill switch behavior, and multi-provider rollout details
 
 ## Key Files
 

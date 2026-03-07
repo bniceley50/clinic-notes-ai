@@ -3,8 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Clinic Notes AI",
-  description:
-    "AI-powered clinical documentation for small clinics",
+  description: "AI-powered clinical documentation — CareLogic companion",
 };
 
 export default function RootLayout({
@@ -14,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      {/* Arial system font matches Qualifacts CareLogic exactly */}
+      <body style={{ fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif' }}>
+        {children}
+      </body>
     </html>
   );
 }

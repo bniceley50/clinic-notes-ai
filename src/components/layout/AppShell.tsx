@@ -1,36 +1,21 @@
-import { Header } from "@/components/layout/Header";
+import { Header, type NavUser } from "@/components/layout/Header";
 
-type AppShellProps = {
-  title: string;
-  subtitle?: string;
-  displayName?: string;
-  orgName?: string;
-  actions?: React.ReactNode;
+type Props = {
+  user: NavUser;
   children: React.ReactNode;
 };
 
-export function AppShell({
-  title,
-  subtitle,
-  displayName,
-  orgName,
-  actions,
-  children,
-}: AppShellProps) {
+/**
+ * AppShell — wraps authenticated pages with the CareLogic-aligned
+ * top-nav header + page content area. Drop this around any page's
+ * return value once the user is confirmed authenticated.
+ */
+export function AppShell({ user, children }: Props) {
   return (
-    <div className="ql-page-bg">
-      <Header displayName={displayName} orgName={orgName} />
-      <main className="ql-shell-main">
-        <div className="ql-page">
-          <div className="ql-title-row">
-            <div>
-              <h1 className="ql-title">{title}</h1>
-              {subtitle ? <p className="ql-subtitle">{subtitle}</p> : null}
-            </div>
-            {actions}
-          </div>
-          <div className="ql-grid">{children}</div>
-        </div>
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#F9F9F9" }}>
+      <Header user={user} />
+      <main className="flex-1 px-6 py-6" style={{ backgroundColor: "#F9F9F9" }}>
+        {children}
       </main>
     </div>
   );

@@ -20,22 +20,27 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
   );
 
   return (
-    <form action={action} className="ql-panel">
-      <p className="ql-kicker">Drafting</p>
-      <h2 className="ql-panel-title">Start Note Job</h2>
+    <form action={action} className="card-ql p-4">
       <input type="hidden" name="session_id" value={sessionId} />
 
-      <div className="ql-filter-row" style={{ marginTop: 12 }}>
-        <div className="ql-field" style={{ minWidth: 180, flex: "1 1 180px" }}>
-          <label htmlFor="note_type" className="ql-label">
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
+          <label
+            htmlFor="note_type"
+            className="block text-xs font-semibold mb-1"
+            style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
+          >
             Note Type
           </label>
           <select
             id="note_type"
             name="note_type"
+            data-testid="job-note-type"
             defaultValue="soap"
             disabled={hasActiveJob || pending}
-            className="ql-select"
+            className="input-ql disabled:opacity-50"
+            style={{ minWidth: "160px" }}
+            form=""
           >
             <option value="soap">SOAP</option>
             <option value="dap">DAP</option>
@@ -45,28 +50,26 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
             <option value="progress">Progress</option>
           </select>
         </div>
-        <button
-          type="submit"
-          disabled={hasActiveJob || pending}
-          className="ql-button"
-          style={{ marginTop: 17 }}
-        >
-          {pending ? "Creating..." : "Start Job"}
-        </button>
+
+        <div className="flex items-end">
+          <button
+            type="submit"
+            disabled={hasActiveJob || pending}
+            className="btn-ql"
+          >
+            {pending ? "Creating…" : "Start Job"}
+          </button>
+        </div>
       </div>
 
       {hasActiveJob && !state.error && (
-        <p className="ql-alert ql-alert-warning" style={{ marginTop: 8 }}>
-          This session already has an active job.
+        <p className="mt-2 text-xs font-medium" style={{ color: "#746EB1" }}>
+          This session already has an active job running.
         </p>
       )}
 
       {state.error && (
-        <p
-          className="ql-alert ql-alert-error"
-          role="alert"
-          style={{ marginTop: 8 }}
-        >
+        <p className="mt-2 text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
           {state.error}
         </p>
       )}

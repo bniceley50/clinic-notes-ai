@@ -14,18 +14,6 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AppUser } from "@/lib/auth/loader";
 
-export const ACTIVE_JOB_STATUSES = ["queued", "running"] as const;
-export const JOB_NOTE_TYPES = ["soap", "dap", "birp", "girp", "intake", "progress"] as const;
-
-export type JobStatus =
-  | "queued"
-  | "running"
-  | "complete"
-  | "failed"
-  | "cancelled";
-
-export type JobNoteType = (typeof JOB_NOTE_TYPES)[number];
-
 export type JobRow = {
   id: string;
   session_id: string;
@@ -43,6 +31,17 @@ export type JobRow = {
   created_at: string;
   updated_at: string;
 };
+
+export const JOB_NOTE_TYPES = [
+  "soap",
+  "dap",
+  "birp",
+  "girp",
+  "intake",
+  "progress",
+] as const;
+
+export type JobNoteType = (typeof JOB_NOTE_TYPES)[number];
 
 export type CreateJobInput = {
   session_id: string;
@@ -107,25 +106,6 @@ export async function getJobsForSession(
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
-export async function listQueuedJobs(): Promise<{
-  data: JobRow[];
-  error: string | null;
-}> {
-  const db = createServiceClient();
-
-  const { data, error } = await db
-    .from("jobs")
-    .select(JOB_COLUMNS)
-    .eq("status", "queued")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    return { data: [], error: error.message };
-  }
-
-  return { data: (data ?? []) as JobRow[], error: null };
-}
-
 export async function getActiveJobForSession(
   user: AppUser,
   sessionId: string,
@@ -138,7 +118,7 @@ export async function getActiveJobForSession(
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
     .eq("created_by", user.userId)
-    .in("status", [...ACTIVE_JOB_STATUSES])
+    .in("status", ["queued", "running"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -190,6 +170,25 @@ export async function getJobById(
   return data as JobRow;
 }
 
+export async function listQueuedJobs(): Promise<{
+  data: JobRow[];
+  error: string | null;
+}> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("status", "queued")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data ?? []) as JobRow[], error: null };
+}
+
 /**
  * Update worker-owned fields on a job. Only callable from the
  * backend worker endpoint — never from browser code.
@@ -204,73 +203,6 @@ export async function updateJobWorkerFields(
     .from("jobs")
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", jobId)
-    .select(JOB_COLUMNS)
-    .single();
-
-  if (error) {
-    return { data: null, error: error.message };
-  }
-
-  return { data: data as JobRow, error: null };
-}
-
-export async function setMyJobAudioPath(
-  user: AppUser,
-  jobId: string,
-  audioStoragePath: string,
-): Promise<{ data: JobRow | null; error: string | null }> {
-  const db = createServiceClient();
-
-  const { data, error } = await db
-    .from("jobs")
-    .update({
-      audio_storage_path: audioStoragePath,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", jobId)
-    .eq("org_id", user.orgId)
-    .eq("created_by", user.userId)
-    .select(JOB_COLUMNS)
-    .single();
-
-  if (error) {
-    return { data: null, error: error.message };
-  }
-
-  return { data: data as JobRow, error: null };
-}
-
-export async function cancelMyJob(
-  user: AppUser,
-  jobId: string,
-): Promise<{ data: JobRow | null; error: string | null }> {
-  const current = await getMyJob(user, jobId);
-  if (current.error || !current.data) {
-    return { data: null, error: current.error ?? "Job not found" };
-  }
-
-  if (current.data.status === "cancelled") {
-    return current;
-  }
-
-  if (!ACTIVE_JOB_STATUSES.includes(current.data.status as (typeof ACTIVE_JOB_STATUSES)[number])) {
-    return {
-      data: null,
-      error: `Only queued or running jobs can be cancelled (current: ${current.data.status})`,
-    };
-  }
-
-  const db = createServiceClient();
-
-  const { data, error } = await db
-    .from("jobs")
-    .update({
-      status: "cancelled",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", jobId)
-    .eq("org_id", user.orgId)
-    .eq("created_by", user.userId)
     .select(JOB_COLUMNS)
     .single();
 

@@ -1,685 +1,200 @@
 @import "tailwindcss";
 
-:root {
-  --ql-primary: #3b276a;
-  --ql-primary-soft: #746eb1;
-  --ql-teal: #17aa98;
-  --ql-teal-soft: #2fb7ab;
-  --ql-link: #0b68bb;
-  --ql-orange: #f36e47;
-  --ql-success: #3ac43a;
-  --ql-error: #ff0000;
-  --ql-border: #dee0e4;
-  --ql-border-strong: #c6ccd4;
-  --ql-bg-app: #f0f2f5;
-  --ql-bg-panel: #ffffff;
-  --ql-bg-subtle: #f9f9f9;
-  --ql-text: #222222;
-  --ql-text-muted: #5a5a5a;
-  --ql-radius: 2px;
-  --ql-nav-height: 32px;
-  --ql-subnav-height: 40px;
-  --ql-control-height: 28px;
-  --ql-row-height: 28px;
-  --ql-row-height-dense: 24px;
-  --ql-gap: 8px;
-  --ql-panel-padding: 12px;
-  --ql-cell-padding-y: 4px;
-  --ql-cell-padding-x: 8px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  background: var(--ql-bg-app);
-}
-
-body {
-  margin: 0;
-  background: var(--ql-bg-app);
-  color: var(--ql-text);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-a {
-  color: var(--ql-link);
-  text-decoration: none;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-.ql-page-bg {
-  min-height: 100vh;
-  background: var(--ql-bg-app);
-}
-
-.ql-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 12px 16px 18px;
-}
-
-.ql-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.ql-title {
-  margin: 0;
-  color: var(--ql-primary);
-  font-size: 20px;
-  line-height: 22px;
-  font-weight: 700;
-}
-
-.ql-subtitle {
-  margin: 2px 0 0;
-  color: var(--ql-text-muted);
-  font-size: 12px;
-}
-
-.ql-panel {
-  background: var(--ql-bg-panel);
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  padding: var(--ql-panel-padding);
-  box-shadow: none;
-}
-
-.ql-panel-title {
-  margin: 0 0 8px;
-  color: var(--ql-primary);
-  font-size: 18px;
-  line-height: 22px;
-  font-weight: 700;
-}
-
-.ql-section-title {
-  margin: 0 0 8px;
-  color: var(--ql-primary);
-  font-size: 14px;
-  line-height: 18px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.ql-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.ql-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.ql-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.ql-grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.ql-stat {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 62px;
-  background: var(--ql-bg-panel);
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  padding: 10px 12px;
-}
-
-.ql-stat-label {
-  color: var(--ql-text-muted);
-  font-size: 11px;
-  line-height: 14px;
-  text-transform: uppercase;
-}
-
-.ql-stat-value {
-  margin-top: 4px;
-  color: var(--ql-primary);
-  font-size: 22px;
-  line-height: 24px;
-  font-weight: 700;
-}
-
-.ql-stat-note {
-  margin-top: 3px;
-  color: var(--ql-text-muted);
-  font-size: 11px;
-}
-
-.ql-toolbar,
-.ql-filter-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--ql-gap);
-  background: var(--ql-bg-subtle);
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  padding: 8px;
-}
-
-.ql-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.ql-label {
-  color: var(--ql-text);
-  font-size: 11px;
-  line-height: 14px;
-  font-weight: 700;
-}
-
-.ql-input,
-.ql-select,
-.ql-button,
-.ql-button-secondary,
-.ql-button-link,
-.ql-checkbox,
-.ql-radio {
-  height: var(--ql-control-height);
-  border-radius: var(--ql-radius);
-}
-
-.ql-input,
-.ql-select,
-.ql-textarea {
-  width: 100%;
-  border: 1px solid var(--ql-border-strong);
-  background: #fff;
-  color: var(--ql-text);
-  padding: 0 8px;
-  outline: none;
-  box-shadow: none;
-}
-
-.ql-textarea {
-  min-height: 96px;
-  padding: 8px;
-  border-radius: var(--ql-radius);
-  resize: vertical;
-}
-
-.ql-input::placeholder,
-.ql-textarea::placeholder {
-  color: #7a7a7a;
-}
-
-.ql-input:focus,
-.ql-select:focus,
-.ql-textarea:focus {
-  border-color: var(--ql-link);
-}
-
-.ql-button,
-.ql-button-secondary,
-.ql-button-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: none;
-}
-
-.ql-button {
-  background: var(--ql-primary);
-  border-color: var(--ql-primary);
-  color: #fff;
-}
-
-.ql-button:hover {
-  background: #472f80;
-}
-
-.ql-button-secondary {
-  background: var(--ql-bg-panel);
-  border-color: var(--ql-border-strong);
-  color: var(--ql-primary);
-}
-
-.ql-button-link {
-  background: transparent;
-  border-color: transparent;
-  color: var(--ql-link);
-  padding: 0;
-  height: auto;
-  font-weight: 700;
-}
-
-.ql-button-orange {
-  background: var(--ql-orange);
-  border-color: var(--ql-orange);
-  color: #fff;
-}
-
-.ql-button:disabled,
-.ql-button-secondary:disabled,
-.ql-button-orange:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.ql-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 20px;
-  padding: 0 6px;
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  background: var(--ql-bg-subtle);
-  color: var(--ql-text);
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.ql-chip.is-active {
-  background: #eef7ee;
-  border-color: #bcdcbc;
-  color: #2c6a2c;
-}
-
-.ql-chip.is-complete {
-  background: #eef5fb;
-  border-color: #bdd4e9;
-  color: #285a8a;
-}
-
-.ql-chip.is-error {
-  background: #fff0f0;
-  border-color: #efc4c4;
-  color: #8f1f1f;
-}
-
-.ql-chip.is-running {
-  background: #f1effa;
-  border-color: #c9c0ea;
-  color: var(--ql-primary);
-}
-
-.ql-alert {
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  padding: 8px 10px;
-  background: #fff;
-}
-
-.ql-alert-warning {
-  border-color: #efc18f;
-  background: #fff8f0;
-  color: #7a4a13;
-}
-
-.ql-alert-error {
-  border-color: #efc4c4;
-  background: #fff2f2;
-  color: #8f1f1f;
-}
-
-.ql-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  overflow: hidden;
-}
-
-.ql-meta-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: var(--ql-row-height);
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--ql-border);
-  background: #fff;
-}
-
-.ql-meta-item:nth-child(odd) {
-  border-right: 1px solid var(--ql-border);
-}
-
-.ql-meta-item:nth-last-child(-n + 2) {
-  border-bottom: 0;
-}
-
-.ql-meta-label {
-  color: var(--ql-text-muted);
-  font-weight: 700;
-}
-
-.ql-meta-value {
-  color: var(--ql-text);
-  text-align: right;
-}
-
-.ql-table-wrap {
-  overflow-x: auto;
-  background: var(--ql-bg-panel);
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-}
-
-.ql-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.ql-table thead th {
-  height: 28px;
-  background: var(--ql-bg-subtle);
-  border-bottom: 1px solid var(--ql-border);
-  color: var(--ql-primary);
-  font-weight: 700;
-  text-align: left;
-  padding: var(--ql-cell-padding-y) var(--ql-cell-padding-x);
-  white-space: nowrap;
-}
-
-.ql-table tbody td {
-  min-height: var(--ql-row-height);
-  border-bottom: 1px solid var(--ql-border);
-  padding: var(--ql-cell-padding-y) var(--ql-cell-padding-x);
-  vertical-align: middle;
-}
-
-.ql-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.ql-table tbody tr:hover {
-  background: #f7f9fb;
-}
-
-.ql-table-dense thead th,
-.ql-table-dense tbody td {
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
-
-.ql-note-shell {
-  display: grid;
-  gap: 10px;
-}
-
-.ql-note-header {
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  background: var(--ql-bg-subtle);
-  padding: 8px 10px;
-}
-
-.ql-note-copy {
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  background: #fff;
-  padding: 10px;
-  white-space: pre-wrap;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.ql-note-section {
-  border-top: 1px solid var(--ql-border);
-  padding-top: 8px;
-}
-
-.ql-note-section:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.ql-copy-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ql-login-page {
-  min-height: 100vh;
-  background: linear-gradient(to bottom, var(--ql-primary) 0 52px, var(--ql-teal-soft) 52px 252px, #efefef 252px 100%);
-}
-
-.ql-login-shell {
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 72px 20px 24px;
-}
-
-.ql-login-card {
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  background: #fff;
-  padding: 18px;
-}
-
-.ql-login-brand {
-  color: #fff;
-  font-size: 20px;
-  line-height: 24px;
-  font-weight: 700;
-}
-
-.ql-login-hero {
-  color: #fff;
-  font-size: 18px;
-  line-height: 22px;
-  font-weight: 700;
-  margin: 32px 0 28px;
-}
-
-.ql-app-header {
-  background: var(--ql-primary);
-  border-bottom: 1px solid #2a1d4b;
-  color: #fff;
-}
-
-.ql-app-header-inner {
-  max-width: 1280px;
-  height: var(--ql-nav-height);
-  margin: 0 auto;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.ql-brand {
-  color: #fff;
-  font-size: 14px;
-  line-height: 16px;
-  font-weight: 700;
-}
-
-.ql-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #f1effa;
-  font-size: 11px;
-}
-
-.ql-nav {
-  background: #fff;
-  border-bottom: 1px solid var(--ql-border);
-}
-
-.ql-nav-inner {
-  max-width: 1280px;
-  min-height: var(--ql-subnav-height);
-  margin: 0 auto;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.ql-nav-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.ql-nav-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: var(--ql-radius);
-  color: var(--ql-primary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.ql-nav-link.is-active {
-  background: var(--ql-primary-soft);
-  border-color: var(--ql-primary-soft);
-  color: #fff;
-}
-
-.ql-shell-main {
-  padding-bottom: 16px;
-}
-
-.ql-kicker {
-  color: var(--ql-text-muted);
-  font-size: 11px;
-  line-height: 14px;
-  text-transform: uppercase;
-}
-
-.ql-chart-box {
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  background: #fff;
-  padding: 10px;
-}
-
-.ql-chart-bars {
-  display: flex;
-  align-items: end;
-  gap: 8px;
-  height: 140px;
-  margin-top: 12px;
-}
-
-.ql-chart-bar {
-  flex: 1;
-  border: 1px solid #86c686;
-  background: linear-gradient(to top, #6fcb6f, var(--ql-success));
-}
-
-.ql-agenda {
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--ql-border);
-  border-radius: var(--ql-radius);
-  overflow: hidden;
-  background: #fff;
-}
-
-.ql-agenda-row {
-  display: grid;
-  grid-template-columns: 76px 1fr 110px;
-  min-height: var(--ql-row-height);
-  border-bottom: 1px solid var(--ql-border);
-}
-
-.ql-agenda-row:last-child {
-  border-bottom: 0;
-}
-
-.ql-agenda-row.is-today {
-  background: #f7f6fc;
-}
-
-.ql-agenda-cell {
-  padding: 6px 8px;
-  border-right: 1px solid var(--ql-border);
-}
-
-.ql-agenda-cell:last-child {
-  border-right: 0;
-}
-
-.ql-mono {
-  font-family: "Courier New", Courier, monospace;
-}
-
-@media (max-width: 960px) {
-  .ql-grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ============================================================
+   QUALIFACTS CARELOGIC DESIGN SYSTEM
+   Extracted live from login.qualifacts.org — 2026-03-04
+   ============================================================ */
+
+@theme {
+  /* ── Core Brand Palette ───────────────────────────────── */
+  --color-primary:        #3B276A;  /* Deep purple — buttons, banner, CTAs   */
+  --color-primary-hover:  #4D3880;  /* Hover state for primary               */
+  --color-secondary:      #746EB1;  /* Medium purple — active nav, accents   */
+  --color-secondary-hover:#8580C4;  /* Hover for secondary                   */
+  --color-accent:         #517AB7;  /* CareLogic blue — links, headings      */
+  --color-teal:           #00B0A0;  /* Teal — secondary highlights           */
+  --color-alert:          #CC2200;  /* Alert red — errors, warnings (toned)  */
+  --color-success:        #2E7D32;  /* Success green                         */
+  --color-chart-green:    #4CAF50;  /* Chart fill — positive indicators      */
+
+  /* ── Backgrounds ─────────────────────────────────────── */
+  --color-nav-bg:         #F9F9F9;  /* Navigation bar background             */
+  --color-row-alt:        #F0F0F0;  /* Alternating table rows                */
+  --color-surface:        #FFFFFF;  /* Cards, panels, content                */
+
+  /* ── Text ────────────────────────────────────────────── */
+  --color-text-body:      #333333;  /* Primary body text                     */
+  --color-text-dark:      #0B1215;  /* Nav items, bold headings              */
+  --color-text-muted:     #777777;  /* Secondary labels, timestamps          */
+  --color-text-heading:   #517AB7;  /* Section headings (CareLogic blue)     */
+
+  /* ── Borders ─────────────────────────────────────────── */
+  --color-border-subtle:  #E7E9EC;  /* Card & panel borders                  */
+  --color-border-table:   #D0D0D0;  /* Table cell borders                    */
+
+  /* ── Status Chips ────────────────────────────────────── */
+  --color-status-queued-bg:    #FFF8E7;
+  --color-status-queued-text:  #3B276A;
+  --color-status-running-bg:   #EEF2FF;
+  --color-status-running-text: #746EB1;
+  --color-status-complete-bg:  #E8F5E9;
+  --color-status-complete-text:#2E7D32;
+  --color-status-failed-bg:    #FFF0EE;
+  --color-status-failed-text:  #CC2200;
+  --color-status-cancel-bg:    #F9F9F9;
+  --color-status-cancel-text:  #777777;
+
+  /* ── Typography ──────────────────────────────────────── */
+  --font-sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+
+  /* ── Spacing scale (slightly more comfortable than CareLogic) ── */
+  --spacing-nav-banner: 32px;
+  --spacing-nav-bar:    64px;
+}
+
+/* ── Base Overrides ─────────────────────────────────────── */
+@layer base {
+  html {
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 14px;
+    color: #333333;
+    background-color: #F9F9F9;
   }
 
-  .ql-grid-3,
-  .ql-grid-2,
-  .ql-meta-grid {
-    grid-template-columns: 1fr;
+  body {
+    min-height: 100vh;
+    background-color: #F9F9F9;
   }
 
-  .ql-meta-item,
-  .ql-meta-item:nth-child(odd) {
-    border-right: 0;
+  /* Section headings match CareLogic's blue heading style */
+  h1, h2, h3 {
+    color: #517AB7;
+    font-weight: 700;
+  }
+
+  h4, h5, h6 {
+    color: #333333;
+    font-weight: 600;
+  }
+
+  /* Links */
+  a {
+    color: #517AB7;
+  }
+  a:hover {
+    color: #3B276A;
+    text-decoration: underline;
+  }
+
+  /* Focus rings — purple instead of blue */
+  *:focus-visible {
+    outline: 2px solid #746EB1;
+    outline-offset: 2px;
+  }
+
+  /* Table base */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+  }
+
+  th {
+    background-color: #F0F0F0;
+    color: #333333;
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #D0D0D0;
+  }
+
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #E7E9EC;
+    color: #333333;
+  }
+
+  tr:nth-child(even) td {
+    background-color: #F9F9F9;
+  }
+
+  tr:hover td {
+    background-color: #EEF2FF;
   }
 }
 
-@media (max-width: 720px) {
-  .ql-page {
-    padding: 10px;
+/* ── Utility Classes ────────────────────────────────────── */
+@layer utilities {
+  /* CareLogic-style flat button */
+  .btn-ql {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #3B276A;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 5px 16px;
+    border-radius: 2px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .btn-ql:hover:not(:disabled) {
+    background-color: #4D3880;
+  }
+  .btn-ql:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
-  .ql-title-row,
-  .ql-nav-inner,
-  .ql-app-header-inner,
-  .ql-copy-row {
-    align-items: flex-start;
-    flex-direction: column;
+  /* Ghost/secondary button */
+  .btn-ql-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: #3B276A;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 5px 16px;
+    border-radius: 2px;
+    border: 1px solid #746EB1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-ql-ghost:hover:not(:disabled) {
+    background-color: #EEF2FF;
   }
 
-  .ql-agenda-row {
-    grid-template-columns: 64px 1fr;
+  /* CareLogic card — flat, bordered, no shadow */
+  .card-ql {
+    background-color: #ffffff;
+    border: 1px solid #E7E9EC;
+    border-radius: 2px;
   }
 
-  .ql-agenda-cell:last-child {
-    grid-column: 1 / -1;
-    border-right: 0;
-    border-top: 1px solid var(--ql-border);
+  /* CareLogic input */
+  .input-ql {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #D0D0D0;
+    border-radius: 2px;
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #333333;
+    transition: border-color 0.15s ease;
   }
+  .input-ql:focus {
+    outline: none;
+    border-color: #746EB1;
+    box-shadow: 0 0 0 2px rgba(116, 110, 177, 0.2);
+  }
+
+  /* Status chips */
+  .chip-queued    { background-color: #FFF8E7; color: #3B276A;   border: 1px solid #CCCCB4; }
+  .chip-running   { background-color: #EEF2FF; color: #746EB1;   border: 1px solid #C5C0E8; }
+  .chip-complete  { background-color: #E8F5E9; color: #2E7D32;   border: 1px solid #C8E6C9; }
+  .chip-failed    { background-color: #FFF0EE; color: #CC2200;   border: 1px solid #FFCDD2; }
+  .chip-cancelled { background-color: #F9F9F9; color: #777777;   border: 1px solid #E0E0E0; }
 }

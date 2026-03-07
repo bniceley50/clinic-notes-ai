@@ -1,14 +1,31 @@
+import "server-only";
+
+/**
+ * POST /api/jobs/[id]/upload
+ *
+ * Upload audio file bound to an existing job. The provider must own
+ * the job (verified via org_id + created_by). The file is stored in
+ * Supabase Storage at: audio/{orgId}/{sessionId}/{jobId}/{filename}
+ *
+ * After upload, audio_storage_path is set on the job row via the
+ * service client. This keeps the path write server-side only.
+ *
+ * Constraints:
+ *   - Job must exist and belong to the authenticated user
+ *   - Job must be in queued or running state (not terminal)
+ *   - audio_storage_path must not already be set (no overwrite)
+ *   - File must be present and have an audio/* MIME type
+ *   - Max size enforced by the storage bucket (50 MiB)
+ */
+
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
-import { createServiceClient } from "@/lib/supabase/server";
-import { getMyJob, setMyJobAudioPath } from "@/lib/jobs/queries";
-import {
-  buildAudioStoragePath,
-  ensureAudioBucket,
-  AUDIO_BUCKET,
-} from "@/lib/jobs/storage";
+import { getMyJob } from "@/lib/jobs/queries";
+import { uploadAudioForJob } from "@/lib/storage/audio";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
 
 export async function POST(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
@@ -17,66 +34,68 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await ctx.params;
-  const current = await getMyJob(result.user, id);
+  const { user } = result;
+  const { id: jobId } = await ctx.params;
 
-  if (current.error || !current.data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { data: job, error: jobError } = await getMyJob(user, jobId);
+
+  if (jobError || !job) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  if (current.data.status === "cancelled") {
+  if (TERMINAL_STATUSES.has(job.status)) {
     return NextResponse.json(
-      { error: "Cancelled jobs cannot accept uploads" },
+      { error: `Cannot upload to a ${job.status} job` },
+      { status: 409 },
+    );
+  }
+
+  if (job.audio_storage_path) {
+    return NextResponse.json(
+      { error: "Audio already uploaded for this job" },
       { status: 409 },
     );
   }
 
   const formData = await request.formData().catch(() => null);
-  const file = formData?.get("file");
-
-  if (!(file instanceof File) || file.size === 0) {
+  if (!formData) {
     return NextResponse.json(
-      { error: "A non-empty audio file is required" },
+      { error: "Expected multipart form data" },
       { status: 400 },
     );
   }
 
-  const bucket = await ensureAudioBucket();
-  if (bucket.error) {
+  const file = formData.get("file");
+  if (!file || !(file instanceof File)) {
     return NextResponse.json(
-      { error: "Failed to prepare audio bucket" },
-      { status: 500 },
+      { error: "Missing file field" },
+      { status: 400 },
     );
   }
 
-  const audioStoragePath = buildAudioStoragePath({
-    orgId: result.user.orgId,
-    sessionId: current.data.session_id,
-    jobId: current.data.id,
+  if (!file.type.startsWith("audio/")) {
+    return NextResponse.json(
+      { error: `Invalid file type: ${file.type}. Expected audio/*` },
+      { status: 422 },
+    );
+  }
+
+  const { storagePath, error: uploadError } = await uploadAudioForJob({
+    orgId: user.orgId,
+    sessionId: job.session_id,
+    jobId: job.id,
+    file,
   });
 
-  const db = createServiceClient();
-  const { error: uploadError } = await db.storage
-    .from(AUDIO_BUCKET)
-    .upload(audioStoragePath, file, {
-      contentType: file.type || "audio/webm",
-      upsert: true,
-    });
-
-  if (uploadError) {
+  if (uploadError || !storagePath) {
     return NextResponse.json(
-      { error: "Failed to upload audio" },
+      { error: uploadError ?? "Upload failed" },
       { status: 500 },
     );
   }
 
-  const updated = await setMyJobAudioPath(result.user, current.data.id, audioStoragePath);
-  if (updated.error || !updated.data) {
-    return NextResponse.json(
-      { error: updated.error ?? "Failed to update job" },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({ job: updated.data });
+  return NextResponse.json({
+    job_id: job.id,
+    audio_storage_path: storagePath,
+  });
 }
