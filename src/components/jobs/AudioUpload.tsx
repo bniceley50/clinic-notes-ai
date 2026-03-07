@@ -65,6 +65,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
   return (
     <div
       className="mt-3 p-3"
+      data-testid="audio-upload-panel"
       style={{
         border: "1px dashed #746EB1",
         borderRadius: "2px",
@@ -115,6 +116,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
         disabled={uploading}
         onChange={handleFileChange}
         className="sr-only"
+        data-testid="audio-file-input"
       />
 
       {error && (

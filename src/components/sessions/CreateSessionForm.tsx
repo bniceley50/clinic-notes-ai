@@ -15,7 +15,7 @@ export function CreateSessionForm() {
   );
 
   return (
-    <form action={action} className="card-ql p-5 mt-6">
+    <form action={action} className="card-ql p-5 mt-6" data-testid="create-session-form">
       <h2
         className="text-xs font-bold uppercase tracking-wider mb-4"
         style={{ color: "#517AB7" }}
@@ -45,6 +45,7 @@ export function CreateSessionForm() {
             required
             placeholder="e.g. Patient A"
             className="input-ql"
+            data-testid="session-patient-label"
           />
         </div>
 
@@ -61,6 +62,7 @@ export function CreateSessionForm() {
             name="session_type"
             defaultValue="general"
             className="input-ql"
+            data-testid="session-type-select"
           >
             <option value="general">General</option>
             <option value="intake">Intake</option>
@@ -73,6 +75,7 @@ export function CreateSessionForm() {
         type="submit"
         disabled={pending}
         className="btn-ql mt-4"
+        data-testid="create-session-submit"
       >
         {pending ? "Creating…" : "Create Session"}
       </button>

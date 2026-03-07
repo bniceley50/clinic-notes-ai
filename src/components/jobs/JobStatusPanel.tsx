@@ -113,14 +113,18 @@ export function JobStatusPanel({ initialJobs }: Props) {
 
   if (state.jobs.length === 0) {
     return (
-      <p className="mt-6 text-center text-sm" style={{ color: "#777777" }}>
+      <p
+        className="mt-6 text-center text-sm"
+        style={{ color: "#777777" }}
+        data-testid="job-status-panel"
+      >
         No jobs yet. Start one above.
       </p>
     );
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 space-y-3" data-testid="job-status-panel">
       {state.jobs.map((job) => (
         <div key={job.id} className="card-ql p-4">
 
@@ -133,6 +137,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
               className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
                 JOB_STATUS_CHIP[job.status] ?? "chip-cancelled"
               }`}
+              data-testid="job-status-chip"
             >
               {job.status}
             </span>
@@ -143,7 +148,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             <div className="mt-3">
               <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#777777" }}>
                 <span className="uppercase tracking-wide">{job.stage}</span>
-                <span>{job.progress}%</span>
+                <span data-testid="job-progress">{job.progress}%</span>
               </div>
               <div
                 className="h-1.5 w-full rounded-[2px]"
@@ -164,7 +169,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {!ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
               <span>Stage: <span className="font-medium">{job.stage}</span></span>
-              <span>Progress: <span className="font-medium">{job.progress}%</span></span>
+              <span>Progress: <span className="font-medium" data-testid="job-progress">{job.progress}%</span></span>
               {job.attempt_count > 1 && (
                 <span>Attempts: <span className="font-medium">{job.attempt_count}</span></span>
               )}

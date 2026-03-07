@@ -35,6 +35,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
           <select
             id="note_type"
             name="note_type"
+            data-testid="job-note-type"
             defaultValue="soap"
             disabled={hasActiveJob || pending}
             className="input-ql disabled:opacity-50"

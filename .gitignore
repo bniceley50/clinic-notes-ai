@@ -25,6 +25,9 @@ build/
 
 # supabase
 /supabase/.temp
+supabase.exe
+supabase.tar.gz
+*.tar.gz
 
 # artifacts (legacy — should not exist, using Supabase Storage)
 .artifacts/

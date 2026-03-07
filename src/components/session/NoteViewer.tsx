@@ -139,7 +139,7 @@ export function NoteViewer({
   };
 
   return (
-    <div className="card-ql">
+    <div className="card-ql" data-testid="clinical-note-viewer">
 
       {/* ── Header bar ──────────────────────────────────── */}
       <div
@@ -207,7 +207,7 @@ export function NoteViewer({
 
       {/* ── Note body — sectioned ───────────────────────── */}
       {hasContent ? (
-        <div className="divide-y" style={{ borderColor: "#E7E9EC" }}>
+        <div className="divide-y" style={{ borderColor: "#E7E9EC" }} data-testid="clinical-note-content">
           {sections.map((section) => (
             <div key={section.heading}>
               {/* Section header strip */}
