@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 const notes = [
   { id: '1', session_id: 's1', org_id: 'org1', user_id: 'user-a', content: 'Note A' },

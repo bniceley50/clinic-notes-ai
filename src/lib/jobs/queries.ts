@@ -26,17 +26,30 @@ export type JobRow = {
   attempt_count: number;
   error_message: string | null;
   audio_storage_path: string | null;
+  transcript_storage_path: string | null;
+  draft_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
 
+export const JOB_NOTE_TYPES = [
+  "soap",
+  "dap",
+  "birp",
+  "girp",
+  "intake",
+  "progress",
+] as const;
+
+export type JobNoteType = (typeof JOB_NOTE_TYPES)[number];
+
 export type CreateJobInput = {
   session_id: string;
-  note_type?: "soap" | "dap" | "birp" | "girp" | "intake" | "progress";
+  note_type?: JobNoteType;
 };
 
 const JOB_COLUMNS =
-  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, audio_storage_path, created_at, updated_at";
+  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, audio_storage_path, transcript_storage_path, draft_storage_path, created_at, updated_at";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -93,6 +106,30 @@ export async function getJobsForSession(
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
+export async function getActiveJobForSession(
+  user: AppUser,
+  sessionId: string,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("session_id", sessionId)
+    .eq("org_id", user.orgId)
+    .eq("created_by", user.userId)
+    .in("status", ["queued", "running"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as JobRow | null, error: null };
+}
+
 export async function getMyJob(
   user: AppUser,
   jobId: string,
@@ -131,6 +168,25 @@ export async function getJobById(
 
   if (error) return null;
   return data as JobRow;
+}
+
+export async function listQueuedJobs(): Promise<{
+  data: JobRow[];
+  error: string | null;
+}> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("status", "queued")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data ?? []) as JobRow[], error: null };
 }
 
 /**
