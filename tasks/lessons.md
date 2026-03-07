@@ -12,3 +12,10 @@ of any key lookup. Never assume call-site casing.
 current type signature. Tests used string arg; function expected TranscriptSeed object.
 **Rule:** Always read the current function signature before writing tests 
 against it. Never assume a stub interface matches its original spec.
+### 2026-03-07 — Supabase CLI tar extraction corrupted project files
+**Pattern:** tar -xzf supabase.tar.gz run from repo root extracted 
+Supabase CLI README.md and LICENSE over project files.
+**Rule:** Always extract CLI tools to a temp directory outside the repo.
+Never run tar extraction from inside the project root.
+Add supabase.exe, supabase.tar.gz, *.tar.gz to .gitignore immediately 
+after any manual download.
