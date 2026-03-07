@@ -9,7 +9,6 @@ const STATIC_ASSET_PATTERN =
   /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot|map)$/;
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname === "/") return true;
   return PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
@@ -19,7 +18,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Worker endpoint uses bearer token auth in-route, not cookie session auth.
-  if (/^\/api\/jobs\/[^/]+\/worker$/.test(pathname)) {
+  if (
+    /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
+    pathname === "/api/jobs/runner"
+  ) {
     return NextResponse.next();
   }
 
