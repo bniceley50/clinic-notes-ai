@@ -82,7 +82,7 @@ export function AudioUpload({ sessionId, hasActiveJob }: Props) {
   }
 
   return (
-    <section className="ql-panel">
+    <section className="ql-panel" data-testid="audio-upload-panel">
       <p className="ql-kicker">Audio Intake</p>
       <h2 className="ql-panel-title">Upload Recording</h2>
       <div className="ql-alert">
@@ -117,6 +117,7 @@ export function AudioUpload({ sessionId, hasActiveJob }: Props) {
             defaultValue="soap"
             disabled={hasActiveJob || pending}
             className="ql-select"
+            data-testid="job-note-type"
           >
             {NOTE_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -136,6 +137,7 @@ export function AudioUpload({ sessionId, hasActiveJob }: Props) {
             accept="audio/*,.webm"
             disabled={hasActiveJob || pending}
             className="ql-input"
+            data-testid="audio-file-input"
           />
         </div>
         <button
@@ -143,6 +145,7 @@ export function AudioUpload({ sessionId, hasActiveJob }: Props) {
           disabled={hasActiveJob || pending}
           className="ql-button"
           style={{ marginTop: 17 }}
+          data-testid="queue-upload-button"
         >
           {pending ? "Uploading..." : "Queue Upload"}
         </button>

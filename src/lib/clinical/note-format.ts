@@ -14,7 +14,7 @@ export function buildNoteHeaderLines(input: NoteHeaderInput): string[] {
     `${getNoteTypeLabel(input.noteType)} — ${input.dateLabel}`,
     `PATIENT LABEL: ${input.patientLabel}`,
     `PROVIDER: ${input.providerName}`,
-    "SOURCE: CLINIC NOTES AI | AI-GENERATED — REVIEW REQUIRED",
+    "SOURCE: CLINIC NOTES AI | AI-GENERATED - REVIEW REQUIRED",
   ];
 }
 

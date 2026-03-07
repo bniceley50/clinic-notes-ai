@@ -150,7 +150,7 @@ export function NoteWorkspace({
 
   return (
     <div className="ql-grid">
-      <section className="ql-panel">
+      <section className="ql-panel" data-testid="note-workspace">
         <div className="ql-copy-row">
           <div>
             <p className="ql-kicker">Draft Controls</p>
@@ -165,6 +165,7 @@ export function NoteWorkspace({
                   current === "preview" ? "edit" : "preview",
                 )
               }
+              data-testid="edit-note-button"
             >
               {mode === "preview" ? "Edit Note" : "Preview Note"}
             </button>
@@ -173,6 +174,7 @@ export function NoteWorkspace({
               className="ql-button"
               disabled={!dirty || pendingSave}
               onClick={() => void saveContent()}
+              data-testid="save-note-button"
             >
               {pendingSave ? "Saving..." : "Save Changes"}
             </button>
@@ -180,6 +182,7 @@ export function NoteWorkspace({
               type="button"
               className="ql-button-secondary"
               onClick={() => void handleCopy()}
+              data-testid="copy-note-button"
             >
               {copyState === "copied" ? "Copied!" : "Copy for CareLogic"}
             </button>
@@ -188,6 +191,7 @@ export function NoteWorkspace({
               className="ql-button-secondary"
               disabled={exporting}
               onClick={() => void handleExport()}
+              data-testid="export-note-button"
             >
               {exporting ? "Exporting..." : "Export .docx"}
             </button>
@@ -204,7 +208,9 @@ export function NoteWorkspace({
             fontSize: 11,
           }}
         >
-          <span>{dirty ? "Unsaved changes" : "All changes saved"}</span>
+          <span data-testid="note-save-state">
+            {dirty ? "Unsaved changes" : "All changes saved"}
+          </span>
           <span>Last saved: {new Date(lastSavedAt).toLocaleString()}</span>
         </div>
 
@@ -223,6 +229,7 @@ export function NoteWorkspace({
               id="note-editor"
               value={draftContent}
               onChange={(event) => setDraftContent(event.target.value)}
+              data-testid="note-editor"
               style={{
                 width: "100%",
                 minHeight: 320,
