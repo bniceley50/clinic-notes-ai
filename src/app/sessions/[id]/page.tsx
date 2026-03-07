@@ -3,9 +3,14 @@ import Link from "next/link";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMySession } from "@/lib/sessions/queries";
 import { getJobsForSession } from "@/lib/jobs/queries";
+import {
+  getLatestNoteForSession,
+  getLatestTranscriptForSession,
+} from "@/lib/clinical/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
-import { NoteViewer } from "@/components/session/NoteViewer";
+import { NoteWorkspace } from "@/components/session/NoteWorkspace";
+import { TranscriptViewer } from "@/components/session/TranscriptViewer";
 import { AppShell } from "@/components/layout/AppShell";
 
 type Props = {
@@ -32,13 +37,14 @@ export default async function SessionDetailPage({ params }: Props) {
   if (error || !session) notFound();
 
   const { data: jobs } = await getJobsForSession(user, id);
+  const [noteResult, transcriptResult] = await Promise.all([
+    getLatestNoteForSession(user, id),
+    getLatestTranscriptForSession(user, id),
+  ]);
+  const note = noteResult.data;
+  const transcript = transcriptResult.data;
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
-  );
-
-  // Most recent completed job with note output
-  const completedJob = jobs.find(
-    (j) => j.status === "complete" || j.status === "completed",
   );
 
   return (
@@ -173,16 +179,33 @@ export default async function SessionDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Right: Note viewer */}
-        <div>
-          <NoteViewer
-            content={completedJob ? "" : ""}
-            noteType={completedJob?.note_type ?? "soap"}
-            sessionDate={new Date(session.created_at).toLocaleDateString()}
-            patientLabel={session.patient_label ?? "Untitled"}
-            providerName={user.profile.display_name}
-            reviewed={false}
-          />
+        {/* Right: Transcript + note workspace */}
+        <div className="space-y-4">
+          {transcript && (
+            <TranscriptViewer transcript={transcript.content} />
+          )}
+
+          {note ? (
+            <NoteWorkspace
+              sessionId={session.id}
+              noteId={note.id}
+              noteType={note.note_type}
+              sessionType={session.session_type ?? "general"}
+              sessionCreatedAt={session.created_at}
+              sessionDate={new Date(session.created_at).toLocaleDateString()}
+              patientLabel={session.patient_label ?? "Untitled"}
+              providerName={user.profile.display_name}
+              initialContent={note.content}
+              initialUpdatedAt={note.updated_at}
+            />
+          ) : (
+            <div
+              className="card-ql p-6 text-center text-sm"
+              style={{ color: "#777777" }}
+            >
+              No note generated yet. Upload audio to generate a note.
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

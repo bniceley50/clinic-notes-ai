@@ -26,7 +26,16 @@ test("Milestone A core loop happy path", async ({
   ]);
 
   await expect(page).toHaveURL(/\/sessions\//, { timeout: 15_000 });
-  // TODO: audio upload → job processing → note viewing assertions
-  // Activate when AudioUpload, JobStatusPanel, NoteViewer are
-  // fully wired into session detail page with real job pipeline
+
+  // TODO: audio upload → job processing assertions
+  // Activate when AudioUpload is wired into session detail page
+  // and job pipeline is connected end to end
+
+  // TODO: transcript viewer assertions
+  // Activate when audio upload → job pipeline is wired
+  // TranscriptViewer renders when transcript data exists
+
+  // TODO: note viewer assertions
+  // Activate when audio upload → job pipeline is wired
+  // NoteWorkspace renders when note data exists
 });
