@@ -28,7 +28,10 @@ export function NoteViewer({
   });
 
   return (
-    <section className="ql-panel ql-note-shell">
+    <section
+      className="ql-panel ql-note-shell"
+      data-testid="clinical-note-viewer"
+    >
       <div className="ql-copy-row">
         <div>
           <p className="ql-kicker">Documentation</p>
@@ -50,6 +53,7 @@ export function NoteViewer({
 
       <pre
         className="ql-note-copy"
+        data-testid="clinical-note-content"
         style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}
       >
         {content?.trim() || "No note content available."}

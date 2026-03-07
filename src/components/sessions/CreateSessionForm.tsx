@@ -41,7 +41,7 @@ export function CreateSessionForm() {
   }
 
   return (
-    <form action={handleSubmit} className="ql-panel">
+    <form action={handleSubmit} className="ql-panel" data-testid="create-session-form">
       <p className="ql-kicker">Create</p>
       <h2 className="ql-panel-title">New Session</h2>
 
@@ -63,6 +63,7 @@ export function CreateSessionForm() {
             required
             placeholder="e.g. Patient A"
             className="ql-input"
+            data-testid="session-patient-label"
           />
         </div>
         <div className="ql-field" style={{ width: 160 }}>
@@ -74,6 +75,7 @@ export function CreateSessionForm() {
             name="session_type"
             defaultValue="general"
             className="ql-select"
+            data-testid="session-type-select"
           >
             <option value="general">General</option>
             <option value="intake">Intake</option>
@@ -85,6 +87,7 @@ export function CreateSessionForm() {
           disabled={pending}
           className="ql-button"
           style={{ marginTop: 17 }}
+          data-testid="create-session-submit"
         >
           {pending ? "Creating..." : "Create Session"}
         </button>

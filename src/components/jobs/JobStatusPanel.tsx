@@ -190,20 +190,21 @@ export function JobStatusPanel({ initialJobs }: Props) {
   }
 
   return (
-    <div className="ql-grid">
+    <div className="ql-grid" data-testid="job-status-panel">
       {error ? (
         <p className="ql-alert ql-alert-error" role="alert">
           {error}
         </p>
       ) : null}
       {jobs.map((job) => (
-        <div key={job.id} className="ql-panel">
+        <div key={job.id} className="ql-panel" data-testid="job-card">
           <div className="ql-copy-row">
             <span className="ql-section-title" style={{ margin: 0 }}>
               {job.note_type}
             </span>
             <span
               className={JOB_STATUS_STYLE[job.status] ?? "ql-chip"}
+              data-testid="job-status-chip"
             >
               {job.status}
             </span>
@@ -216,7 +217,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
                 style={{ color: "var(--ql-text-muted)", fontSize: 11, marginBottom: 4 }}
               >
                 <span>{job.stage}</span>
-                <span>{job.progress}%</span>
+                <span data-testid="job-progress">{job.progress}%</span>
               </div>
               <div
                 style={{
@@ -250,7 +251,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
               }}
             >
               <span>Stage: {job.stage}</span>
-              <span>Progress: {job.progress}%</span>
+              <span data-testid="job-progress">Progress: {job.progress}%</span>
               {job.attempt_count > 0 && (
                 <span>Attempts: {job.attempt_count}</span>
               )}

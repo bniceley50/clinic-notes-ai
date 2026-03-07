@@ -6,7 +6,7 @@ type Props = {
 
 export function TranscriptViewer({ transcript }: Props) {
   return (
-    <section className="ql-panel">
+    <section className="ql-panel" data-testid="session-transcript">
       <div className="ql-copy-row">
         <div>
           <p className="ql-kicker">Transcript</p>
@@ -21,6 +21,7 @@ export function TranscriptViewer({ transcript }: Props) {
 
       <pre
         className="ql-note-copy"
+        data-testid="session-transcript-content"
         style={{
           marginTop: 10,
           whiteSpace: "pre-wrap",
