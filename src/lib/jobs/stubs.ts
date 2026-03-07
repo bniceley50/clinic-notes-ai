@@ -180,8 +180,9 @@ const NOTE_TEMPLATES: NoteTemplate = {
 };
 
 function resolveSupportedNoteType(noteType: JobNoteType): JobNoteType {
-  if (NOTE_TEMPLATES[noteType]) {
-    return noteType;
+  const normalized = noteType.toLowerCase() as JobNoteType;
+  if (NOTE_TEMPLATES[normalized]) {
+    return normalized;
   }
 
   return "soap";
