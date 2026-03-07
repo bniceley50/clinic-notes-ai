@@ -6,6 +6,18 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+function getEmailRedirectTo(): string {
+  const url = new URL("/api/auth/callback", window.location.origin);
+
+  // Supabase local auth is configured against localhost:3000.
+  if (window.location.hostname === "localhost") {
+    url.protocol = "http:";
+    url.host = "localhost:3000";
+  }
+
+  return url.toString();
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -30,7 +42,7 @@ export default function LoginPage() {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          emailRedirectTo: getEmailRedirectTo(),
         },
       });
 
