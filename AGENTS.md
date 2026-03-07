@@ -59,7 +59,7 @@ If a change branches into multiple problems: stop, finish the smallest shippable
 
 - **Project name:** Clinic Notes AI
 - **Purpose:** AI-powered clinical documentation tool for small clinics (2-5 providers). Record, transcribe, draft clinical notes, review/edit, and export.
-- **Current milestone:** 0 (Foundation)
+- **Current milestone:** A (complete)
 - **Stack:** Next.js 15 / Supabase / Tailwind / shadcn/ui / Vercel
 - **Repo root (local):** `N:\Clinic Notes AI`
 - **Repo root (remote):** `github.com/bniceley50/clinic-notes-ai`
@@ -115,10 +115,10 @@ If gate fails: stop, fix only what is required to get gate green, gate again. No
 ## 10) Current Working State
 
 ```
-Current goal: Scaffold repo and complete Milestone 0
-Last known good checkpoint: (none - project not started)
-Current schema: (none - no tables yet)
-Open decisions: (none for Milestone 0 - all locked, see D006-D012)
+Current goal: Prepare for Milestone B real AI integration from a stable Milestone A baseline
+Last known good checkpoint: Milestone A complete on main with session CRUD, provider-owned jobs, worker updates, note editing, export flow, and E2E coverage
+Current schema: orgs, profiles, sessions, jobs, transcripts, notes, audit_log; jobs include audio/transcript/draft storage path fields; storage bucket config and migration are present in repo
+Open decisions: None reopened from Milestone A; next implementation milestone is B (real AI pipeline)
 ```
 
 **Locked decisions (D006–D012):**
@@ -134,7 +134,17 @@ Open decisions: (none for Milestone 0 - all locked, see D006-D012)
 - (none yet)
 
 **Working features (actual only, not planned or assumed):**
-- (none yet)
+- Magic link auth
+- Dev-login bypass for local/demo use
+- Session list, create flow, and detail page
+- Provider-owned job creation with one-active-job enforcement
+- Worker update path with status polling in the session workspace
+- Audio upload infrastructure for queued jobs
+- Transcript viewing in the session workspace
+- Note editing and review workflow
+- Copy for CareLogic and DOCX export
+- CareLogic-aligned shell, navigation, dashboard, schedule, and reports views
+- Milestone A happy-path E2E coverage
 
 **Stubbed or placeholder behavior (label DEMO/STUB in code and docs):**
 - (none yet)
@@ -149,8 +159,8 @@ Open decisions: (none for Milestone 0 - all locked, see D006-D012)
 | **C** | Production hardening - errors, loading, mobile, audit, logging |
 | **D** | Polish & launch - search, templates, bulk export, docs |
 
-**Current milestone:** 0
-**Next decision point:** None for Milestone 0 (all locked). Next gate: audio recording method (Browser MediaRecorder vs upload-only) at Milestone A.
+**Current milestone:** A (complete)
+**Next decision point:** Milestone B execution: wire real Whisper + Claude processing, define kill switch behavior, and keep multi-provider support aligned with locked decisions.
 
 ## 12) Multi-Agent Protocol
 
