@@ -25,6 +25,7 @@ export type JobRow = {
   note_type: string;
   attempt_count: number;
   error_message: string | null;
+  audio_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -35,7 +36,7 @@ export type CreateJobInput = {
 };
 
 const JOB_COLUMNS =
-  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, created_at, updated_at";
+  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, audio_storage_path, created_at, updated_at";
 
 const UNIQUE_VIOLATION = "23505";
 

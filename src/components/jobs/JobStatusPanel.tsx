@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useReducer } from "react";
+import { AudioUpload } from "./AudioUpload";
 
 export type JobSnapshot = {
   id: string;
@@ -11,16 +12,26 @@ export type JobSnapshot = {
   note_type: string;
   attempt_count: number;
   error_message: string | null;
+  audio_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const JOB_STATUS_STYLE: Record<string, string> = {
-  queued: "bg-yellow-50 text-yellow-700",
-  running: "bg-blue-50 text-blue-700",
-  complete: "bg-green-50 text-green-700",
-  failed: "bg-red-50 text-red-700",
-  cancelled: "bg-gray-100 text-gray-600",
+/* CareLogic-aligned status chip classes (defined in globals.css) */
+const JOB_STATUS_CHIP: Record<string, string> = {
+  queued:    "chip-queued",
+  running:   "chip-running",
+  complete:  "chip-complete",
+  failed:    "chip-failed",
+  cancelled: "chip-cancelled",
+};
+
+/* Progress bar colors per status */
+const PROGRESS_BAR_COLOR: Record<string, string> = {
+  queued:  "#746EB1",
+  running: "#3B276A",
+  complete:"#2E7D32",
+  failed:  "#CC2200",
 };
 
 const POLL_INTERVAL_MS = 3_000;
@@ -92,77 +103,112 @@ export function JobStatusPanel({ initialJobs }: Props) {
 
   useEffect(() => {
     if (state.polling.size === 0) return;
-
     const interval = setInterval(() => {
       for (const jobId of state.polling) {
         pollJob(jobId);
       }
     }, POLL_INTERVAL_MS);
-
     return () => clearInterval(interval);
   }, [state.polling, pollJob]);
 
   if (state.jobs.length === 0) {
     return (
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-6 text-center text-sm" style={{ color: "#777777" }}>
         No jobs yet. Start one above.
       </p>
     );
   }
 
   return (
-    <div className="mt-6 space-y-3">
+    <div className="mt-4 space-y-3">
       {state.jobs.map((job) => (
-        <div key={job.id} className="rounded-lg border bg-white p-4 shadow-sm">
+        <div key={job.id} className="card-ql p-4">
+
+          {/* Header row: note type + status chip */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-900 uppercase">
+            <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
               {job.note_type}
             </span>
             <span
-              className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                JOB_STATUS_STYLE[job.status] ?? "bg-gray-100 text-gray-600"
+              className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                JOB_STATUS_CHIP[job.status] ?? "chip-cancelled"
               }`}
             >
               {job.status}
             </span>
           </div>
 
+          {/* Progress bar (active only) */}
           {ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                <span>{job.stage}</span>
+              <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#777777" }}>
+                <span className="uppercase tracking-wide">{job.stage}</span>
                 <span>{job.progress}%</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-gray-100">
+              <div
+                className="h-1.5 w-full rounded-[2px]"
+                style={{ backgroundColor: "#E7E9EC" }}
+              >
                 <div
-                  className="h-1.5 rounded-full bg-blue-500 transition-all duration-500"
-                  style={{ width: `${job.progress}%` }}
+                  className="h-1.5 rounded-[2px] transition-all duration-500"
+                  style={{
+                    width: `${job.progress}%`,
+                    backgroundColor: PROGRESS_BAR_COLOR[job.status] ?? "#3B276A",
+                  }}
                 />
               </div>
             </div>
           )}
 
+          {/* Completed meta */}
           {!ACTIVE_STATUSES.has(job.status) && (
-            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-              <span>Stage: {job.stage}</span>
-              <span>Progress: {job.progress}%</span>
-              {job.attempt_count > 0 && (
-                <span>Attempts: {job.attempt_count}</span>
+            <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
+              <span>Stage: <span className="font-medium">{job.stage}</span></span>
+              <span>Progress: <span className="font-medium">{job.progress}%</span></span>
+              {job.attempt_count > 1 && (
+                <span>Attempts: <span className="font-medium">{job.attempt_count}</span></span>
               )}
             </div>
           )}
 
-          {job.error_message && (
-            <p className="mt-2 text-xs text-red-600">{job.error_message}</p>
+          {/* Audio upload prompt */}
+          {job.status === "queued" && !job.audio_storage_path && (
+            <AudioUpload
+              jobId={job.id}
+              onUploaded={(path) =>
+                dispatch({
+                  type: "update",
+                  job: { ...job, audio_storage_path: path },
+                })
+              }
+            />
           )}
 
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
+          {/* Audio confirmed */}
+          {job.audio_storage_path && (
+            <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
+              ✓ Audio uploaded
+            </p>
+          )}
+
+          {/* Error message */}
+          {job.error_message && (
+            <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }}>
+              {job.error_message}
+            </p>
+          )}
+
+          {/* Footer: timestamp + live indicator */}
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-[11px]" style={{ color: "#777777" }}>
               {new Date(job.created_at).toLocaleString()}
             </p>
             {ACTIVE_STATUSES.has(job.status) && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#746EB1" }}>
+                <span
+                  className="h-1.5 w-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: "#746EB1" }}
+                />
                 Live
               </span>
             )}

@@ -1,0 +1,127 @@
+"use client";
+
+import { useState, useRef, type ChangeEvent } from "react";
+
+type Props = {
+  jobId: string;
+  onUploaded: (storagePath: string) => void;
+};
+
+const ACCEPTED_TYPES = "audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,audio/x-wav";
+const MAX_SIZE_MB = 50;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+export function AudioUpload({ jobId, onUploaded }: Props) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setFileName(file.name);
+
+    if (!file.type.startsWith("audio/")) {
+      setError(`Invalid file type: ${file.type}. Please select an audio file.`);
+      return;
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      setError(
+        `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`,
+      );
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+
+      const res = await fetch(`/api/jobs/${jobId}/upload`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Upload failed" }));
+        setError(body.error || `Upload failed (${res.status})`);
+        return;
+      }
+
+      const body = await res.json();
+      onUploaded(body.audio_storage_path);
+    } catch {
+      setError("Network error during upload");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div
+      className="mt-3 p-3"
+      style={{
+        border: "1px dashed #746EB1",
+        borderRadius: "2px",
+        backgroundColor: "#F9F9FF",
+      }}
+    >
+      <label
+        htmlFor={`audio-upload-${jobId}`}
+        className="flex cursor-pointer items-center justify-center gap-2 text-sm font-medium"
+        style={{
+          color: uploading ? "#777777" : "#517AB7",
+          cursor: uploading ? "not-allowed" : "pointer",
+        }}
+      >
+        {uploading ? (
+          <>
+            <span
+              className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
+              style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
+            />
+            Uploading {fileName}…
+          </>
+        ) : (
+          <>
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+            Upload audio file
+          </>
+        )}
+      </label>
+
+      <input
+        ref={inputRef}
+        id={`audio-upload-${jobId}`}
+        type="file"
+        accept={ACCEPTED_TYPES}
+        disabled={uploading}
+        onChange={handleFileChange}
+        className="sr-only"
+      />
+
+      {error && (
+        <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

@@ -15,23 +15,26 @@ export function CreateSessionForm() {
   );
 
   return (
-    <form
-      action={action}
-      className="mt-8 rounded-lg border bg-white p-6 shadow-sm"
-    >
-      <h2 className="text-sm font-medium text-gray-900">New Session</h2>
+    <form action={action} className="card-ql p-5 mt-6">
+      <h2
+        className="text-xs font-bold uppercase tracking-wider mb-4"
+        style={{ color: "#517AB7" }}
+      >
+        New Session
+      </h2>
 
       {state.error && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mb-3 text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
           {state.error}
         </p>
       )}
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label
             htmlFor="patient_label"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-xs font-semibold mb-1"
+            style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
           >
             Patient Label
           </label>
@@ -41,21 +44,23 @@ export function CreateSessionForm() {
             type="text"
             required
             placeholder="e.g. Patient A"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="input-ql"
           />
         </div>
+
         <div>
           <label
             htmlFor="session_type"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-xs font-semibold mb-1"
+            style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
           >
-            Type
+            Session Type
           </label>
           <select
             id="session_type"
             name="session_type"
             defaultValue="general"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="input-ql"
           >
             <option value="general">General</option>
             <option value="intake">Intake</option>
@@ -63,10 +68,11 @@ export function CreateSessionForm() {
           </select>
         </div>
       </div>
+
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        className="btn-ql mt-4"
       >
         {pending ? "Creating…" : "Create Session"}
       </button>

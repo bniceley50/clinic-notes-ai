@@ -38,6 +38,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     note_type: job.note_type,
     attempt_count: job.attempt_count,
     error_message: job.error_message,
+    audio_storage_path: job.audio_storage_path,
     created_at: job.created_at,
     updated_at: job.updated_at,
   });
