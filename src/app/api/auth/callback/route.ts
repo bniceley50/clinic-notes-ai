@@ -81,12 +81,51 @@ async function resolveUserProfile(user: User, request: NextRequest) {
   }
 
   if (!isDevLoginAllowed()) {
+    const { data: invite } = await admin
+      .from("invites")
+      .select("id, org_id, role")
+      .eq("email", user.email ?? "")
+      .is("used_at", null)
+      .single();
+
+    if (!invite) {
+      return {
+        practiceId: null,
+        role: null,
+        error: NextResponse.redirect(
+          new URL("/login?error=no_profile", request.url),
+        ),
+      };
+    }
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .insert({
+        user_id: user.id,
+        org_id: invite.org_id,
+        display_name: user.email ?? "Clinician",
+        role: invite.role as SessionRole,
+      });
+
+    if (profileError) {
+      return {
+        practiceId: null,
+        role: null,
+        error: NextResponse.redirect(
+          new URL("/login?error=bootstrap_failed", request.url),
+        ),
+      };
+    }
+
+    await admin
+      .from("invites")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", invite.id);
+
     return {
-      practiceId: null,
-      role: null,
-      error: NextResponse.redirect(
-        new URL("/login?error=no_profile", request.url),
-      ),
+      practiceId: invite.org_id,
+      role: invite.role as SessionRole,
+      error: null,
     };
   }
 
