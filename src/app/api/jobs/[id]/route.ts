@@ -12,15 +12,20 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: NextRequest, ctx: RouteContext) {
+export async function GET(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { id } = await ctx.params;
   const { data: job, error } = await getMyJob(result.user, id);

@@ -7,7 +7,7 @@ import "server-only";
  * fields: status, stage, progress, error_message, and storage paths.
  *
  * Gated by JOBS_RUNNER_TOKEN bearer auth. Browser/client code cannot
- * call this — only the worker process with the shared secret.
+ * call this â€” only the worker process with the shared secret.
  *
  * Validates state transitions: status can only move forward through
  * the defined FSM, never backwards or to arbitrary values.
@@ -16,6 +16,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { updateJobWorkerFields, getJobById } from "@/lib/jobs/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -49,6 +50,10 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const identifier = getIdentifier(request, null);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
+
   const { id } = await ctx.params;
 
   let body: Record<string, unknown>;
@@ -81,7 +86,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     if (!allowed || !allowed.includes(body.status)) {
       return NextResponse.json(
         {
-          error: `Invalid transition: ${current.status} → ${body.status}`,
+          error: `Invalid transition: ${current.status} â†’ ${body.status}`,
         },
         { status: 422 },
       );
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       body.progress > 100
     ) {
       return NextResponse.json(
-        { error: "progress must be 0–100" },
+        { error: "progress must be 0â€“100" },
         { status: 422 },
       );
     }

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { createServiceClient } from "@/lib/supabase/server";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type InviteRole = "provider" | "admin";
 
@@ -14,6 +15,10 @@ export async function POST(request: NextRequest) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   if (result.user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

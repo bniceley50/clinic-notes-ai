@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,10 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
   if (result.status !== "authenticated") {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { id } = await ctx.params;
   const initial = await getMyJob(result.user, id);

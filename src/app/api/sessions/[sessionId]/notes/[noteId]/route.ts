@@ -1,17 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyNote, updateMyNoteContent } from "@/lib/clinical/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ sessionId: string; noteId: string }>;
 };
 
-export async function GET(_request: NextRequest, ctx: RouteContext) {
+export async function GET(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { sessionId, noteId } = await ctx.params;
   const current = await getMyNote(result.user, sessionId, noteId);
@@ -29,6 +34,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {

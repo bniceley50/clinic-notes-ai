@@ -1,15 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { createSession, listMySessions } from "@/lib/sessions/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { data, error } = await listMySessions(result.user);
 
@@ -29,6 +34,10 @@ export async function POST(request: NextRequest) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => null);
   const patientLabel =

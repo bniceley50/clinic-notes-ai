@@ -2,17 +2,22 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getLatestNoteForSession } from "@/lib/clinical/queries";
 import { getMySession } from "@/lib/sessions/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ sessionId: string }>;
 };
 
-export async function GET(_request: NextRequest, ctx: RouteContext) {
+export async function GET(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { sessionId } = await ctx.params;
   const session = await getMySession(result.user, sessionId);
