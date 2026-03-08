@@ -158,6 +158,9 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
             onUploaded={() => {
               setAudioUploaded(true);
               setError(null);
+              fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
+                /* trigger failed silently */
+              });
             }}
           />
         </>
