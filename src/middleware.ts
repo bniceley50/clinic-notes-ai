@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { readSessionFromCookieHeader } from "@/lib/auth/session";
 import { toSessionUser } from "@/lib/auth/claims";
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/dev-login", "/api/auth", "/api/health"];
 
 const STATIC_ASSET_PATTERN =
   /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot|map)$/;
