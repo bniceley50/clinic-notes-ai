@@ -11,7 +11,13 @@ import "server-only";
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { supabaseUrl, supabaseAnonKey, supabaseServiceRoleKey } from "@/lib/config";
+import { createServerClient as createSSRClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import {
+  supabaseUrl,
+  supabaseAnonKey,
+  supabaseServiceRoleKey,
+} from "@/lib/config";
 
 export type { SupabaseClient };
 
@@ -30,5 +36,31 @@ export const createServiceClient = (): SupabaseClient => {
 export const createAnonClient = (): SupabaseClient => {
   return createClient(supabaseUrl(), supabaseAnonKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
+  });
+};
+
+/**
+ * createServerClient()
+ * Cookie-bound Supabase client for server components and route handlers.
+ * Use this whenever you need auth.getUser() to reflect the real caller session.
+ * Uses the anon key + RLS â€” does NOT bypass row-level security.
+ */
+export const createServerClient = async (): Promise<SupabaseClient> => {
+  const cookieStore = await cookies();
+  return createSSRClient(supabaseUrl(), supabaseAnonKey(), {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // setAll called from a Server Component â€” safe to ignore
+        }
+      },
+    },
   });
 };

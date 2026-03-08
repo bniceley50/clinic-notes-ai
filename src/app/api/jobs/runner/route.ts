@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { listQueuedJobs } from "@/lib/jobs/queries";
 import { runStubPipeline } from "@/lib/jobs/pipeline";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 function isAuthorized(request: NextRequest): boolean {
   const token = jobsRunnerToken();
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, null);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const queued = await listQueuedJobs();
   if (queued.error) {

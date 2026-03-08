@@ -8,6 +8,7 @@ import {
   JOB_NOTE_TYPES,
   type JobNoteType,
 } from "@/lib/jobs/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const result = await loadCurrentUser();
@@ -15,6 +16,10 @@ export async function GET(request: NextRequest) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const sessionId = request.nextUrl.searchParams.get("session_id")?.trim();
   if (!sessionId) {
@@ -46,6 +51,10 @@ export async function POST(request: NextRequest) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {

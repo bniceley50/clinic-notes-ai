@@ -13,6 +13,11 @@ import {
   anthropicApiKey,
 } from "@/lib/config";
 import { NOTE_TYPE_PROMPTS } from "@/lib/prompts/note-prompts";
+import {
+  generateNoteLimit,
+  getIdentifier,
+  checkRateLimit,
+} from "@/lib/rate-limit";
 
 const NOTE_COLUMNS =
   "id, session_id, org_id, content, note_type, created_at";
@@ -66,6 +71,15 @@ function getRequiredString(
   if (typeof value !== "string" || value.trim() === "") {
     return null;
   }
+
+  if (field === "transcript") {
+    if (value.length > 50000) return null;
+    return value
+      .replace(/<[^>]*>/g, "")
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .trim();
+  }
+
   return value.trim();
 }
 
@@ -195,6 +209,10 @@ export async function POST(request: NextRequest) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(generateNoteLimit, identifier);
+  if (limited) return limited;
 
   const rawBody = await request.json().catch(() => null);
   const body = parseRequestBody(rawBody);

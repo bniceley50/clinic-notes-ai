@@ -5,18 +5,23 @@ import {
   getMySession,
   updateMySession,
 } from "@/lib/sessions/queries";
+import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
 const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 const VALID_STATUSES = ["active", "completed", "archived"] as const;
 
-export async function GET(_request: NextRequest, ctx: RouteContext) {
+export async function GET(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { sessionId } = await ctx.params;
   const { data, error } = await getMySession(result.user, sessionId);
@@ -34,6 +39,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
@@ -99,12 +108,16 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   return NextResponse.json({ session: data });
 }
 
-export async function DELETE(_request: NextRequest, ctx: RouteContext) {
+export async function DELETE(request: NextRequest, ctx: RouteContext) {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const identifier = getIdentifier(request, result.user.userId);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   const { sessionId } = await ctx.params;
   const { data, error } = await archiveMySession(result.user, sessionId);
