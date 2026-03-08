@@ -8,34 +8,28 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redisAvailable = Boolean(redisUrl && redisToken);
 
-// AI note generation — 20 requests/hour per user
-export const generateNoteLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(20, "1 h"),
-  analytics: true,
-  prefix: "ratelimit:generate",
-});
+const redis = redisAvailable
+  ? new Redis({ url: redisUrl!, token: redisToken! })
+  : null;
 
-// Auth endpoints — 10 requests per 15 minutes
-export const authLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, "15 m"),
-  analytics: true,
-  prefix: "ratelimit:auth",
-});
+// AI note generation â€” 20 requests/hour per user
+export const generateNoteLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "1 h"), analytics: true, prefix: "ratelimit:generate" })
+  : null;
 
-// General API — 200 requests/hour
-export const apiLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(200, "1 h"),
-  analytics: true,
-  prefix: "ratelimit:api",
-});
+// Auth endpoints â€” 10 requests per 15 minutes
+export const authLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "15 m"), analytics: true, prefix: "ratelimit:auth" })
+  : null;
+
+// General API â€” 200 requests/hour
+export const apiLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(200, "1 h"), analytics: true, prefix: "ratelimit:api" })
+  : null;
 
 export function getIdentifier(
   request: Request,
@@ -48,9 +42,10 @@ export function getIdentifier(
 }
 
 export async function checkRateLimit(
-  limiter: Ratelimit,
+  limiter: Ratelimit | null,
   identifier: string
 ): Promise<Response | null> {
+  if (!limiter) return null; // Redis not configured â€” pass through
   const { success, limit, reset, remaining } = await limiter.limit(identifier);
   if (!success) {
     return new Response(
