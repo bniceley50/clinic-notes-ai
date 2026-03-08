@@ -127,3 +127,23 @@ This file records architectural decisions and their rationale. Entries are appen
 **Decision:** All milestones run in fake-data / sanitized-data mode only until a formal go/no-go checklist is passed. Blocked until checklist passes: real patient data, production clinical usage, unrestricted logs, relaxed debug tooling, non-redacted error traces.
 **Checklist must cover:** Environment separation, logging redaction, storage encryption posture, access review, RLS verification, vendor/API BAA review, retention behavior verification, incident response basics.
 **Consequence:** No ambiguity about when real data is allowed. Checklist is the single gate.
+
+---
+
+## 2026-03-08: Job Processing Architecture
+
+- CreateJobForm uses client-side fetch to POST /api/jobs
+  instead of server action — required to capture job.id
+  and render AudioUpload with it
+
+- Trigger route (POST /api/jobs/[id]/trigger) sits 
+  between client and processor — keeps JOBS_RUNNER_TOKEN 
+  off the client while allowing client to initiate processing
+
+- processJob is fire-and-forget from the client perspective
+  — client gets 202 immediately, JobStatusPanel polls 
+  for progress
+
+- dev-login page uses NEXT_PUBLIC_ALLOW_DEV_LOGIN to 
+  gate access — must be NEXT_PUBLIC_ prefix for client 
+  component visibility
