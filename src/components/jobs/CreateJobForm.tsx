@@ -132,7 +132,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
               disabled={hasActiveJob || pending || !!jobId}
               className="btn-ql"
             >
-              {pending ? "Creating…" : "Start Job"}
+              {pending ? "Creatingâ€¦" : "Start Job"}
             </button>
           </div>
         </div>
@@ -184,9 +184,11 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
               onUploaded={() => {
                 setAudioUploaded(true);
                 setError(null);
-                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
-                  /* trigger failed silently */
-                });
+                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
+                  .catch(() => { /* trigger failed silently */ })
+                  .finally(() => {
+                    window.location.reload();
+                  });
               }}
             />
           ) : (
@@ -195,9 +197,11 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
               onUploaded={() => {
                 setAudioUploaded(true);
                 setError(null);
-                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
-                  /* trigger failed silently */
-                });
+                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
+                  .catch(() => { /* trigger failed silently */ })
+                  .finally(() => {
+                    window.location.reload();
+                  });
               }}
             />
           )}
@@ -206,7 +210,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
 
       {audioUploaded && (
         <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
-          Audio uploaded — processing will begin shortly
+          Audio uploaded â€” processing will begin shortly
         </p>
       )}
     </div>
