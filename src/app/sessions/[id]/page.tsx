@@ -10,9 +10,10 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
+import { AppShell } from "@/components/layout/AppShell";
+import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
-import { AppShell } from "@/components/layout/AppShell";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -71,6 +72,11 @@ export default async function SessionDetailPage({ params }: Props) {
     (j) => j.status === "queued" || j.status === "running",
   );
   const hasConsent = consent?.hipaa_consent === true;
+  const initialConsentLabel = hasConsent
+    ? consent?.part2_applicable && consent.part2_consent
+      ? "HIPAA + 42 CFR Part 2 consent recorded"
+      : "Consent recorded"
+    : "Consent not yet recorded";
 
   return (
     <AppShell
@@ -162,28 +168,12 @@ export default async function SessionDetailPage({ params }: Props) {
             </table>
           </div>
 
-          <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
-              Consent Status
-            </div>
-            <div className="p-3 text-xs" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
-              <p className="font-semibold">
-                {hasConsent
-                  ? consent?.part2_applicable && consent.part2_consent
-                    ? "HIPAA + 42 CFR Part 2 consent recorded"
-                    : "Consent recorded"
-                  : "Consent not yet recorded"}
-              </p>
-              <p className="mt-1" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
-                {hasConsent && consent
-                  ? `Recorded ${new Date(consent.created_at).toLocaleString()}`
-                  : "Record patient consent before starting a job."}
-              </p>
-            </div>
-          </div>
+          <ConsentStatusCard
+            sessionId={session.id}
+            initialHasConsent={hasConsent}
+            initialConsentLabel={initialConsentLabel}
+            initialConsentTimestamp={consent?.created_at ?? null}
+          />
 
           <div className="card-ql overflow-hidden">
             <div
