@@ -192,7 +192,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {/* Audio confirmed */}
           {job.audio_storage_path && (
             <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
-              âœ“ Audio uploaded
+              Ã¢Å“â€œ Audio uploaded
             </p>
           )}
 
@@ -205,7 +205,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
 
           {/* Footer: timestamp + live indicator */}
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-[11px]" style={{ color: "#777777" }}>
+            <p className="text-[11px]" suppressHydrationWarning style={{ color: "#777777" }}>
               {new Date(job.created_at).toLocaleString()}
             </p>
             {ACTIVE_STATUSES.has(job.status) && (
