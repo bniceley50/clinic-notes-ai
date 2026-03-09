@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
   });
 
   if (inviteRowError) {
-    return NextResponse.json({ error: inviteRowError.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
   }
 
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
 
   if (inviteError) {
-    return NextResponse.json({ error: inviteError.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to send invite email" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
