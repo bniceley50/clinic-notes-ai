@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { readSessionFromCookieHeader } from "@/lib/auth/session";
+import { clearSessionCookie, readSessionFromCookieHeader } from "@/lib/auth/session";
 import { toSessionUser } from "@/lib/auth/claims";
+import { isSessionRevoked } from "@/lib/auth/revocation";
 
 const PUBLIC_PATHS = ["/login", "/dev-login", "/api/auth", "/api/health"];
 
@@ -48,6 +49,20 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // JTI revocation check — reject tokens that were explicitly revoked at logout
+  const revoked = await isSessionRevoked(session.jti);
+  if (revoked) {
+    if (pathname.startsWith("/api/")) {
+      const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      res.headers.append("Set-Cookie", clearSessionCookie());
+      return res;
+    }
+    const loginUrl = new URL("/login", request.url);
+    const res = NextResponse.redirect(loginUrl);
+    res.headers.append("Set-Cookie", clearSessionCookie());
+    return res;
   }
 
   const user = toSessionUser(session);
