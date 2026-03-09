@@ -192,7 +192,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {/* Audio confirmed */}
           {job.audio_storage_path && (
             <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
-              Ã¢Å“â€œ Audio uploaded
+              &#10003; Audio uploaded
             </p>
           )}
 
