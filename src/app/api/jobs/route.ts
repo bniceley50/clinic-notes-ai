@@ -8,6 +8,8 @@ import {
   JOB_NOTE_TYPES,
   type JobNoteType,
 } from "@/lib/jobs/queries";
+import { createServiceClient } from "@/lib/supabase/server";
+import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
@@ -85,6 +87,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const db = createServiceClient();
+  const { data: consent, error: consentError } = await db
+    .from("session_consents")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("org_id", result.user.orgId)
+    .limit(1)
+    .maybeSingle();
+
+  if (consentError) {
+    return NextResponse.json(
+      { error: "Failed to verify patient consent" },
+      { status: 500 },
+    );
+  }
+
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Patient consent must be recorded before starting a job" },
+      { status: 403 },
+    );
+  }
+
   const active = await getActiveJobForSession(result.user, sessionId);
   if (active.error) {
     return NextResponse.json(
@@ -116,6 +141,16 @@ export async function POST(request: NextRequest) {
       { status },
     );
   }
+
+  void writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    sessionId,
+    jobId: data.id,
+    action: "job.created",
+    requestId: request.headers.get("x-vercel-id") ?? undefined,
+    metadata: { note_type: noteType },
+  });
 
   return NextResponse.json({ job: data }, { status: 201 });
 }

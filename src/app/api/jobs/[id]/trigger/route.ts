@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
+import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = {
@@ -35,6 +36,14 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     },
   }).catch(() => {
     // Trigger failures are intentionally non-blocking for the client.
+  });
+
+  void writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    jobId,
+    action: "job.triggered",
+    requestId: request.headers.get("x-vercel-id") ?? undefined,
   });
 
   return NextResponse.json({ job_id: jobId, status: "processing" }, { status: 202 });

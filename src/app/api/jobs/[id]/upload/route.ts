@@ -22,6 +22,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
 import { uploadAudioForJob } from "@/lib/storage/audio";
+import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -85,24 +86,24 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     );
   }
 
-  // Magic bytes validation — verify actual file signature matches an
+  // Magic bytes validation - verify actual file signature matches an
   // allowed audio format regardless of the client-supplied MIME type.
   const headerBytes = await file.slice(0, 12).arrayBuffer();
   const b = new Uint8Array(headerBytes);
   const isValidAudio =
     // WebM
     (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) ||
-    // MP4 / M4A — "ftyp" at bytes 4-7
+    // MP4 / M4A - "ftyp" at bytes 4-7
     (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) ||
-    // OGG — "OggS"
+    // OGG - "OggS"
     (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) ||
-    // WAV — "RIFF"
+    // WAV - "RIFF"
     (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) ||
-    // MP3 — sync word variants
+    // MP3 - sync word variants
     (b[0] === 0xff && (b[1] === 0xfb || b[1] === 0xf3 || b[1] === 0xf2)) ||
-    // MP3 — ID3 tag
+    // MP3 - ID3 tag
     (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) ||
-    // FLAC — "fLaC"
+    // FLAC - "fLaC"
     (b[0] === 0x66 && b[1] === 0x4c && b[2] === 0x61 && b[3] === 0x43);
 
   if (!isValidAudio) {
@@ -125,6 +126,16 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       { status: 500 },
     );
   }
+
+  void writeAuditLog({
+    orgId: user.orgId,
+    actorId: user.userId,
+    sessionId: job.session_id,
+    jobId: job.id,
+    action: "audio.uploaded",
+    requestId: request.headers.get("x-vercel-id") ?? undefined,
+    metadata: { file_size_bytes: file.size },
+  });
 
   return NextResponse.json({
     job_id: job.id,

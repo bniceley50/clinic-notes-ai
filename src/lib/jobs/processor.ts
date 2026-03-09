@@ -7,6 +7,7 @@ import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudio } from "@/lib/ai/whisper";
 import { generateNote } from "@/lib/ai/claude";
 import { upsertTranscriptForJob } from "@/lib/clinical/queries";
+import { writeAuditLog } from "@/lib/audit";
 
 type ProcessResult = {
   success: boolean;
@@ -54,6 +55,15 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(jobId, downloaded.error ?? "Failed to download audio");
     }
 
+    void writeAuditLog({
+      orgId: job.org_id,
+      actorId: job.created_by,
+      sessionId: job.session_id,
+      jobId,
+      action: "audio.sent_to_vendor",
+      vendor: "openai",
+    });
+
     const transcription = await transcribeAudio(downloaded.data, "recording.webm");
     if (transcription.error || !transcription.text) {
       return await failJob(jobId, transcription.error ?? "Failed to transcribe audio");
@@ -88,6 +98,15 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       content: transcription.text,
       durationSeconds: 0,
       wordCount: transcription.text.trim().split(/\s+/).filter(Boolean).length,
+    });
+
+    void writeAuditLog({
+      orgId: job.org_id,
+      actorId: job.created_by,
+      sessionId: job.session_id,
+      jobId,
+      action: "transcript.sent_to_vendor",
+      vendor: "anthropic",
     });
 
     const noteResult = await generateNote({

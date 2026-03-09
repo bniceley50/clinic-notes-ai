@@ -12,6 +12,7 @@ import {
   readSessionFromCookieHeader,
 } from "@/lib/auth/session";
 import { revokeSession } from "@/lib/auth/revocation";
+import { writeAuditLog } from "@/lib/audit";
 import { sessionTtlSeconds } from "@/lib/config";
 
 export async function POST(request: NextRequest) {
@@ -22,6 +23,14 @@ export async function POST(request: NextRequest) {
 
   if (session?.jti) {
     await revokeSession(session.jti, sessionTtlSeconds());
+  }
+
+  if (session) {
+    void writeAuditLog({
+      orgId: session.practiceId,
+      actorId: session.sub,
+      action: "auth.logout",
+    });
   }
 
   const response = NextResponse.redirect(new URL("/login", request.url), 303);

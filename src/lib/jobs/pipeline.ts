@@ -17,6 +17,7 @@ import {
 } from "./storage";
 import { buildStubNote, buildStubTranscript } from "./stubs";
 import { upsertNoteForJob, upsertTranscriptForJob } from "@/lib/clinical/queries";
+import { writeAuditLog } from "@/lib/audit";
 
 const STUB_STAGE_DELAY_MS = 1_200;
 const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
@@ -165,6 +166,16 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
       throw new Error(transcriptBucket.error);
     }
 
+    void writeAuditLog({
+      orgId: current.org_id,
+      actorId: current.created_by,
+      sessionId: current.session_id,
+      jobId,
+      action: "audio.sent_to_vendor",
+      vendor: "openai",
+      metadata: { stub: true },
+    });
+
     await uploadTextArtifact(
       TRANSCRIPTS_BUCKET,
       transcriptPath,
@@ -225,6 +236,16 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
     if (draftsBucket.error) {
       throw new Error(draftsBucket.error);
     }
+
+    void writeAuditLog({
+      orgId: current.org_id,
+      actorId: current.created_by,
+      sessionId: current.session_id,
+      jobId,
+      action: "transcript.sent_to_vendor",
+      vendor: "anthropic",
+      metadata: { stub: true },
+    });
 
     await uploadTextArtifact(DRAFTS_BUCKET, draftPath, noteContent);
 
