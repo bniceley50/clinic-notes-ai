@@ -16,7 +16,7 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get("authorization") === `Bearer ${token}`;
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   if (!jobsRunnerToken()) {
     return NextResponse.json(
       { error: "Runner endpoint not configured" },
