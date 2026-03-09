@@ -43,7 +43,11 @@ export function ConsentStatusCard({
         </div>
         <div className="p-3 text-xs" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
           <p className="font-semibold">{consentLabel}</p>
-          <p className="mt-1" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
+          <p
+            className="mt-1"
+            suppressHydrationWarning
+            style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}
+          >
             {hasConsent && consentTimestamp
               ? `Recorded ${new Date(consentTimestamp).toLocaleString()}`
               : "Record patient consent before starting a job."}
