@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AudioUpload } from "./AudioUpload";
 import { AudioRecorder } from "./AudioRecorder";
+import { ConsentGate } from "./ConsentGate";
 
 type Props = {
   sessionId: string;
@@ -46,6 +47,9 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [audioUploaded, setAudioUploaded] = useState(false);
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
+  const [consentState, setConsentState] = useState<
+    "unknown" | "confirmed" | "declined"
+  >("unknown");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,7 +136,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
               disabled={hasActiveJob || pending || !!jobId}
               className="btn-ql"
             >
-              {pending ? "Creatingâ€¦" : "Start Job"}
+              {pending ? "Creating..." : "Start Job"}
             </button>
           </div>
         </div>
@@ -152,65 +156,88 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
 
       {jobId && !audioUploaded && (
         <>
-          {/* Mode toggle */}
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setAudioMode("record")}
-              className="text-xs font-semibold px-3 py-1 rounded"
-              style={{
-                backgroundColor: audioMode === "record" ? "#3B276A" : "#E7E9EC",
-                color: audioMode === "record" ? "#FFFFFF" : "#517AB7",
+          {consentState === "unknown" && (
+            <ConsentGate
+              sessionId={sessionId}
+              onConfirmed={() => {
+                setConsentState("confirmed");
+                setError(null);
               }}
-            >
-              Record
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudioMode("upload")}
-              className="text-xs font-semibold px-3 py-1 rounded"
-              style={{
-                backgroundColor: audioMode === "upload" ? "#3B276A" : "#E7E9EC",
-                color: audioMode === "upload" ? "#FFFFFF" : "#517AB7",
+              onDeclined={() => {
+                setConsentState("declined");
               }}
-            >
-              Upload file
-            </button>
-          </div>
+            />
+          )}
 
-          {audioMode === "record" ? (
-            <AudioRecorder
-              jobId={jobId}
-              onUploaded={() => {
-                setAudioUploaded(true);
-                setError(null);
-                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                  .catch(() => { /* trigger failed silently */ })
-                  .finally(() => {
-                    window.location.reload();
-                  });
-              }}
-            />
-          ) : (
-            <AudioUpload
-              jobId={jobId}
-              onUploaded={() => {
-                setAudioUploaded(true);
-                setError(null);
-                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                  .catch(() => { /* trigger failed silently */ })
-                  .finally(() => {
-                    window.location.reload();
-                  });
-              }}
-            />
+          {consentState === "declined" && (
+            <p className="mt-3 text-xs font-medium" style={{ color: "#CC2200" }}>
+              Recording is blocked because the patient did not consent.
+            </p>
+          )}
+
+          {consentState === "confirmed" && (
+            <>
+              {/* Mode toggle */}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAudioMode("record")}
+                  className="text-xs font-semibold px-3 py-1 rounded"
+                  style={{
+                    backgroundColor: audioMode === "record" ? "#3B276A" : "#E7E9EC",
+                    color: audioMode === "record" ? "#FFFFFF" : "#517AB7",
+                  }}
+                >
+                  Record
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudioMode("upload")}
+                  className="text-xs font-semibold px-3 py-1 rounded"
+                  style={{
+                    backgroundColor: audioMode === "upload" ? "#3B276A" : "#E7E9EC",
+                    color: audioMode === "upload" ? "#FFFFFF" : "#517AB7",
+                  }}
+                >
+                  Upload file
+                </button>
+              </div>
+
+              {audioMode === "record" ? (
+                <AudioRecorder
+                  jobId={jobId}
+                  onUploaded={() => {
+                    setAudioUploaded(true);
+                    setError(null);
+                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
+                      .catch(() => { /* trigger failed silently */ })
+                      .finally(() => {
+                        window.location.reload();
+                      });
+                  }}
+                />
+              ) : (
+                <AudioUpload
+                  jobId={jobId}
+                  onUploaded={() => {
+                    setAudioUploaded(true);
+                    setError(null);
+                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
+                      .catch(() => { /* trigger failed silently */ })
+                      .finally(() => {
+                        window.location.reload();
+                      });
+                  }}
+                />
+              )}
+            </>
           )}
         </>
       )}
 
       {audioUploaded && (
         <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
-          Audio uploaded â€” processing will begin shortly
+          Audio uploaded - processing will begin shortly
         </p>
       )}
     </div>
