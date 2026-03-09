@@ -2,14 +2,22 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-export type RecorderState = "idle" | "requesting" | "recording" | "stopped" | "error";
+export type RecorderState =
+  | "idle"
+  | "requesting"
+  | "recording"
+  | "paused"
+  | "stopped"
+  | "error";
 
 export type UseAudioRecorderResult = {
   state: RecorderState;
-  elapsed: number; // seconds
+  elapsed: number;
   blob: Blob | null;
   error: string | null;
   start: () => Promise<void>;
+  pause: () => void;
+  resume: () => void;
   stop: () => void;
   reset: () => void;
 };
@@ -32,8 +40,15 @@ export function useAudioRecorder(): UseAudioRecorderResult {
     }
   }, []);
 
+  const startTimer = useCallback(() => {
+    stopTimer();
+    timerRef.current = setInterval(() => {
+      setElapsed((seconds) => seconds + 1);
+    }, 1000);
+  }, [stopTimer]);
+
   const stopStream = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
   }, []);
 
@@ -61,8 +76,8 @@ export function useAudioRecorder(): UseAudioRecorderResult {
     const recorder = new MediaRecorder(stream, { mimeType });
     mediaRecorderRef.current = recorder;
 
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunksRef.current.push(event.data);
     };
 
     recorder.onstop = () => {
@@ -72,14 +87,27 @@ export function useAudioRecorder(): UseAudioRecorderResult {
       stopStream();
     };
 
-    recorder.start(250); // collect chunks every 250ms
+    recorder.start(250);
     setState("recording");
     setElapsed(0);
+    startTimer();
+  }, [startTimer, stopStream]);
 
-    timerRef.current = setInterval(() => {
-      setElapsed((s) => s + 1);
-    }, 1000);
-  }, [stopStream]);
+  const pause = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.pause();
+      stopTimer();
+      setState("paused");
+    }
+  }, [stopTimer]);
+
+  const resume = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "paused") {
+      mediaRecorderRef.current.resume();
+      startTimer();
+      setState("recording");
+    }
+  }, [startTimer]);
 
   const stop = useCallback(() => {
     stopTimer();
@@ -108,7 +136,6 @@ export function useAudioRecorder(): UseAudioRecorderResult {
     setState("idle");
   }, [stopTimer, stopStream]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopTimer();
@@ -116,5 +143,5 @@ export function useAudioRecorder(): UseAudioRecorderResult {
     };
   }, [stopTimer, stopStream]);
 
-  return { state, elapsed, blob, error, start, stop, reset };
+  return { state, elapsed, blob, error, start, pause, resume, stop, reset };
 }

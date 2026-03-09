@@ -15,10 +15,9 @@ function formatElapsed(seconds: number): string {
 }
 
 export function AudioRecorder({ jobId, onUploaded }: Props) {
-  const { state, elapsed, blob, error, start, stop, reset } = useAudioRecorder();
+  const { state, elapsed, blob, error, start, pause, resume, stop, reset } = useAudioRecorder();
   const uploadedRef = useRef(false);
 
-  // Auto-upload once blob is ready
   useEffect(() => {
     if (!blob || uploadedRef.current) return;
     uploadedRef.current = true;
@@ -41,6 +40,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : "Upload failed";
         console.error("AudioRecorder upload error:", msg);
+        uploadedRef.current = false;
         reset();
       });
   }, [blob, jobId, onUploaded, reset]);
@@ -55,10 +55,12 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
         backgroundColor: "#F9F9FF",
       }}
     >
-      {/* IDLE */}
       {state === "idle" && (
         <button
-          onClick={() => void start()}
+          onClick={() => {
+            uploadedRef.current = false;
+            void start();
+          }}
           className="flex w-full items-center justify-center gap-2 text-sm font-medium"
           style={{ color: "#517AB7" }}
         >
@@ -70,52 +72,70 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
         </button>
       )}
 
-      {/* REQUESTING */}
       {state === "requesting" && (
         <p className="text-center text-sm" style={{ color: "#746EB1" }}>
-          Requesting microphone…
+          Requesting microphone...
         </p>
       )}
 
-      {/* RECORDING */}
-      {state === "recording" && (
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "#CC2200" }}>
+      {(state === "recording" || state === "paused") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-sm font-medium" style={{ color: state === "paused" ? "#746EB1" : "#CC2200" }}>
             <span
-              className="h-2 w-2 rounded-full animate-pulse"
-              style={{ backgroundColor: "#CC2200" }}
+              className={`h-2 w-2 rounded-full ${state === "recording" ? "animate-pulse" : ""}`}
+              style={{ backgroundColor: state === "paused" ? "#746EB1" : "#CC2200" }}
             />
-            Recording {formatElapsed(elapsed)}
+            {state === "paused" ? `Paused ${formatElapsed(elapsed)}` : `Recording ${formatElapsed(elapsed)}`}
           </span>
-          <button
-            onClick={stop}
-            className="text-xs font-semibold px-3 py-1 rounded"
-            style={{ backgroundColor: "#CC2200", color: "#FFFFFF" }}
-          >
-            Stop
-          </button>
+          <div className="flex items-center gap-2">
+            {state === "recording" ? (
+              <button
+                onClick={pause}
+                className="rounded px-3 py-1 text-xs font-semibold"
+                style={{ backgroundColor: "#E7E9EC", color: "#517AB7" }}
+              >
+                Pause
+              </button>
+            ) : (
+              <button
+                onClick={resume}
+                className="rounded px-3 py-1 text-xs font-semibold"
+                style={{ backgroundColor: "#3B276A", color: "#FFFFFF" }}
+              >
+                Resume
+              </button>
+            )}
+            <button
+              onClick={stop}
+              className="rounded px-3 py-1 text-xs font-semibold"
+              style={{ backgroundColor: "#CC2200", color: "#FFFFFF" }}
+            >
+              Stop
+            </button>
+          </div>
         </div>
       )}
 
-      {/* STOPPED — uploading */}
       {state === "stopped" && (
         <div className="flex items-center justify-center gap-2 text-sm" style={{ color: "#746EB1" }}>
           <span
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
           />
-          Uploading recording…
+          Uploading recording...
         </div>
       )}
 
-      {/* ERROR */}
       {state === "error" && (
         <div className="space-y-2">
           <p className="text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
             {error}
           </p>
           <button
-            onClick={reset}
+            onClick={() => {
+              uploadedRef.current = false;
+              reset();
+            }}
             className="text-xs font-medium underline"
             style={{ color: "#517AB7" }}
           >

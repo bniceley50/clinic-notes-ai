@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { listQueuedJobs } from "@/lib/jobs/queries";
-import { runStubPipeline } from "@/lib/jobs/pipeline";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 function isAuthorized(request: NextRequest): boolean {
+  if (request.headers.get("x-vercel-cron") === "1") {
+    return true;
+  }
+
   const token = jobsRunnerToken();
   if (!token) {
     return false;
@@ -37,14 +40,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const results = [];
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
   for (const job of queued.data) {
-    const result = await runStubPipeline(job.id);
-    results.push(result);
+    const processUrl = new URL(`/api/jobs/${job.id}/process`, baseUrl).toString();
+
+    void fetch(processUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN ?? ""}`,
+      },
+    });
   }
 
   return NextResponse.json({
-    processed: results.length,
-    results,
+    processed: queued.data.length,
   });
 }
