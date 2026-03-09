@@ -34,7 +34,7 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
   failed:  "#CC2200",
 };
 
-const POLL_INTERVAL_MS = 3_000;
+const POLL_INTERVAL_MS = 10_000;
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
 type State = {
@@ -192,7 +192,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {/* Audio confirmed */}
           {job.audio_storage_path && (
             <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
-              ✓ Audio uploaded
+              âœ“ Audio uploaded
             </p>
           )}
 
