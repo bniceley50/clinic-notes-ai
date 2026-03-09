@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AudioUpload } from "./AudioUpload";
+import { AudioRecorder } from "./AudioRecorder";
 
 type Props = {
   sessionId: string;
@@ -44,6 +45,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [audioUploaded, setAudioUploaded] = useState(false);
+  const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,19 +152,55 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
 
       {jobId && !audioUploaded && (
         <>
-          <p className="mt-3 text-xs font-medium" style={{ color: "#746EB1" }}>
-            Job created. Upload audio to begin processing.
-          </p>
-          <AudioUpload
-            jobId={jobId}
-            onUploaded={() => {
-              setAudioUploaded(true);
-              setError(null);
-              fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
-                /* trigger failed silently */
-              });
-            }}
-          />
+          {/* Mode toggle */}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setAudioMode("record")}
+              className="text-xs font-semibold px-3 py-1 rounded"
+              style={{
+                backgroundColor: audioMode === "record" ? "#3B276A" : "#E7E9EC",
+                color: audioMode === "record" ? "#FFFFFF" : "#517AB7",
+              }}
+            >
+              Record
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudioMode("upload")}
+              className="text-xs font-semibold px-3 py-1 rounded"
+              style={{
+                backgroundColor: audioMode === "upload" ? "#3B276A" : "#E7E9EC",
+                color: audioMode === "upload" ? "#FFFFFF" : "#517AB7",
+              }}
+            >
+              Upload file
+            </button>
+          </div>
+
+          {audioMode === "record" ? (
+            <AudioRecorder
+              jobId={jobId}
+              onUploaded={() => {
+                setAudioUploaded(true);
+                setError(null);
+                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
+                  /* trigger failed silently */
+                });
+              }}
+            />
+          ) : (
+            <AudioUpload
+              jobId={jobId}
+              onUploaded={() => {
+                setAudioUploaded(true);
+                setError(null);
+                fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" }).catch(() => {
+                  /* trigger failed silently */
+                });
+              }}
+            />
+          )}
         </>
       )}
 
