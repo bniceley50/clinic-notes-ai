@@ -7,6 +7,7 @@ export type AuditAction =
   | "session.viewed"
   | "job.created"
   | "job.triggered"
+  | "job.cancelled"
   | "audio.uploaded"
   | "audio.sent_to_vendor"
   | "transcript.created"
@@ -60,10 +61,6 @@ function resolveEntity(params: AuditParams): {
     return { entityType: "job", entityId: params.jobId };
   }
 
-  if (params.sessionId) {
-    return { entityType: "session", entityId: params.sessionId };
-  }
-
   if (params.action.startsWith("auth.")) {
     return { entityType: "auth", entityId: null };
   }
@@ -73,6 +70,10 @@ function resolveEntity(params: AuditParams): {
       entityType: "consent",
       entityId: params.sessionId ?? null,
     };
+  }
+
+  if (params.sessionId) {
+    return { entityType: "session", entityId: params.sessionId };
   }
 
   return { entityType: "system", entityId: null };
@@ -106,7 +107,6 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
       },
     });
   } catch {
-    // Audit failures must never break the primary request path.
     console.error("[audit] write failed for action:", params.action);
   }
 }

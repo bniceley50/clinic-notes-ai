@@ -7,6 +7,7 @@ import {
   getLatestNoteForSession,
   getLatestTranscriptForSession,
 } from "@/lib/clinical/queries";
+import { createServiceClient } from "@/lib/supabase/server";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
@@ -17,10 +18,17 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
+type ConsentRow = {
+  hipaa_consent: boolean;
+  part2_applicable: boolean;
+  part2_consent: boolean | null;
+  created_at: string;
+};
+
 const SESSION_STATUS_CHIP: Record<string, string> = {
-  active:    "chip-running",
+  active: "chip-running",
   completed: "chip-complete",
-  archived:  "chip-cancelled",
+  archived: "chip-cancelled",
 };
 
 export default async function SessionDetailPage({ params }: Props) {
@@ -36,6 +44,22 @@ export default async function SessionDetailPage({ params }: Props) {
 
   if (error || !session) notFound();
 
+  let consent: ConsentRow | null = null;
+  try {
+    const db = createServiceClient();
+    const { data: consentRow } = await db
+      .from("session_consents")
+      .select("hipaa_consent, part2_applicable, part2_consent, created_at")
+      .eq("session_id", session.id)
+      .eq("org_id", user.orgId)
+      .limit(1)
+      .maybeSingle();
+
+    consent = (consentRow ?? null) as ConsentRow | null;
+  } catch {
+    consent = null;
+  }
+
   const { data: jobs } = await getJobsForSession(user, id);
   const [noteResult, transcriptResult] = await Promise.all([
     getLatestNoteForSession(user, id),
@@ -46,6 +70,7 @@ export default async function SessionDetailPage({ params }: Props) {
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
   );
+  const hasConsent = consent?.hipaa_consent === true;
 
   return (
     <AppShell
@@ -55,14 +80,13 @@ export default async function SessionDetailPage({ params }: Props) {
         role: user.role,
       }}
     >
-      {/* ── Breadcrumb + status ──────────────────────────── */}
       <div className="mb-4 flex items-center justify-between">
         <Link
           href="/sessions"
           className="text-xs font-medium no-underline"
           style={{ color: "#517AB7" }}
         >
-          ← All Sessions
+          All Sessions
         </Link>
         <span
           className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
@@ -73,16 +97,11 @@ export default async function SessionDetailPage({ params }: Props) {
         </span>
       </div>
 
-      {/* ── Two-column workspace layout ──────────────────── */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "300px 1fr" }}>
-
-        {/* Left: Session metadata + job controls */}
         <div className="space-y-4">
-
-          {/* Session info card */}
           <div className="card-ql overflow-hidden">
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
               style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
             >
               Session
@@ -90,16 +109,10 @@ export default async function SessionDetailPage({ params }: Props) {
             <table>
               <tbody>
                 <tr>
-                  <td
-                    className="text-xs font-semibold w-28"
-                    style={{ color: "#517AB7" }}
-                  >
+                  <td className="w-28 text-xs font-semibold" style={{ color: "#517AB7" }}>
                     Patient
                   </td>
-                  <td
-                    className="text-xs font-semibold"
-                    style={{ color: "#0B1215" }}
-                  >
+                  <td className="text-xs font-semibold" style={{ color: "#0B1215" }}>
                     {session.patient_label || "Untitled"}
                   </td>
                 </tr>
@@ -149,10 +162,32 @@ export default async function SessionDetailPage({ params }: Props) {
             </table>
           </div>
 
-          {/* Generate note section */}
           <div className="card-ql overflow-hidden">
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
+              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
+            >
+              Consent Status
+            </div>
+            <div className="p-3 text-xs" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
+              <p className="font-semibold">
+                {hasConsent
+                  ? consent?.part2_applicable && consent.part2_consent
+                    ? "HIPAA + 42 CFR Part 2 consent recorded"
+                    : "Consent recorded"
+                  : "Consent not yet recorded"}
+              </p>
+              <p className="mt-1" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
+                {hasConsent && consent
+                  ? `Recorded ${new Date(consent.created_at).toLocaleString()}`
+                  : "Record patient consent before starting a job."}
+              </p>
+            </div>
+          </div>
+
+          <div className="card-ql overflow-hidden">
+            <div
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
               style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
             >
               Generate Note
@@ -161,14 +196,14 @@ export default async function SessionDetailPage({ params }: Props) {
               <CreateJobForm
                 sessionId={session.id}
                 hasActiveJob={hasActiveJob}
+                hasConsent={hasConsent}
               />
             </div>
           </div>
 
-          {/* Job history */}
           <div className="card-ql overflow-hidden">
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
               style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
             >
               Job History
@@ -179,11 +214,8 @@ export default async function SessionDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Right: Transcript + note workspace */}
         <div className="space-y-4">
-          {transcript && (
-            <TranscriptViewer transcript={transcript.content} />
-          )}
+          {transcript && <TranscriptViewer transcript={transcript.content} />}
 
           {note ? (
             <NoteWorkspace
@@ -199,10 +231,7 @@ export default async function SessionDetailPage({ params }: Props) {
               initialUpdatedAt={note.updated_at}
             />
           ) : (
-            <div
-              className="card-ql p-6 text-center text-sm"
-              style={{ color: "#777777" }}
-            >
+            <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
               No note generated yet. Upload audio to generate a note.
             </div>
           )}

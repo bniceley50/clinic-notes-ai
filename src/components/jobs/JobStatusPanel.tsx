@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { AudioUpload } from "./AudioUpload";
 
 export type JobSnapshot = {
@@ -17,21 +17,19 @@ export type JobSnapshot = {
   updated_at: string;
 };
 
-/* CareLogic-aligned status chip classes (defined in globals.css) */
 const JOB_STATUS_CHIP: Record<string, string> = {
-  queued:    "chip-queued",
-  running:   "chip-running",
-  complete:  "chip-complete",
-  failed:    "chip-failed",
+  queued: "chip-queued",
+  running: "chip-running",
+  complete: "chip-complete",
+  failed: "chip-failed",
   cancelled: "chip-cancelled",
 };
 
-/* Progress bar colors per status */
 const PROGRESS_BAR_COLOR: Record<string, string> = {
-  queued:  "#746EB1",
+  queued: "#746EB1",
   running: "#3B276A",
-  complete:"#2E7D32",
-  failed:  "#CC2200",
+  complete: "#2E7D32",
+  failed: "#CC2200",
 };
 
 const POLL_INTERVAL_MS = 10_000;
@@ -86,6 +84,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
     }
     return { jobs, polling };
   });
+  const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
 
   const pollJob = useCallback(async (jobId: string) => {
     try {
@@ -111,6 +110,15 @@ export function JobStatusPanel({ initialJobs }: Props) {
     return () => clearInterval(interval);
   }, [state.polling, pollJob]);
 
+  async function handleCancel(jobId: string) {
+    setCancelingJobId(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+    } finally {
+      window.location.reload();
+    }
+  }
+
   if (state.jobs.length === 0) {
     return (
       <p
@@ -127,8 +135,6 @@ export function JobStatusPanel({ initialJobs }: Props) {
     <div className="mt-4 space-y-3" data-testid="job-status-panel">
       {state.jobs.map((job) => (
         <div key={job.id} className="card-ql p-4">
-
-          {/* Header row: note type + status chip */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
               {job.note_type}
@@ -143,17 +149,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </span>
           </div>
 
-          {/* Progress bar (active only) */}
           {ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-3">
-              <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#777777" }}>
+              <div className="mb-1 flex items-center justify-between text-xs" style={{ color: "#777777" }}>
                 <span className="uppercase tracking-wide">{job.stage}</span>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
-              <div
-                className="h-1.5 w-full rounded-[2px]"
-                style={{ backgroundColor: "#E7E9EC" }}
-              >
+              <div className="h-1.5 w-full rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
                 <div
                   className="h-1.5 rounded-[2px] transition-all duration-500"
                   style={{
@@ -165,18 +167,22 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </div>
           )}
 
-          {/* Completed meta */}
           {!ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
-              <span>Stage: <span className="font-medium">{job.stage}</span></span>
-              <span>Progress: <span className="font-medium" data-testid="job-progress">{job.progress}%</span></span>
+              <span>
+                Stage: <span className="font-medium">{job.stage}</span>
+              </span>
+              <span>
+                Progress: <span className="font-medium" data-testid="job-progress">{job.progress}%</span>
+              </span>
               {job.attempt_count > 1 && (
-                <span>Attempts: <span className="font-medium">{job.attempt_count}</span></span>
+                <span>
+                  Attempts: <span className="font-medium">{job.attempt_count}</span>
+                </span>
               )}
             </div>
           )}
 
-          {/* Audio upload prompt */}
           {job.status === "queued" && !job.audio_storage_path && (
             <AudioUpload
               jobId={job.id}
@@ -189,21 +195,35 @@ export function JobStatusPanel({ initialJobs }: Props) {
             />
           )}
 
-          {/* Audio confirmed */}
           {job.audio_storage_path && (
             <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
               &#10003; Audio uploaded
             </p>
           )}
 
-          {/* Error message */}
+          {ACTIVE_STATUSES.has(job.status) && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => void handleCancel(job.id)}
+                disabled={cancelingJobId === job.id}
+                className="rounded px-3 py-1 text-xs font-semibold"
+                style={{
+                  backgroundColor: cancelingJobId === job.id ? "#F4CCCC" : "#FCE8E6",
+                  color: "#B42318",
+                }}
+              >
+                {cancelingJobId === job.id ? "Cancelling..." : "Cancel Job"}
+              </button>
+            </div>
+          )}
+
           {job.error_message && (
             <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }}>
               {job.error_message}
             </p>
           )}
 
-          {/* Footer: timestamp + live indicator */}
           <div className="mt-3 flex items-center justify-between">
             <p className="text-[11px]" suppressHydrationWarning style={{ color: "#777777" }}>
               {new Date(job.created_at).toLocaleString()}
@@ -211,7 +231,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             {ACTIVE_STATUSES.has(job.status) && (
               <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#746EB1" }}>
                 <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse"
+                  className="h-1.5 w-1.5 animate-pulse rounded-full"
                   style={{ backgroundColor: "#746EB1" }}
                 />
                 Live

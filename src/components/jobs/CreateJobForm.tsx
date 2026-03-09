@@ -8,6 +8,7 @@ import { ConsentGate } from "./ConsentGate";
 type Props = {
   sessionId: string;
   hasActiveJob: boolean;
+  hasConsent: boolean;
 };
 
 const NOTE_TYPES = [
@@ -40,7 +41,7 @@ type CreateJobError = {
   error?: string;
 };
 
-export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
+export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
   const [noteType, setNoteType] = useState<NoteType>("soap");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +51,12 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
   const [consentState, setConsentState] = useState<
     "unknown" | "confirmed" | "declined"
   >("unknown");
+  const canStartJob = hasConsent === true;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (hasActiveJob || pending || jobId) {
+    if (hasActiveJob || pending || jobId || !canStartJob) {
       return;
     }
 
@@ -78,12 +80,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
         | CreateJobError
         | null;
 
-      if (
-        !response.ok ||
-        !payload ||
-        !("job" in payload) ||
-        !payload.job?.id
-      ) {
+      if (!response.ok || !payload || !("job" in payload) || !payload.job?.id) {
         setError(
           (payload && "error" in payload && payload.error) ||
             "Failed to create job",
@@ -107,7 +104,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
           <div className="flex-1">
             <label
               htmlFor="note_type"
-              className="block text-xs font-semibold mb-1"
+              className="mb-1 block text-xs font-semibold"
               style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
             >
               Note Type
@@ -118,7 +115,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
               data-testid="job-note-type"
               value={noteType}
               onChange={(event) => setNoteType(event.target.value as NoteType)}
-              disabled={hasActiveJob || pending || !!jobId}
+              disabled={hasActiveJob || pending || !!jobId || !canStartJob}
               className="input-ql disabled:opacity-50"
               style={{ minWidth: "160px" }}
             >
@@ -130,16 +127,24 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
             </select>
           </div>
 
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={hasActiveJob || pending || !!jobId}
-              className="btn-ql"
-            >
-              {pending ? "Creating..." : "Start Job"}
-            </button>
-          </div>
+          {canStartJob ? (
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={hasActiveJob || pending || !!jobId}
+                className="btn-ql"
+              >
+                {pending ? "Creating..." : "Start Job"}
+              </button>
+            </div>
+          ) : null}
         </div>
+
+        {!canStartJob && !error && !jobId && (
+          <p className="mt-2 text-xs font-medium" style={{ color: "#8A4B08" }}>
+            Patient consent must be recorded before a job can be started.
+          </p>
+        )}
 
         {hasActiveJob && !error && !jobId && (
           <p className="mt-2 text-xs font-medium" style={{ color: "#746EB1" }}>
@@ -177,12 +182,11 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
 
           {consentState === "confirmed" && (
             <>
-              {/* Mode toggle */}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setAudioMode("record")}
-                  className="text-xs font-semibold px-3 py-1 rounded"
+                  className="rounded px-3 py-1 text-xs font-semibold"
                   style={{
                     backgroundColor: audioMode === "record" ? "#3B276A" : "#E7E9EC",
                     color: audioMode === "record" ? "#FFFFFF" : "#517AB7",
@@ -193,7 +197,7 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
                 <button
                   type="button"
                   onClick={() => setAudioMode("upload")}
-                  className="text-xs font-semibold px-3 py-1 rounded"
+                  className="rounded px-3 py-1 text-xs font-semibold"
                   style={{
                     backgroundColor: audioMode === "upload" ? "#3B276A" : "#E7E9EC",
                     color: audioMode === "upload" ? "#FFFFFF" : "#517AB7",
@@ -210,7 +214,9 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
                     setAudioUploaded(true);
                     setError(null);
                     fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => { /* trigger failed silently */ })
+                      .catch(() => {
+                        /* trigger failed silently */
+                      })
                       .finally(() => {
                         window.location.reload();
                       });
@@ -223,7 +229,9 @@ export function CreateJobForm({ sessionId, hasActiveJob }: Props) {
                     setAudioUploaded(true);
                     setError(null);
                     fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => { /* trigger failed silently */ })
+                      .catch(() => {
+                        /* trigger failed silently */
+                      })
                       .finally(() => {
                         window.location.reload();
                       });
