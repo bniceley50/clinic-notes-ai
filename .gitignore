@@ -29,7 +29,7 @@ supabase.exe
 supabase.tar.gz
 *.tar.gz
 
-# artifacts (legacy — should not exist, using Supabase Storage)
+# artifacts (legacy â€” should not exist, using Supabase Storage)
 .artifacts/
 
 # debug
@@ -59,3 +59,4 @@ Thumbs.db
 test-results/
 playwright-report/
 blob-report/
+.env.test

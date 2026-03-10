@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { AudioUpload } from "./AudioUpload";
 
 export type JobSnapshot = {
@@ -85,6 +85,9 @@ export function JobStatusPanel({ initialJobs }: Props) {
     return { jobs, polling };
   });
   const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
+  const lastKnownStatusRef = useRef<Record<string, string>>(
+    Object.fromEntries(initialJobs.map((job) => [job.id, job.status])),
+  );
 
   const pollJob = useCallback(async (jobId: string) => {
     try {
@@ -94,7 +97,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
         return;
       }
       const job: JobSnapshot = await res.json();
+      const previousStatus = lastKnownStatusRef.current[job.id];
+      lastKnownStatusRef.current[job.id] = job.status;
       dispatch({ type: "update", job });
+
+      if (previousStatus !== "complete" && job.status === "complete") {
+        window.location.reload();
+      }
     } catch {
       dispatch({ type: "stop_polling", id: jobId });
     }
