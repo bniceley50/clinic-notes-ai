@@ -15,8 +15,7 @@ export function TranscriptViewer({ transcript }: Props) {
       </div>
 
       <div className="ql-alert ql-alert-warning">
-        AI-GENERATED - REVIEW REQUIRED. Transcript content is stub data for
-        Milestone A testing only.
+        AI-generated transcript. Review for accuracy before clinical use.
       </div>
 
       <pre
