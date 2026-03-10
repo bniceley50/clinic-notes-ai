@@ -7,7 +7,7 @@ type Props = {
   onUploaded: (storagePath: string) => void;
 };
 
-const ACCEPTED_TYPES = "audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,audio/x-wav";
+const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav";
 const MAX_SIZE_MB = 50;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
@@ -86,7 +86,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
               className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
               style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
             />
-            Uploading {fileName}…
+            Uploading {fileName}...
           </>
         ) : (
           <>
