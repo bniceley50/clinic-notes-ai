@@ -16,17 +16,22 @@ const redis = redisAvailable
   ? new Redis({ url: redisUrl!, token: redisToken! })
   : null;
 
-// AI note generation Ã¢â‚¬â€ 20 requests/hour per user
+// AI note generation - 20 requests/hour per user
 export const generateNoteLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "1 h"), analytics: true, prefix: "ratelimit:generate" })
   : null;
 
-// Auth endpoints Ã¢â‚¬â€ 10 requests per 15 minutes
+// Auth endpoints - 10 requests per 15 minutes
 export const authLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "15 m"), analytics: true, prefix: "ratelimit:auth" })
   : null;
 
-// General API Ã¢â‚¬â€ 200 requests/hour
+// Consent endpoint - 10 requests per hour per user
+export const consentLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 h"), analytics: true, prefix: "consent" })
+  : null;
+
+// General API - 200 requests/hour
 export const apiLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(200, "1 h"), analytics: true, prefix: "ratelimit:api" })
   : null;
@@ -45,7 +50,7 @@ export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string
 ): Promise<Response | null> {
-  if (!limiter) return null; // Redis not configured Ã¢â‚¬â€ pass through
+  if (!limiter) return null; // Redis not configured - pass through
   const { success, limit, reset, remaining } = await limiter.limit(identifier);
   if (!success) {
     return new Response(

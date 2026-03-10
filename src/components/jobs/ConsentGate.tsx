@@ -12,10 +12,12 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
   const [part2Applicable, setPart2Applicable] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [declined, setDeclined] = useState(false);
 
   async function handleConfirm() {
     setSubmitting(true);
     setError(null);
+    setDeclined(false);
 
     try {
       const response = await fetch(`/api/sessions/${sessionId}/consent`, {
@@ -40,6 +42,12 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleDeclined() {
+    setDeclined(true);
+    setError(null);
+    onDeclined();
   }
 
   return (
@@ -122,6 +130,16 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
         </p>
       )}
 
+      {declined && (
+        <p
+          className="text-xs font-medium"
+          style={{ color: "#CC2200" }}
+          role="alert"
+        >
+          Consent declined. No job can be started for this session.
+        </p>
+      )}
+
       <div className="flex gap-2">
         <button
           type="button"
@@ -139,7 +157,7 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
 
         <button
           type="button"
-          onClick={onDeclined}
+          onClick={handleDeclined}
           disabled={submitting}
           className="px-3 py-2 text-xs"
           style={{

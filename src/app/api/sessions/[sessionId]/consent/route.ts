@@ -3,7 +3,7 @@ import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMySession } from "@/lib/sessions/queries";
 import { createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
-import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { consentLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ sessionId: string }>;
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   }
 
   const identifier = getIdentifier(request, result.user.userId);
-  const limited = await checkRateLimit(apiLimit, identifier);
+  const limited = await checkRateLimit(consentLimit, identifier);
   if (limited) return limited;
 
   const { sessionId } = await ctx.params;
