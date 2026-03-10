@@ -18,10 +18,11 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Worker endpoint uses bearer token auth in-route, not cookie session auth.
+  // Worker and debug endpoints use in-route auth, not cookie session auth.
   if (
     /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
-    pathname === "/api/jobs/runner"
+    pathname === "/api/jobs/runner" ||
+    pathname === "/api/jobs/debug"
   ) {
     return NextResponse.next();
   }
@@ -51,7 +52,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // JTI revocation check — reject tokens that were explicitly revoked at logout
+  // JTI revocation check - reject tokens that were explicitly revoked at logout
   const revoked = await isSessionRevoked(session.jti);
   if (revoked) {
     if (pathname.startsWith("/api/")) {
