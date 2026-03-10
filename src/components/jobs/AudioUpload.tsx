@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useRef, type ChangeEvent } from "react";
+import {
+  uploadAudioForJobDirect,
+  validateAudioFile,
+} from "@/lib/storage/audio-upload-client";
 
 type Props = {
   jobId: string;
@@ -8,8 +12,6 @@ type Props = {
 };
 
 const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav";
-const MAX_SIZE_MB = 50;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function AudioUpload({ jobId, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -24,39 +26,23 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
     setError(null);
     setFileName(file.name);
 
-    if (!file.type.startsWith("audio/")) {
-      setError(`Invalid file type: ${file.type}. Please select an audio file.`);
-      return;
-    }
-
-    if (file.size > MAX_SIZE_BYTES) {
-      setError(
-        `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`,
-      );
+    const validationError = await validateAudioFile(file);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setUploading(true);
 
     try {
-      const form = new FormData();
-      form.append("file", file);
-
-      const res = await fetch(`/api/jobs/${jobId}/upload`, {
-        method: "POST",
-        body: form,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Upload failed" }));
-        setError(body.error || `Upload failed (${res.status})`);
-        return;
-      }
-
-      const body = await res.json();
-      onUploaded(body.audio_storage_path);
-    } catch {
-      setError("Network error during upload");
+      const storagePath = await uploadAudioForJobDirect(jobId, file);
+      onUploaded(storagePath);
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Network error during upload",
+      );
     } finally {
       setUploading(false);
     }
@@ -114,7 +100,9 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
         type="file"
         accept={ACCEPTED_TYPES}
         disabled={uploading}
-        onChange={handleFileChange}
+        onChange={(event) => {
+          void handleFileChange(event);
+        }}
         className="sr-only"
         data-testid="audio-file-input"
       />

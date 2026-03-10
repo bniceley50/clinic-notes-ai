@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { uploadAudioForJobDirect } from "@/lib/storage/audio-upload-client";
 
 type Props = {
   jobId: string;
@@ -22,23 +23,14 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
     if (!blob || uploadedRef.current) return;
     uploadedRef.current = true;
 
-    const file = new File([blob], "recording.webm", { type: blob.type });
-    const form = new FormData();
-    form.append("file", file);
+    const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
 
-    fetch(`/api/jobs/${jobId}/upload`, { method: "POST", body: form })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: "Upload failed" }));
-          throw new Error(body.error || `Upload failed (${res.status})`);
-        }
-        return res.json() as Promise<{ audio_storage_path: string }>;
+    uploadAudioForJobDirect(jobId, file)
+      .then((storagePath) => {
+        onUploaded(storagePath);
       })
-      .then((body) => {
-        onUploaded(body.audio_storage_path);
-      })
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : "Upload failed";
+      .catch((uploadError: unknown) => {
+        const msg = uploadError instanceof Error ? uploadError.message : "Upload failed";
         console.error("AudioRecorder upload error:", msg);
         uploadedRef.current = false;
         reset();
