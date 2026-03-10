@@ -18,9 +18,10 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Worker and debug endpoints use in-route auth, not cookie session auth.
+  // Worker, process, runner, and debug endpoints use in-route auth, not cookie session auth.
   if (
     /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
+    /^\/api\/jobs\/[^/]+\/process$/.test(pathname) ||
     pathname === "/api/jobs/runner" ||
     pathname === "/api/jobs/debug"
   ) {
