@@ -45,15 +45,21 @@ export async function GET(request: NextRequest) {
     (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000");
+  const automationBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
   for (const job of queued.data) {
     const processUrl = new URL(`/api/jobs/${job.id}/process`, baseUrl).toString();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN ?? ""}`,
+    };
+
+    if (automationBypassSecret) {
+      headers["x-vercel-protection-bypass"] = automationBypassSecret;
+    }
 
     void fetch(processUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN ?? ""}`,
-      },
+      headers,
     });
   }
 
