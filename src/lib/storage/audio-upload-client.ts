@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const MAX_SIZE_MB = 50;
+const MAX_SIZE_MB = 200;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 const EXTENSION_TO_MIME: Record<string, string> = {
