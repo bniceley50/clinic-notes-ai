@@ -210,9 +210,10 @@ function FieldRow({
   value: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [editedValue, setEditedValue] = useState(value);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(value);
+    await navigator.clipboard.writeText(editedValue);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   }
@@ -251,8 +252,8 @@ function FieldRow({
         </button>
       </div>
       <textarea
-        readOnly
-        value={value}
+        value={editedValue}
+        onChange={(e) => setEditedValue(e.target.value)}
         style={{
           width: "100%",
           minHeight: 112,
@@ -266,6 +267,9 @@ function FieldRow({
           color: "#333333",
         }}
       />
+      <p style={{ fontSize: 10, color: "#999999", marginTop: 4, marginBottom: 0 }}>
+        AI-generated - edit before pasting into CareLogic
+      </p>
     </div>
   );
 }
