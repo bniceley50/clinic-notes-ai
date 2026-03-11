@@ -26,7 +26,12 @@ type AnthropicResponse = {
 };
 
 function parseJsonPayload(text: string): Record<string, string> {
-  return JSON.parse(text.trim()) as Record<string, string>;
+  const cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "");
+  return JSON.parse(cleaned) as Record<string, string>;
 }
 
 export async function GET(request: NextRequest, ctx: RouteContext) {

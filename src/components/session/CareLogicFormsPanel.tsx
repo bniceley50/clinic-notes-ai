@@ -263,7 +263,7 @@ function FieldRow({
           font: "inherit",
           lineHeight: "16px",
           resize: "vertical",
-          backgroundColor: "#FCFCFD",
+          backgroundColor: "#FFFFFF",
           color: "#333333",
         }}
       />
