@@ -1,13 +1,13 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { loadCurrentUser } from "@/lib/auth/loader";
-import { getMySession } from "@/lib/sessions/queries";
 import { getJobsForSession } from "@/lib/jobs/queries";
 import {
   getLatestNoteForSession,
   getLatestTranscriptForSession,
 } from "@/lib/clinical/queries";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getMySession } from "@/lib/sessions/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
 import { AppShell } from "@/components/layout/AppShell";
@@ -212,6 +212,7 @@ export default async function SessionDetailPage({ params }: Props) {
               sessionId={session.id}
               noteId={note.id}
               noteType={note.note_type}
+              jobId={note.job_id ?? ""}
               sessionType={session.session_type ?? "general"}
               sessionCreatedAt={session.created_at}
               sessionDate={new Date(session.created_at).toLocaleDateString()}
