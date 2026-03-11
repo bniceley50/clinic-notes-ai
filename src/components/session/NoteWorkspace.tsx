@@ -162,7 +162,27 @@ export function NoteWorkspace({
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
               type="button"
-              className={activeTab === "draft" ? "ql-button" : "ql-button-secondary"}
+              style={activeTab === "draft"
+                ? {
+                    backgroundColor: "#3B276A",
+                    color: "#FFFFFF",
+                    border: "1px solid #3B276A",
+                    borderRadius: 2,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }
+                : {
+                    backgroundColor: "#FFFFFF",
+                    color: "#3B276A",
+                    border: "1px solid #3B276A",
+                    borderRadius: 2,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
               onClick={() => setActiveTab("draft")}
               data-testid="note-tab-draft"
             >
@@ -170,7 +190,27 @@ export function NoteWorkspace({
             </button>
             <button
               type="button"
-              className={activeTab === "carelogic" ? "ql-button" : "ql-button-secondary"}
+              style={activeTab === "carelogic"
+                ? {
+                    backgroundColor: "#3B276A",
+                    color: "#FFFFFF",
+                    border: "1px solid #3B276A",
+                    borderRadius: 2,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }
+                : {
+                    backgroundColor: "#FFFFFF",
+                    color: "#3B276A",
+                    border: "1px solid #3B276A",
+                    borderRadius: 2,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
               onClick={() => setActiveTab("carelogic")}
               data-testid="note-tab-carelogic"
             >
