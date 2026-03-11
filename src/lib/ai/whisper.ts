@@ -62,3 +62,41 @@ export async function transcribeAudio(
     };
   }
 }
+const WHISPER_CHUNK_BYTES = 23 * 1024 * 1024; // 23 MB - safe margin under 25 MB limit
+
+export async function transcribeAudioChunked(
+  audioBlob: Blob,
+  filename: string,
+  onChunkComplete?: (chunkIndex: number, totalChunks: number) => Promise<void>,
+): Promise<{ text: string | null; error: string | null }> {
+  if (audioBlob.size <= WHISPER_CHUNK_BYTES) {
+    return transcribeAudio(audioBlob, filename);
+  }
+
+  const ext = filename.includes(".") ? filename.split(".").pop()! : "webm";
+  const totalChunks = Math.ceil(audioBlob.size / WHISPER_CHUNK_BYTES);
+  const parts: string[] = [];
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * WHISPER_CHUNK_BYTES;
+    const end = Math.min(start + WHISPER_CHUNK_BYTES, audioBlob.size);
+    const chunkBlob = audioBlob.slice(start, end);
+    const chunkFilename = `${filename.replace(`.${ext}`, "")}-part-${String(i + 1).padStart(3, "0")}.${ext}`;
+
+    const result = await transcribeAudio(chunkBlob, chunkFilename);
+    if (result.error || !result.text) {
+      return {
+        text: null,
+        error: `Chunk ${i + 1}/${totalChunks} failed: ${result.error ?? "empty transcript"}`,
+      };
+    }
+
+    parts.push(result.text.trim());
+
+    if (onChunkComplete) {
+      await onChunkComplete(i + 1, totalChunks);
+    }
+  }
+
+  return { text: parts.join("\n"), error: null };
+}

@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getJobById, updateJobWorkerFields } from "@/lib/jobs/queries";
 import { downloadAudioForJob } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
-import { transcribeAudio } from "@/lib/ai/whisper";
+import { transcribeAudioChunked } from "@/lib/ai/whisper";
 import { generateNote } from "@/lib/ai/claude";
 import { upsertTranscriptForJob } from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
@@ -64,7 +64,17 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       vendor: "openai",
     });
 
-    const transcription = await transcribeAudio(downloaded.data, "recording.webm");
+    const transcription = await transcribeAudioChunked(
+      downloaded.data,
+      "recording.webm",
+      async (chunkIndex, totalChunks) => {
+        const progress = Math.round(10 + (chunkIndex / totalChunks) * 38);
+        await updateJobWorkerFields(jobId, {
+          stage: "transcribing",
+          progress,
+        });
+      },
+    );
     if (transcription.error || !transcription.text) {
       return await failJob(jobId, transcription.error ?? "Failed to transcribe audio");
     }
