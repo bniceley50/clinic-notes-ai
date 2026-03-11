@@ -4,5 +4,13 @@
       "path": "/api/jobs/runner",
       "schedule": "* * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/jobs/runner/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/jobs/[id]/process/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }
