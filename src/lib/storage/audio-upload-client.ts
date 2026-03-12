@@ -77,12 +77,20 @@ function normalizeAudioContentType(file: File): string | null {
 
 function isValidAudioSignature(bytes: Uint8Array): boolean {
   return (
+    // WebM / MKV
     (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) ||
+    // MP4 / M4A (ftyp box at offset 4)
     (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) ||
+    // OGG
     (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) ||
+    // WAV (RIFF)
     (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) ||
+    // MP3 (sync frame)
     (bytes[0] === 0xff && (bytes[1] === 0xfb || bytes[1] === 0xf3 || bytes[1] === 0xf2)) ||
-    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+    // MP3 (ID3 tag)
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    // WMA / ASF
+    (bytes[0] === 0x30 && bytes[1] === 0x26 && bytes[2] === 0xb2 && bytes[3] === 0x75)
   );
 }
 
@@ -98,7 +106,7 @@ export async function validateAudioFile(file: File): Promise<string | null> {
   }
 
   if (file.size > MAX_SIZE_BYTES) {
-    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is 24 MB. For longer sessions, record in a compressed format ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â a 60-min session in WebM, M4A, or MP3 at standard quality is typically under 15 MB.`;
+    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is 24 MB. For longer sessions, record in a compressed format — a 60-min session in WebM, M4A, or MP3 at standard quality is typically under 15 MB.`;
   }
 
   const headerBytes = await file.slice(0, 12).arrayBuffer();
