@@ -11,12 +11,13 @@ type Props = {
   onUploaded: (storagePath: string) => void;
 };
 
-const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav";
+const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav,audio/x-ms-wma,.wma";
 
 export function AudioUpload({ jobId, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -48,12 +49,47 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
     }
   }
 
+  async function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    setError(null);
+    setFileName(file.name);
+    const validationError = await validateAudioFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setUploading(true);
+    try {
+      const storagePath = await uploadAudioForJobDirect(jobId, file);
+      onUploaded(storagePath);
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Network error during upload",
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div
       className="mt-3 p-3"
       data-testid="audio-upload-panel"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        void handleDrop(e);
+      }}
       style={{
-        border: "1px dashed #746EB1",
+        border: dragOver ? "2px solid #3B276A" : "1px dashed #746EB1",
         borderRadius: "2px",
         backgroundColor: "#F9F9FF",
       }}
@@ -89,7 +125,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
                 d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
               />
             </svg>
-            Upload audio file
+            <span style={{ color: "#999999", fontWeight: 400 }}>Drag & drop or </span>Upload audio file
           </>
         )}
       </label>
