@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const MAX_SIZE_MB = 200;
+const MAX_SIZE_MB = 24;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 const EXTENSION_TO_MIME: Record<string, string> = {
@@ -94,7 +94,7 @@ export async function validateAudioFile(file: File): Promise<string | null> {
   }
 
   if (file.size > MAX_SIZE_BYTES) {
-    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`;
+    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is 24 MB. For longer sessions, record in a compressed format — a 60-min session in WebM, M4A, or MP3 at standard quality is typically under 15 MB.`;
   }
 
   const headerBytes = await file.slice(0, 12).arrayBuffer();
