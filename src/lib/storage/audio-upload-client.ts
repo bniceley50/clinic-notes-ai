@@ -10,6 +10,7 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   m4a: "audio/mp4",
   ogg: "audio/ogg",
   wav: "audio/wav",
+  wma: "audio/x-ms-wma",
 };
 
 type SignedUploadPayload = {
@@ -66,6 +67,9 @@ function normalizeAudioContentType(file: File): string | null {
   if (normalized === "audio/wav" || normalized === "audio/x-wav") {
     return "audio/wav";
   }
+  if (normalized === "audio/x-ms-wma" || normalized === "audio/wma") {
+    return "audio/x-ms-wma";
+  }
 
   const ext = extensionForFile(file.name);
   return ext ? EXTENSION_TO_MIME[ext] : null;
@@ -94,7 +98,7 @@ export async function validateAudioFile(file: File): Promise<string | null> {
   }
 
   if (file.size > MAX_SIZE_BYTES) {
-    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is 24 MB. For longer sessions, record in a compressed format — a 60-min session in WebM, M4A, or MP3 at standard quality is typically under 15 MB.`;
+    return `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is 24 MB. For longer sessions, record in a compressed format ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â a 60-min session in WebM, M4A, or MP3 at standard quality is typically under 15 MB.`;
   }
 
   const headerBytes = await file.slice(0, 12).arrayBuffer();
