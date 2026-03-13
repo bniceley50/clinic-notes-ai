@@ -4,6 +4,8 @@
 
 ### Done
 - [x] Structured logging helper for API routes
+- [x] Auth path tests (callback, logout, session parsing)
+- [x] Upload and CareLogic route tests
 - [x] Supabase schema, migrations, and RLS policies (PRs #1-6)
 - [x] Magic link auth with middleware protection (PRs #3-5)
 - [x] Session CRUD (create, list, detail views) (PR #6)
@@ -24,11 +26,11 @@
 - [ ] Audit findings remediation - Brian
 
 ### Up Next
-- [ ] Auth path tests (callback, logout, session parsing)
-- [ ] Upload and CareLogic route tests
 - [ ] E2E core-loop spec completion
 - [ ] Document Supabase dev/prod split in tracked docs
 - [ ] Populate docs/RUNBOOK.md with production deployment details
+- [ ] Fix callback route to return 400 when neither code nor token_hash is present
+- [ ] Move revocation check into session.ts or add dedicated revocation test at middleware level
 - [ ] Send beta invites to 5 Community Behavioral Health clinicians
 
 ### Blocked

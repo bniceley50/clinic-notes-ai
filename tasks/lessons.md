@@ -42,3 +42,8 @@ after any manual download.
 **What happened:** Added @sentry/nextjs for production error monitoring.
 **Root cause:** Audit flagged missing observability as CRITICAL beta blocker.
 **Rule going forward:** No user-facing deployment without error monitoring configured.
+
+## 2026-03-13 - Auth and data route tests added
+**What happened:** Added test coverage for auth callback/logout/session and PHI-handling upload/CareLogic routes.
+**Root cause:** Repo audit flagged zero test coverage on sensitive paths as HIGH.
+**Rule going forward:** Any new route handling auth or user data ships with at least happy-path + failure tests.
