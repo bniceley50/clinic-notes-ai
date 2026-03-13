@@ -1,3 +1,8 @@
+> **Source of truth for universal workflow rules:** docs/brian-system-prompt-v4-6.md
+> This file contains project-specific extensions only. If AGENTS.md and the
+> system prompt conflict, the system prompt wins.
+
+---
 # AI Agent Contract — Clinic Notes AI
 
 This file is the single source of truth for how any AI agent (Codex, ChatGPT, Claude, etc.) must behave when working on this repo. If an agent conflicts with this contract, this contract wins.
