@@ -10,10 +10,8 @@
  * Edge-runtime compatible: uses `jose` (not node:crypto) and
  * `globalThis.crypto` for UUID generation.
  *
- * JTI revocation: JWTs carry a `jti` claim but server-side revocation
- * (blocklist/store) is not yet implemented. Logout currently only clears
- * the client cookie. A stolen token remains valid until expiry.
- * TODO: Implement JTI revocation store before production use.
+ * JTI revocation: JWTs carry a `jti` claim that can be revoked
+ * server-side via the revocation store used by logout and middleware.
  */
 
 import { SignJWT, jwtVerify } from "jose";

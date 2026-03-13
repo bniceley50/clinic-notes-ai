@@ -10,27 +10,12 @@ test("Milestone A core loop happy path", async ({
     origin: "http://localhost:3000",
   });
 
-  const loginResponse = await page.request.get("/api/auth/dev-login", {
-    maxRedirects: 0,
-  });
-  expect(loginResponse.status()).toBe(303);
-
-  const setCookie = loginResponse.headers()["set-cookie"];
-  const sessionMatch = setCookie?.match(/cna_session=([^;]+)/);
-  expect(sessionMatch?.[1]).toBeTruthy();
-
-  await context.addCookies([
-    {
-      name: "cna_session",
-      value: sessionMatch![1],
-      url: "http://localhost:3000",
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
+  await page.goto("/api/auth/dev-login", { waitUntil: "domcontentloaded" });
+  await page.waitForURL(/\/(sessions|login)/, { timeout: 30_000 });
 
   await page.goto("/sessions", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/sessions/, { timeout: 10_000 });
 
   const createSessionForm = page.getByTestId("create-session-form");
   await expect(createSessionForm).toBeVisible({ timeout: 10000 });

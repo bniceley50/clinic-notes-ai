@@ -3,22 +3,24 @@
  *
  * Local development shortcut that creates or finds a sanitized test user,
  * ensures the user has an org/profile, mints the app session cookie, and
- * redirects to the app root.
+ * redirects to the sessions page.
  *
  * This route is gated by ALLOW_DEV_LOGIN=1 + NODE_ENV=development and must
  * never be reachable in production.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { defaultPracticeId, isDevLoginAllowed } from "@/lib/config";
+import { isDevLoginAllowed } from "@/lib/config";
 import { createSessionCookie } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { SessionRole } from "@/lib/auth/types";
 import { withLogging } from "@/lib/logger";
 
-const DEV_LOGIN_EMAIL = "dev-login@example.com";
+const DEV_LOGIN_EMAIL = "dev@example.com";
 const DEV_LOGIN_NAME = "Dev Login";
-const DEV_LOGIN_ORG = "Clinic Notes AI Dev Practice";
+const DEV_LOGIN_ORG_ID = "00000000-0000-0000-0000-000000000002";
+const DEV_LOGIN_ORG_NAME = "Clinic Notes AI Dev Practice";
+const DEV_LOGIN_ROLE: SessionRole = "provider";
 
 async function findDevUser() {
   const admin = createServiceClient();
@@ -71,25 +73,23 @@ async function getOrCreateDevUser() {
   return data.user;
 }
 
-async function getOrCreateDevOrg() {
+async function ensureDevOrg() {
   const admin = createServiceClient();
-  const configuredOrgId = defaultPracticeId();
-
-  const { data: existingConfiguredOrg } = await admin
+  const { data: existingOrg } = await admin
     .from("orgs")
     .select("id")
-    .eq("id", configuredOrgId)
+    .eq("id", DEV_LOGIN_ORG_ID)
     .maybeSingle();
 
-  if (existingConfiguredOrg) {
-    return existingConfiguredOrg.id;
+  if (existingOrg) {
+    return existingOrg.id;
   }
 
   const { data: createdOrg, error } = await admin
     .from("orgs")
     .insert({
-      id: configuredOrgId,
-      name: DEV_LOGIN_ORG,
+      id: DEV_LOGIN_ORG_ID,
+      name: DEV_LOGIN_ORG_NAME,
     })
     .select("id")
     .single();
@@ -101,12 +101,13 @@ async function getOrCreateDevOrg() {
   return createdOrg.id;
 }
 
-async function getOrCreateDevProfile(userId: string) {
+async function ensureDevProfile(userId: string) {
   const admin = createServiceClient();
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("org_id, role")
     .eq("user_id", userId)
+    .eq("org_id", DEV_LOGIN_ORG_ID)
     .maybeSingle();
 
   if (existingProfile) {
@@ -116,21 +117,19 @@ async function getOrCreateDevProfile(userId: string) {
     };
   }
 
-  const orgId = await getOrCreateDevOrg();
-  const role: SessionRole = "provider";
-
+  const orgId = await ensureDevOrg();
   const { error } = await admin.from("profiles").insert({
     user_id: userId,
     org_id: orgId,
     display_name: DEV_LOGIN_NAME,
-    role,
+    role: DEV_LOGIN_ROLE,
   });
 
   if (error) {
     throw new Error(`Failed to create dev profile: ${error.message}`);
   }
 
-  return { orgId, role };
+  return { orgId, role: DEV_LOGIN_ROLE };
 }
 
 export const GET = withLogging(async (request: NextRequest) => {
@@ -140,16 +139,16 @@ export const GET = withLogging(async (request: NextRequest) => {
 
   try {
     const user = await getOrCreateDevUser();
-    const profile = await getOrCreateDevProfile(user.id);
+    const profile = await ensureDevProfile(user.id);
 
     const cookie = await createSessionCookie({
       sub: user.id,
-      email: user.email ?? DEV_LOGIN_EMAIL,
+      email: DEV_LOGIN_EMAIL,
       practiceId: profile.orgId,
       role: profile.role,
     });
 
-    const response = NextResponse.redirect(new URL("/", request.url), 303);
+    const response = NextResponse.redirect(new URL("/sessions", request.url), 303);
     response.headers.append("Set-Cookie", cookie);
     return response;
   } catch (error) {
