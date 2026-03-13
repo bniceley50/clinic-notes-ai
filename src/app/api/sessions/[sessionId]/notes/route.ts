@@ -3,12 +3,13 @@ import { loadCurrentUser } from "@/lib/auth/loader";
 import { getLatestNoteForSession } from "@/lib/clinical/queries";
 import { getMySession } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{ sessionId: string }>;
 };
 
-export async function GET(request: NextRequest, ctx: RouteContext) {
+export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -36,4 +37,4 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ note: note.data });
-}
+});

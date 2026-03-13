@@ -3,12 +3,13 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { processJob } from "@/lib/jobs/processor";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(request: NextRequest, ctx: RouteContext) {
+export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const expectedToken = process.env.JOBS_RUNNER_TOKEN;
   const authorization = request.headers.get("authorization");
   const expectedHeader = expectedToken ? `Bearer ${expectedToken}` : null;
@@ -32,4 +33,4 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     { job_id: jobId, error: result.error },
     { status: 500 },
   );
-}
+});

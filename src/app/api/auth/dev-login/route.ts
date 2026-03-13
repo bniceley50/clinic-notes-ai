@@ -14,6 +14,7 @@ import { defaultPracticeId, isDevLoginAllowed } from "@/lib/config";
 import { createSessionCookie } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { SessionRole } from "@/lib/auth/types";
+import { withLogging } from "@/lib/logger";
 
 const DEV_LOGIN_EMAIL = "dev-login@example.com";
 const DEV_LOGIN_NAME = "Dev Login";
@@ -132,7 +133,7 @@ async function getOrCreateDevProfile(userId: string) {
   return { orgId, role };
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   if (!isDevLoginAllowed()) {
     return NextResponse.json({ error: "Dev login is disabled" }, { status: 403 });
   }
@@ -157,4 +158,4 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { captureException } from "@sentry/nextjs";
 
-export default function GlobalError({
+export default function SessionDetailError({
   error,
   reset,
 }: {
@@ -15,10 +15,10 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h2 className="text-xl font-semibold">Something went wrong</h2>
-      <p className="text-sm text-neutral-500">
-        {error.digest ? `Error ID: ${error.digest}` : "An unexpected error occurred."}
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+      <h2 className="text-xl font-semibold">Session unavailable</h2>
+      <p className="max-w-md text-sm text-neutral-500">
+        We hit an unexpected error while loading this session. Please try again.
       </p>
       <button
         onClick={reset}

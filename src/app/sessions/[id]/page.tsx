@@ -85,6 +85,7 @@ export default async function SessionDetailPage({ params }: Props) {
         orgName: user.org.name,
         role: user.role,
       }}
+    userId={user.userId}
     >
       <div className="mb-4 flex items-center justify-between">
         <Link

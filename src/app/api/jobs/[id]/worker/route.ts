@@ -17,6 +17,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { updateJobWorkerFields, getJobById } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -36,7 +37,7 @@ const VALID_STAGES = new Set([
   "failed",
 ]);
 
-export async function POST(request: NextRequest, ctx: RouteContext) {
+export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const token = jobsRunnerToken();
   if (!token) {
     return NextResponse.json(
@@ -149,4 +150,4 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json(data);
-}
+});

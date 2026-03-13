@@ -9,6 +9,7 @@ import {
 } from "@/lib/storage/audio";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -19,7 +20,7 @@ type UploadCompleteBody = {
 
 const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
 
-export async function POST(request: NextRequest, ctx: RouteContext) {
+export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -99,4 +100,4 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     job_id: job.id,
     audio_storage_path: savedPath,
   });
-}
+});

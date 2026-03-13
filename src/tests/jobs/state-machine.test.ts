@@ -5,7 +5,7 @@ const {
   mockUpdateJobWorkerFields,
   mockDownloadAudioForJob,
   mockUploadTranscript,
-  mockTranscribeAudio,
+  mockTranscribeAudioChunked,
   mockGenerateNote,
   mockUpsertTranscriptForJob,
   mockWriteAuditLog,
@@ -17,7 +17,7 @@ const {
   mockUpdateJobWorkerFields: vi.fn(),
   mockDownloadAudioForJob: vi.fn(),
   mockUploadTranscript: vi.fn(),
-  mockTranscribeAudio: vi.fn(),
+  mockTranscribeAudioChunked: vi.fn(),
   mockGenerateNote: vi.fn(),
   mockUpsertTranscriptForJob: vi.fn(),
   mockWriteAuditLog: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock('../../lib/storage/transcript', () => ({
 }))
 
 vi.mock('../../lib/ai/whisper', () => ({
-  transcribeAudio: mockTranscribeAudio,
+  transcribeAudioChunked: mockTranscribeAudioChunked,
 }))
 
 vi.mock('../../lib/ai/claude', () => ({
@@ -112,7 +112,7 @@ describe('job state machine', () => {
       error: null,
     })
 
-    mockTranscribeAudio.mockResolvedValue({
+    mockTranscribeAudioChunked.mockResolvedValue({
       text: 'Patient discussed treatment goals.',
       error: null,
     })
@@ -137,7 +137,11 @@ describe('job state machine', () => {
 
     expect(result).toEqual({ success: true, error: null })
     expect(mockDownloadAudioForJob).toHaveBeenCalledWith(baseJob.audio_storage_path)
-    expect(mockTranscribeAudio).toHaveBeenCalledWith(Buffer.from('audio-bytes'), 'recording.webm')
+    expect(mockTranscribeAudioChunked).toHaveBeenCalledWith(
+      Buffer.from('audio-bytes'),
+      'recording.webm',
+      expect.any(Function),
+    )
     expect(mockGenerateNote).toHaveBeenCalledWith({
       transcript: 'Patient discussed treatment goals.',
       noteType: 'soap',
@@ -166,7 +170,7 @@ describe('job state machine', () => {
 
     expect(result).toEqual({ success: false, error: 'No audio uploaded' })
     expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
-    expect(mockTranscribeAudio).not.toHaveBeenCalled()
+    expect(mockTranscribeAudioChunked).not.toHaveBeenCalled()
   })
 
   it('a job in complete status cannot be re-processed', async () => {

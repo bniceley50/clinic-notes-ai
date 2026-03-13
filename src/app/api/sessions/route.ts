@@ -2,10 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { createSession, listMySessions } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -26,9 +27,9 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ sessions: data });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -69,4 +70,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ session: data }, { status: 201 });
-}
+});

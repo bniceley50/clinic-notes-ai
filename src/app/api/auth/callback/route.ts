@@ -4,6 +4,7 @@ import { supabaseUrl, supabaseAnonKey, isDevLoginAllowed } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/types";
+import { withLogging } from "@/lib/logger";
 
 const DEFAULT_REDIRECT = "/dashboard";
 
@@ -194,7 +195,7 @@ async function createAppRedirectResponse(input: {
   return response;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
@@ -245,9 +246,9 @@ export async function GET(request: NextRequest) {
       "Cache-Control": "no-store",
     },
   });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   const body = await request.json().catch(() => null);
   if (!body || typeof body.access_token !== "string") {
     return NextResponse.json(
@@ -289,4 +290,4 @@ export async function POST(request: NextRequest) {
 
   response.headers.append("Set-Cookie", cookie);
   return response;
-}
+});

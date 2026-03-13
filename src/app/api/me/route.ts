@@ -8,8 +8,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
   if (result.status !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,4 +25,4 @@ export async function GET(request: NextRequest) {
     orgId: request.headers.get("x-org-id"),
     role: request.headers.get("x-user-role"),
   });
-}
+});

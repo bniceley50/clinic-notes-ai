@@ -10,8 +10,25 @@ test("Milestone A core loop happy path", async ({
     origin: "http://localhost:3000",
   });
 
-  await page.goto("/api/auth/dev-login", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL("/", { timeout: 10000 });
+  const loginResponse = await page.request.get("/api/auth/dev-login", {
+    maxRedirects: 0,
+  });
+  expect(loginResponse.status()).toBe(303);
+
+  const setCookie = loginResponse.headers()["set-cookie"];
+  const sessionMatch = setCookie?.match(/cna_session=([^;]+)/);
+  expect(sessionMatch?.[1]).toBeTruthy();
+
+  await context.addCookies([
+    {
+      name: "cna_session",
+      value: sessionMatch![1],
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+
   await page.goto("/sessions", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
 
@@ -27,15 +44,15 @@ test("Milestone A core loop happy path", async ({
 
   await expect(page).toHaveURL(/\/sessions\//, { timeout: 15_000 });
 
-  // TODO: audio upload → job processing assertions
+  // TODO: audio upload -> job processing assertions
   // Activate when AudioUpload is wired into session detail page
   // and job pipeline is connected end to end
 
   // TODO: transcript viewer assertions
-  // Activate when audio upload → job pipeline is wired
+  // Activate when audio upload -> job pipeline is wired
   // TranscriptViewer renders when transcript data exists
 
   // TODO: note viewer assertions
-  // Activate when audio upload → job pipeline is wired
+  // Activate when audio upload -> job pipeline is wired
   // NoteWorkspace renders when note data exists
 });

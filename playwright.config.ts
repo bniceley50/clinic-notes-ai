@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 
+const E2E_DEFAULT_PRACTICE_ID = "00000000-0000-0000-0000-000000000123";
+
 if (existsSync(".env.local")) {
   const lines = readFileSync(".env.local", "utf8").split(/\r?\n/);
 
@@ -16,13 +18,23 @@ if (existsSync(".env.local")) {
     }
 
     const name = trimmed.slice(0, separatorIndex);
-    const value = trimmed.slice(separatorIndex + 1);
+    let value = trimmed.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
 
     if (!(name in process.env)) {
       process.env[name] = value;
     }
   }
 }
+
+process.env.ALLOW_DEV_LOGIN ??= "1";
+process.env.DEFAULT_PRACTICE_ID ??= E2E_DEFAULT_PRACTICE_ID;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -41,6 +53,11 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev --port 3000",
+    env: {
+      ...process.env,
+      ALLOW_DEV_LOGIN: process.env.ALLOW_DEV_LOGIN,
+      DEFAULT_PRACTICE_ID: process.env.DEFAULT_PRACTICE_ID,
+    },
     url: "http://localhost:3000/login",
     reuseExistingServer: false,
     timeout: 120_000,
