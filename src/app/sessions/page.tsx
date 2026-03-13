@@ -5,7 +5,7 @@ import { listMySessions } from "@/lib/sessions/queries";
 import { CreateSessionForm } from "@/components/sessions/CreateSessionForm";
 import { AppShell } from "@/components/layout/AppShell";
 
-/* Status → CareLogic-aligned chip class */
+/* Status Ã¢â€ â€™ CareLogic-aligned chip class */
 const SESSION_STATUS_CHIP: Record<string, string> = {
   active:    "chip-running",
   completed: "chip-complete",
@@ -29,6 +29,7 @@ export default async function SessionsPage() {
         orgName: user.org.name,
         role: user.role,
       }}
+    userId={user.userId}
     >
       {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
@@ -37,7 +38,7 @@ export default async function SessionsPage() {
             Sessions
           </h1>
           <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
-            {user.org.name} — {user.profile.display_name}
+            {user.org.name} Ã¢â‚¬â€ {user.profile.display_name}
           </p>
         </div>
       </div>
@@ -106,7 +107,7 @@ export default async function SessionsPage() {
                       border: "1px solid #E7E9EC",
                     }}
                   >
-                    Open →
+                    Open Ã¢â€ â€™
                   </Link>
                 </td>
               </tr>

@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   if (result.status === "no_session") redirect("/login");
 
-  /* ── Error states (no shell, full-screen) ─────────────── */
+  /* Ã¢â€â‚¬Ã¢â€â‚¬ Error states (no shell, full-screen) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
   if (result.status === "no_profile" || result.status === "no_org" || result.status === "error") {
     const title =
       result.status === "no_profile" ? "Profile not found" :
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   const { user } = result;
   const { data: sessions } = await listMySessions(user);
 
-  /* ── Compute stats ────────────────────────────────────── */
+  /* Ã¢â€â‚¬Ã¢â€â‚¬ Compute stats Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
   const totalSessions   = sessions.length;
   const activeSessions  = sessions.filter((s) => s.status === "active").length;
   const completedSessions = sessions.filter((s) => s.status === "completed").length;
@@ -65,8 +65,9 @@ export default async function DashboardPage() {
         orgName: user.org.name,
         role: user.role,
       }}
+    userId={user.userId}
     >
-      {/* ── Page heading ──────────────────────────────── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Page heading Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="mb-5">
         <h1
           className="text-base font-bold uppercase tracking-wider"
@@ -75,11 +76,11 @@ export default async function DashboardPage() {
           Dashboard
         </h1>
         <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
-          {user.org.name} — {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          {user.org.name} Ã¢â‚¬â€ {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
 
-      {/* ── Stat cards row ────────────────────────────── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Stat cards row Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard
           label="Total Sessions"
@@ -107,7 +108,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* ── Two-column content area ───────────────────── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Two-column content area Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 280px" }}>
 
         {/* Recent sessions table */}
@@ -127,7 +128,7 @@ export default async function DashboardPage() {
               className="text-xs no-underline font-medium"
               style={{ color: "#517AB7" }}
             >
-              View all →
+              View all Ã¢â€ â€™
             </Link>
           </div>
           <table>
@@ -150,7 +151,7 @@ export default async function DashboardPage() {
                   >
                     No sessions yet.{" "}
                     <Link href="/sessions" style={{ color: "#517AB7" }}>
-                      Create one →
+                      Create one Ã¢â€ â€™
                     </Link>
                   </td>
                 </tr>

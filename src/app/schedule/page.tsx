@@ -46,6 +46,7 @@ export default async function SchedulePage() {
   return (
     <AppShell
       user={{ displayName: user.profile.display_name, orgName: user.org.name, role: user.role }}
+      userId={user.userId}
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
@@ -53,7 +54,7 @@ export default async function SchedulePage() {
             Schedule
           </h1>
           <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
-            Session history by day — {user.org.name}
+            Session history by day ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {user.org.name}
           </p>
         </div>
         <Link href="/sessions" className="btn-ql text-xs no-underline">
@@ -64,7 +65,7 @@ export default async function SchedulePage() {
       {sortedDates.length === 0 && (
         <div className="card-ql p-8 text-center text-sm" style={{ color: "#777777" }}>
           No sessions yet.{" "}
-          <Link href="/sessions" style={{ color: "#517AB7" }}>Create your first session →</Link>
+          <Link href="/sessions" style={{ color: "#517AB7" }}>Create your first session ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</Link>
         </div>
       )}
 
@@ -117,7 +118,7 @@ export default async function SchedulePage() {
                         </span>
                       </td>
                       <td className="text-right">
-                        <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline" style={{ color: "#517AB7" }}>Open →</Link>
+                        <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline" style={{ color: "#517AB7" }}>Open ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</Link>
                       </td>
                     </tr>
                   ))}
