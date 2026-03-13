@@ -18,6 +18,7 @@ import {
   getIdentifier,
   checkRateLimit,
 } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 const NOTE_COLUMNS =
   "id, session_id, org_id, content, note_type, created_at";
@@ -208,7 +209,7 @@ Generate the ${noteType} note now based solely on the transcript above.`,
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -299,4 +300,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

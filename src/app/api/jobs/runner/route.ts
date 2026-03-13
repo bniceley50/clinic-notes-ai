@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { listQueuedJobs } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 function isAuthorized(request: NextRequest): boolean {
   if (request.headers.get("x-vercel-cron") === "1") {
@@ -16,7 +17,7 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get("authorization") === `Bearer ${token}`;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   if (!jobsRunnerToken()) {
     return NextResponse.json(
       { error: "Runner endpoint not configured" },
@@ -66,4 +67,4 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     processed: queued.data.length,
   });
-}
+});

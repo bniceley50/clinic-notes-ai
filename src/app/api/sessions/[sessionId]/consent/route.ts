@@ -4,12 +4,13 @@ import { getMySession } from "@/lib/sessions/queries";
 import { createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
 import { consentLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{ sessionId: string }>;
 };
 
-export async function POST(request: NextRequest, ctx: RouteContext) {
+export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -97,4 +98,4 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

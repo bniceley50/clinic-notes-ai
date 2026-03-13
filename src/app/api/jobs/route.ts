@@ -11,8 +11,9 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
-export async function GET(request: NextRequest) {
+export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -45,9 +46,9 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ jobs: data });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -153,4 +154,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({ job: data }, { status: 201 });
-}
+});

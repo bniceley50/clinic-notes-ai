@@ -10,6 +10,7 @@ import {
 } from "@/lib/prompts/carelogic-prompts";
 import { apiLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
 import { getMySession } from "@/lib/sessions/queries";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ function parseJsonPayload(text: string): Record<string, string> {
   return JSON.parse(cleaned) as Record<string, string>;
 }
 
-export async function GET(request: NextRequest, ctx: RouteContext) {
+export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -160,4 +161,4 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
       { status: 500 },
     );
   }
-}
+});

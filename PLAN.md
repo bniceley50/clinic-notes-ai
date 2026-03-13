@@ -3,6 +3,7 @@
 ## Target: March 2026
 
 ### Done
+- [x] Structured logging helper for API routes
 - [x] Supabase schema, migrations, and RLS policies (PRs #1-6)
 - [x] Magic link auth with middleware protection (PRs #3-5)
 - [x] Session CRUD (create, list, detail views) (PR #6)
@@ -23,7 +24,6 @@
 - [ ] Audit findings remediation - Brian
 
 ### Up Next
-- [ ] Structured logging helper for API routes
 - [ ] Auth path tests (callback, logout, session parsing)
 - [ ] Upload and CareLogic route tests
 - [ ] E2E core-loop spec completion

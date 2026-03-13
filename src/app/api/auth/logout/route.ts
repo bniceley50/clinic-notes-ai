@@ -14,8 +14,9 @@ import {
 import { revokeSession } from "@/lib/auth/revocation";
 import { writeAuditLog } from "@/lib/audit";
 import { sessionTtlSeconds } from "@/lib/config";
+import { withLogging } from "@/lib/logger";
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   // Read session before clearing cookie so we can revoke the JTI
   const session = await readSessionFromCookieHeader(
     request.headers.get("cookie")
@@ -36,4 +37,4 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.redirect(new URL("/login", request.url), 303);
   response.headers.append("Set-Cookie", clearSessionCookie());
   return response;
-}
+});

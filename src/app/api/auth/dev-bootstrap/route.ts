@@ -19,8 +19,9 @@ import { isDevLoginAllowed, supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/types";
+import { withLogging } from "@/lib/logger";
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   if (!isDevLoginAllowed()) {
     return NextResponse.json(
       { error: "Dev bootstrap is disabled" },
@@ -114,4 +115,4 @@ export async function POST(request: NextRequest) {
   response.headers.append("Set-Cookie", cookie);
 
   return response;
-}
+});

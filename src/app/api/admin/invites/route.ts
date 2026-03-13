@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { createServiceClient } from "@/lib/supabase/server";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type InviteRole = "provider" | "admin";
 
@@ -9,7 +10,7 @@ function isInviteRole(value: string): value is InviteRole {
   return value === "provider" || value === "admin";
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -59,4 +60,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
-}
+});

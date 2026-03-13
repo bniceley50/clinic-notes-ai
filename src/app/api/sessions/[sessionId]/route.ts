@@ -6,13 +6,14 @@ import {
   updateMySession,
 } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
 const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 const VALID_STATUSES = ["active", "completed", "archived"] as const;
 
-export async function GET(request: NextRequest, ctx: RouteContext) {
+export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -31,9 +32,9 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ session: data });
-}
+});
 
-export async function PATCH(request: NextRequest, ctx: RouteContext) {
+export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -106,9 +107,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ session: data });
-}
+});
 
-export async function DELETE(request: NextRequest, ctx: RouteContext) {
+export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -127,4 +128,4 @@ export async function DELETE(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ session: data });
-}
+});

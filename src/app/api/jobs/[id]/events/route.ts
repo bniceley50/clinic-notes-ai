@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ function serializeJob(job: Awaited<ReturnType<typeof getMyJob>>["data"]) {
   };
 }
 
-export async function GET(request: NextRequest, ctx: RouteContext) {
+export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -116,4 +117,4 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
       Connection: "keep-alive",
     },
   });
-}
+});

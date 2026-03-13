@@ -2,12 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyNote, updateMyNoteContent } from "@/lib/clinical/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { withLogging } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{ sessionId: string; noteId: string }>;
 };
 
-export async function GET(request: NextRequest, ctx: RouteContext) {
+export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -26,9 +27,9 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ note: current.data });
-}
+});
 
-export async function PATCH(request: NextRequest, ctx: RouteContext) {
+export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -80,4 +81,4 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   }
 
   return NextResponse.json({ note: data });
-}
+});
