@@ -10,7 +10,6 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   m4a: "audio/mp4",
   ogg: "audio/ogg",
   wav: "audio/wav",
-  wma: "audio/x-ms-wma",
 };
 
 type SignedUploadPayload = {
@@ -67,9 +66,6 @@ function normalizeAudioContentType(file: File): string | null {
   if (normalized === "audio/wav" || normalized === "audio/x-wav") {
     return "audio/wav";
   }
-  if (normalized === "audio/x-ms-wma" || normalized === "audio/wma") {
-    return "audio/x-ms-wma";
-  }
 
   const ext = extensionForFile(file.name);
   return ext ? EXTENSION_TO_MIME[ext] : null;
@@ -88,9 +84,7 @@ function isValidAudioSignature(bytes: Uint8Array): boolean {
     // MP3 (sync frame)
     (bytes[0] === 0xff && (bytes[1] === 0xfb || bytes[1] === 0xf3 || bytes[1] === 0xf2)) ||
     // MP3 (ID3 tag)
-    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
-    // WMA / ASF
-    (bytes[0] === 0x30 && bytes[1] === 0x26 && bytes[2] === 0xb2 && bytes[3] === 0x75)
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
   );
 }
 
@@ -102,7 +96,7 @@ async function parseError(response: Response, fallback: string): Promise<string>
 export async function validateAudioFile(file: File): Promise<string | null> {
   const contentType = normalizeAudioContentType(file);
   if (!contentType) {
-    return `Invalid file type: ${file.type || file.name}. Please select a supported audio file.`;
+    return "Unsupported format. Please upload WebM, MP3, MP4, M4A, OGG, or WAV.";
   }
 
   if (file.size > MAX_SIZE_BYTES) {
@@ -124,7 +118,7 @@ export async function uploadAudioForJobDirect(
 ): Promise<string> {
   const contentType = normalizeAudioContentType(file);
   if (!contentType) {
-    throw new Error("Unsupported audio format");
+    throw new Error("Unsupported format. Please upload WebM, MP3, MP4, M4A, OGG, or WAV.");
   }
 
   const initResponse = await fetch(`/api/jobs/${jobId}/upload-url`, {
