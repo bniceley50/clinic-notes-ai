@@ -10,11 +10,19 @@ test("Milestone A core loop happy path", async ({
     origin: "http://localhost:3000",
   });
 
+  const loginResponse = await page.request.get("/api/auth/dev-login", {
+    maxRedirects: 0,
+  });
+  console.log("DEV-LOGIN STATUS:", loginResponse.status());
+  console.log("DEV-LOGIN HEADERS:", JSON.stringify(loginResponse.headers()));
+  console.log("DEV-LOGIN BODY:", await loginResponse.text());
+
   await page.goto("/api/auth/dev-login", { waitUntil: "domcontentloaded" });
   await page.waitForURL(/\/(sessions|login)/, { timeout: 30_000 });
 
   await page.goto("/sessions", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
+  console.log("CURRENT URL AFTER /sessions NAV:", page.url());
   await expect(page).toHaveURL(/\/sessions/, { timeout: 10_000 });
 
   const createSessionForm = page.getByTestId("create-session-form");
