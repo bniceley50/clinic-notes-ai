@@ -20,7 +20,6 @@ const ALLOWED_AUDIO_MIME_TYPES = new Set([
   "audio/ogg",
   "audio/wav",
   "audio/x-wav",
-  "audio/x-ms-wma",
 ]);
 
 type UploadAudioInput = {

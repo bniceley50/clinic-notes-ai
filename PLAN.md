@@ -6,6 +6,8 @@
 - [x] Structured logging helper for API routes
 - [x] Auth path tests (callback, logout, session parsing)
 - [x] Upload and CareLogic route tests
+- [x] Remove WMA from accepted upload formats (Whisper does not support WMA)
+- [x] Fix hardcoded recording.webm filename in transcription pipeline
 - [x] Supabase schema, migrations, and RLS policies (PRs #1-6)
 - [x] Magic link auth with middleware protection (PRs #3-5)
 - [x] Session CRUD (create, list, detail views) (PR #6)
@@ -29,6 +31,7 @@
 - [ ] E2E core-loop spec completion
 - [ ] Document Supabase dev/prod split in tracked docs
 - [ ] Populate docs/RUNBOOK.md with production deployment details
+- [ ] Add server-side WMA->MP3 conversion for upload if beta users request WMA support
 - [ ] Harden session revocation to fail closed during Redis/Upstash outages (pre-production)
 - [ ] Tighten RLS UPDATE policies on sessions and notes to enforce immutable relationship fields (pre-production)
 - [ ] Fix callback route to return 400 when neither code nor token_hash is present
