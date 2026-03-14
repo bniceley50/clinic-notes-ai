@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+/**
+ * E2E core loop test.
+ *
+ * This test requires a running Next.js dev server with a reachable Supabase
+ * instance. It is NOT run in CI because GitHub Actions runners cannot resolve
+ * the Supabase project DNS.
+ *
+ * To run locally:
+ *   E2E_AUTH_STUB=1 ALLOW_DEV_LOGIN=1 AUTH_COOKIE_SECRET=your-secret \
+ *   SESSION_TTL_SECONDS=28800 pnpm test:e2e
+ *
+ * Future: this test should run against the Vercel preview deployment URL
+ * where Supabase is reachable.
+ */
 test("Milestone A core loop happy path", async ({
   context,
   page,
