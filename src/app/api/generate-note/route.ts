@@ -75,8 +75,13 @@ function getRequiredString(
 
   if (field === "transcript") {
     if (value.length > 50000) return null;
-    return value
-      .replace(/<[^>]*>/g, "")
+    let cleaned = value;
+    let prev = "";
+    while (cleaned !== prev) {
+      prev = cleaned;
+      cleaned = cleaned.replace(/<[^>]*>/g, "");
+    }
+    return cleaned
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
       .trim();
   }

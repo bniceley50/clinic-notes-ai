@@ -27,7 +27,15 @@ const SafeSummarySchema = z
   .min(10, "Summary too short to generate a useful note")
   .max(5000, "Summary exceeds maximum length")
   .trim()
-  .transform((val) => val.replace(/<[^>]*>/g, ""))
+  .transform((val) => {
+    let cleaned = val;
+    let prev = "";
+    while (cleaned !== prev) {
+      prev = cleaned;
+      cleaned = cleaned.replace(/<[^>]*>/g, "");
+    }
+    return cleaned;
+  })
   .refine((val) => !/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(val), {
     message: "Summary contains invalid characters",
   });
@@ -43,7 +51,16 @@ export const GenerateNoteSchema = z.object({
     .string()
     .max(1000, "Presenting concerns too long")
     .optional()
-    .transform((val) => val?.replace(/<[^>]*>/g, "")),
+    .transform((val) => {
+      if (!val) return val;
+      let cleaned = val;
+      let prev = "";
+      while (cleaned !== prev) {
+        prev = cleaned;
+        cleaned = cleaned.replace(/<[^>]*>/g, "");
+      }
+      return cleaned;
+    }),
   interventionsUsed: z
     .array(z.string().max(100))
     .max(20, "Too many interventions listed")
