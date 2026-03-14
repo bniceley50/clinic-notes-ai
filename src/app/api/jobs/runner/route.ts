@@ -4,17 +4,37 @@ import { listQueuedJobs } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
-function isAuthorized(request: NextRequest): boolean {
+function getAuthorizationResult(request: NextRequest): {
+  ok: boolean;
+  status: number;
+  error: string;
+} {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("[runner] CRON_SECRET is not configured");
+    return { ok: false, status: 500, error: "Server misconfiguration" };
+  }
+
   if (request.headers.get("x-vercel-cron") === "1") {
-    return true;
+    if (authHeader === `Bearer ${cronSecret}`) {
+      return { ok: true, status: 200, error: "" };
+    }
+
+    return { ok: false, status: 401, error: "Unauthorized" };
   }
 
   const token = jobsRunnerToken();
   if (!token) {
-    return false;
+    return { ok: false, status: 401, error: "Unauthorized" };
   }
 
-  return request.headers.get("authorization") === `Bearer ${token}`;
+  if (authHeader === `Bearer ${token}`) {
+    return { ok: true, status: 200, error: "" };
+  }
+
+  return { ok: false, status: 401, error: "Unauthorized" };
 }
 
 export const GET = withLogging(async (request: NextRequest) => {
@@ -25,8 +45,12 @@ export const GET = withLogging(async (request: NextRequest) => {
     );
   }
 
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = getAuthorizationResult(request);
+  if (!authorization.ok) {
+    return NextResponse.json(
+      { error: authorization.error },
+      { status: authorization.status },
+    );
   }
 
   const identifier = getIdentifier(request, null);

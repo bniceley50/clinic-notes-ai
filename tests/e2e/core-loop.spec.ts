@@ -10,8 +10,12 @@ test("Milestone A core loop happy path", async ({
     origin: "http://localhost:3000",
   });
 
-  await page.goto("/api/auth/dev-login", { waitUntil: "domcontentloaded" });
-  await page.waitForURL(/\/(sessions|login)/, { timeout: 30_000 });
+  await page.goto("/api/auth/dev-login");
+  await page.waitForURL(/\/sessions/, { timeout: 30_000 });
+
+  const cookies = await context.cookies("http://localhost:3000");
+  const sessionCookie = cookies.find(c => c.name === "cna_session");
+  expect(sessionCookie, "dev-login must set cna_session cookie").toBeTruthy();
 
   await page.goto("/sessions", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
