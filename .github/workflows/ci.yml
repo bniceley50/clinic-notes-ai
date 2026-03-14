@@ -17,6 +17,7 @@ jobs:
       JOBS_RUNNER_TOKEN: ${{ secrets.JOBS_RUNNER_TOKEN }}
       AI_ENABLE_STUB_APIS: 1
       ALLOW_DEV_LOGIN: 1
+      E2E_AUTH_STUB: 1
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -137,6 +137,18 @@ export const GET = withLogging(async (request: NextRequest) => {
     return NextResponse.json({ error: "Dev login is disabled" }, { status: 403 });
   }
 
+  if (process.env.E2E_AUTH_STUB === "1") {
+    const cookie = await createSessionCookie({
+      sub: "00000000-0000-0000-0000-000000000001",
+      email: DEV_LOGIN_EMAIL,
+      practiceId: DEV_LOGIN_ORG_ID,
+      role: DEV_LOGIN_ROLE,
+    });
+    const response = NextResponse.redirect(new URL("/sessions", request.url), 303);
+    response.headers.append("Set-Cookie", cookie);
+    return response;
+  }
+
   try {
     const user = await getOrCreateDevUser();
     const profile = await ensureDevProfile(user.id);
