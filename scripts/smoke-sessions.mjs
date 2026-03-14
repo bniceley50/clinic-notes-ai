@@ -23,8 +23,11 @@ import { SignJWT } from "jose";
 import crypto from "node:crypto";
 
 const SUPABASE_URL = "http://127.0.0.1:54321";
-const SERVICE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_KEY) {
+  console.error("SUPABASE_SERVICE_ROLE_KEY is required");
+  process.exit(1);
+}
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -67,10 +70,11 @@ async function createTestUser(email, orgName) {
 }
 
 async function mintJwt(userId, orgId) {
-  const secret = new TextEncoder().encode(
-    process.env.AUTH_COOKIE_SECRET ||
-      "4oE9v3iCwJ6V3dXVsmbOqwt4V6kSx4PJuwITZYUongbXsZFLUKPeip2HvOEyTvLJ",
-  );
+  const secret = process.env.AUTH_COOKIE_SECRET;
+  if (!secret) {
+    console.error("AUTH_COOKIE_SECRET is required");
+    process.exit(1);
+  }
   const now = Math.floor(Date.now() / 1000);
   return new SignJWT({
     sub: userId,
@@ -82,7 +86,7 @@ async function mintJwt(userId, orgId) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt(now)
     .setExpirationTime(now + 3600)
-    .sign(secret);
+    .sign(new TextEncoder().encode(secret));
 }
 
 async function cleanup(userIds, orgIds) {

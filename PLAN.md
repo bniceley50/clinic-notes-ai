@@ -29,6 +29,8 @@
 - [ ] E2E core-loop spec completion
 - [ ] Document Supabase dev/prod split in tracked docs
 - [ ] Populate docs/RUNBOOK.md with production deployment details
+- [ ] Harden session revocation to fail closed during Redis/Upstash outages (pre-production)
+- [ ] Tighten RLS UPDATE policies on sessions and notes to enforce immutable relationship fields (pre-production)
 - [ ] Fix callback route to return 400 when neither code nor token_hash is present
 - [ ] Move revocation check into session.ts or add dedicated revocation test at middleware level
 - [ ] Send beta invites to 5 Community Behavioral Health clinicians
