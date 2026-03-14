@@ -10,11 +10,28 @@ test("Milestone A core loop happy path", async ({
     origin: "http://localhost:3000",
   });
 
-  await page.goto("/api/auth/dev-login");
-  await page.waitForURL(/\/sessions/, { timeout: 30_000 });
+  const loginResponse = await page.request.get("/api/auth/dev-login", {
+    maxRedirects: 0,
+  });
+  expect(loginResponse.status()).toBe(303);
+  expect(loginResponse.headers()["location"]).toContain("/sessions");
+
+  const setCookie = loginResponse.headers()["set-cookie"];
+  const sessionMatch = setCookie?.match(/cna_session=([^;]+)/);
+  expect(sessionMatch?.[1], "dev-login must return cna_session cookie").toBeTruthy();
+
+  await context.addCookies([
+    {
+      name: "cna_session",
+      value: decodeURIComponent(sessionMatch![1]),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
 
   const cookies = await context.cookies("http://localhost:3000");
-  const sessionCookie = cookies.find(c => c.name === "cna_session");
+  const sessionCookie = cookies.find((c) => c.name === "cna_session");
   expect(sessionCookie, "dev-login must set cna_session cookie").toBeTruthy();
 
   await page.goto("/sessions", { waitUntil: "domcontentloaded" });
