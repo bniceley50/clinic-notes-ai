@@ -65,9 +65,12 @@ export function SessionDeleteButton({
 
       if (redirectTo) {
         router.push(redirectTo);
+        return;
       }
 
       router.refresh();
+    } catch {
+      window.alert("Failed to delete session");
     } finally {
       setPending(false);
     }
