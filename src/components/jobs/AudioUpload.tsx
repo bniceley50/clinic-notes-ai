@@ -11,7 +11,7 @@ type Props = {
   onUploaded: (storagePath: string) => void;
 };
 
-const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav,audio/x-ms-wma,.wma";
+const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav";
 
 export function AudioUpload({ jobId, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -146,6 +146,11 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
       {error && (
         <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
           {error}
+        </p>
+      )}
+      {!error && (
+        <p className="mt-2 text-xs" style={{ color: "#777777" }}>
+          Supported formats: WebM, MP3, MP4, M4A, OGG, WAV.
         </p>
       )}
     </div>
