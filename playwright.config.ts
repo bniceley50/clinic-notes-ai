@@ -55,6 +55,7 @@ export default defineConfig({
     command: "pnpm dev --port 3000",
     env: {
       ...process.env,
+      NODE_ENV: "development",
       ALLOW_DEV_LOGIN: process.env.ALLOW_DEV_LOGIN,
       DEFAULT_PRACTICE_ID: process.env.DEFAULT_PRACTICE_ID,
     },
