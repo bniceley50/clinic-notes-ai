@@ -35,6 +35,22 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
 const POLL_INTERVAL_MS = 10_000;
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
+function getJobTitle(job: JobSnapshot): string {
+  if (job.status === "complete") return "Transcription complete";
+  if (job.status === "failed") return "Transcription failed";
+  if (job.status === "cancelled") return "Transcription cancelled";
+  if (job.status === "running") {
+    return job.stage === "transcribing"
+      ? "Transcription in progress"
+      : "Processing in progress";
+  }
+  return "Transcription queued";
+}
+
+function formatNoteType(noteType: string): string {
+  return noteType.toUpperCase();
+}
+
 type State = {
   jobs: JobSnapshot[];
   polling: Set<string>;
@@ -146,7 +162,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
         <div key={job.id} className="card-ql p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
-              {job.note_type}
+              {getJobTitle(job)}
             </span>
             <span
               className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
@@ -157,6 +173,11 @@ export function JobStatusPanel({ initialJobs }: Props) {
               {job.status}
             </span>
           </div>
+
+          <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+            Created {new Date(job.created_at).toLocaleDateString()} · Optional note format:{" "}
+            <span className="font-medium">{formatNoteType(job.note_type)}</span>
+          </p>
 
           {ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-3">

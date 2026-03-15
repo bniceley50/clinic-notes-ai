@@ -22,8 +22,9 @@ export function ConsentPrompt({ sessionId, onConsented }: Props) {
       </div>
       <div className="p-3">
         <p className="text-xs" style={{ color: "#333333" }}>
-          Patient consent is required before generating a note. Please confirm
-          consent below.
+          Before recording, confirm that the patient has verbally consented to
+          AI-assisted documentation. Audio will be processed by OpenAI
+          (transcription) and Anthropic (EHR field extraction).
         </p>
         <ConsentGate
           sessionId={sessionId}

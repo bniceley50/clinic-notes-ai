@@ -268,7 +268,7 @@ function FieldRow({
         }}
       />
       <p style={{ fontSize: 10, color: "#999999", marginTop: 4, marginBottom: 0 }}>
-        AI-generated - edit before pasting into CareLogic
+        AI-generated - review and edit before pasting into your EHR
       </p>
     </div>
   );
@@ -298,7 +298,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
       if (!response.ok || !payload?.fields) {
         setState({
           loading: false,
-          error: payload?.error ?? "Failed to load CareLogic fields",
+          error: "Failed to load EHR fields",
           fields: null,
         });
         return;
@@ -308,7 +308,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     } catch {
       setState({
         loading: false,
-        error: "Failed to load CareLogic fields",
+        error: "Failed to load EHR fields",
         fields: null,
       });
     }
@@ -322,7 +322,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     return (
       <div className="ql-panel">
         <p className="ql-alert ql-alert-warning">
-          CareLogic field extraction is unavailable for notes without an attached job.
+          EHR field extraction is unavailable until transcription has completed for this session.
         </p>
       </div>
     );
@@ -336,7 +336,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
           />
-          Loading CareLogic fields...
+          Loading EHR fields...
         </div>
       </div>
     );
@@ -346,7 +346,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     return (
       <div className="ql-panel" data-testid="carelogic-forms-panel-error">
         <p className="ql-alert ql-alert-error" role="alert">
-          {state.error ?? "Failed to load CareLogic fields"}
+          {state.error ?? "Failed to load EHR fields"}
         </p>
         <button
           type="button"

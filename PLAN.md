@@ -3,6 +3,7 @@
 ## Target: March 2026
 
 ### Done
+- [x] Batch 2: UI reframe - transcript-first flow, EHR Fields rename, Advanced menu for note generation
 - [x] Pipeline change: job completes after transcription, note generation is optional
 - [x] Structured logging helper for API routes
 - [x] Auth path tests (callback, logout, session parsing)
@@ -30,7 +31,6 @@
 - [ ] Audit findings remediation - Brian
 
 ### Up Next
-- [ ] Batch 2: UI changes - rename to EHR Fields, hide note generation behind Advanced menu
 - [ ] Batch 3: Session delete capability (clinicians own, admins any, hard delete with confirmation)
 - [ ] Batch 4: Wipe test sessions from database before beta invites
 - [ ] Document Supabase dev/prod split in tracked docs

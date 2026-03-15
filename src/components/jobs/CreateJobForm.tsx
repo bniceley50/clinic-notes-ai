@@ -9,16 +9,13 @@ type Props = {
   sessionId: string;
   hasActiveJob: boolean;
   hasConsent: boolean;
+  mode?: "job" | "advanced";
+  transcript?: string | null;
+  orgId?: string;
+  noteGenerated?: boolean;
 };
 
-const NOTE_TYPES = [
-  "soap",
-  "dap",
-  "birp",
-  "girp",
-  "intake",
-  "progress",
-] as const;
+const NOTE_TYPES = ["soap", "dap", "birp", "girp"] as const;
 
 type NoteType = (typeof NOTE_TYPES)[number];
 
@@ -27,8 +24,6 @@ const NOTE_TYPE_LABELS: Record<NoteType, string> = {
   dap: "DAP",
   birp: "BIRP",
   girp: "GIRP",
-  intake: "Intake",
-  progress: "Progress",
 };
 
 type CreateJobSuccess = {
@@ -41,7 +36,19 @@ type CreateJobError = {
   error?: string;
 };
 
-export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
+type GenerateNoteSuccess = {
+  note_id: string;
+};
+
+export function CreateJobForm({
+  sessionId,
+  hasActiveJob,
+  hasConsent,
+  mode = "job",
+  transcript = null,
+  orgId,
+  noteGenerated = false,
+}: Props) {
   const [noteType, setNoteType] = useState<NoteType>("soap");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +59,7 @@ export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
     "unknown" | "confirmed" | "declined"
   >("unknown");
   const canStartJob = hasConsent === true;
+  const canGenerateNote = hasConsent && !!transcript && !!orgId;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,25 +105,75 @@ export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
     }
   }
 
-  return (
-    <div className="card-ql p-4">
-      <form onSubmit={(event) => void handleSubmit(event)}>
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
+  async function handleGenerateNote(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (pending || !canGenerateNote) {
+      return;
+    }
+
+    setPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate-note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          transcript,
+          note_type: noteType.toUpperCase(),
+          org_id: orgId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | GenerateNoteSuccess
+        | CreateJobError
+        | null;
+
+      if (!response.ok || !payload || !("note_id" in payload)) {
+        setError(
+          (payload && "error" in payload && payload.error) ||
+            "Failed to generate note",
+        );
+        return;
+      }
+
+      window.location.reload();
+    } catch {
+      setError("Failed to generate note");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (mode === "advanced") {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs" style={{ color: "#555555" }}>
+          Generate an optional SOAP-style note from the completed transcript.
+          This is an advanced workflow and is not required for EHR field extraction.
+        </p>
+
+        <form onSubmit={(event) => void handleGenerateNote(event)} className="space-y-3">
+          <div>
             <label
-              htmlFor="note_type"
+              htmlFor="advanced_note_type"
               className="mb-1 block text-xs font-semibold"
               style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
             >
               Note Type
             </label>
             <select
-              id="note_type"
-              name="note_type"
-              data-testid="job-note-type"
+              id="advanced_note_type"
+              name="advanced_note_type"
+              data-testid="advanced-note-type"
               value={noteType}
               onChange={(event) => setNoteType(event.target.value as NoteType)}
-              disabled={hasActiveJob || pending || !!jobId || !canStartJob}
+              disabled={pending || !canGenerateNote}
               className="input-ql disabled:opacity-50"
               style={{ minWidth: "160px" }}
             >
@@ -127,6 +185,41 @@ export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
             </select>
           </div>
 
+          <button
+            type="submit"
+            disabled={pending || !canGenerateNote}
+            className="btn-ql"
+            data-testid="generate-note-button"
+          >
+            {pending ? "Generating..." : noteGenerated ? "Generate New Note" : "Generate Note"}
+          </button>
+
+          {!hasConsent && (
+            <p className="text-xs font-medium" style={{ color: "#8A4B08" }}>
+              Patient consent must be recorded before optional note generation is available.
+            </p>
+          )}
+
+          {!transcript && (
+            <p className="text-xs font-medium" style={{ color: "#8A4B08" }}>
+              A completed transcript is required before generating an optional note.
+            </p>
+          )}
+
+          {error && (
+            <p className="text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+              {error}
+            </p>
+          )}
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-ql p-4">
+      <form onSubmit={(event) => void handleSubmit(event)}>
+        <div className="flex items-center gap-4">
           {canStartJob ? (
             <div className="flex items-end">
               <button
@@ -142,7 +235,7 @@ export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
 
         {!canStartJob && !error && !jobId && (
           <p className="mt-2 text-xs font-medium" style={{ color: "#8A4B08" }}>
-            Patient consent must be recorded before a job can be started.
+            Patient consent must be recorded before AI-assisted documentation can begin.
           </p>
         )}
 
@@ -245,7 +338,7 @@ export function CreateJobForm({ sessionId, hasActiveJob, hasConsent }: Props) {
 
       {audioUploaded && (
         <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
-          Audio uploaded - processing will begin shortly
+          Audio uploaded - transcription will begin shortly
         </p>
       )}
     </div>

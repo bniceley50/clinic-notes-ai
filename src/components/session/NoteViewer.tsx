@@ -174,9 +174,9 @@ export function NoteViewer({
           onClick={handleCopy}
           disabled={!hasContent}
           className="btn-ql flex items-center gap-1.5 text-xs py-1"
-          title="Copy formatted note for pasting into CareLogic"
+          title="Copy formatted note for pasting into your EHR"
         >
-          {copied ? "✓ Copied!" : "⎘ Copy for CareLogic"}
+          {copied ? "✓ Copied!" : "⎘ Copy for EHR"}
         </button>
       </div>
 
@@ -191,7 +191,7 @@ export function NoteViewer({
           }}
         >
           <span>
-            ⚠ Copied before review. Verify all content in CareLogic before signing.
+            ⚠ Copied before review. Verify all content in your EHR before signing.
           </span>
           <button
             type="button"
@@ -248,7 +248,7 @@ export function NoteViewer({
         className="border-t px-4 py-2 text-[10px]"
         style={{ borderColor: "#E7E9EC", color: "#777777" }}
       >
-        AI-GENERATED — REVIEW REQUIRED before pasting into CareLogic.
+        AI-GENERATED — REVIEW REQUIRED before pasting into your EHR.
         Clinician signature constitutes acceptance of content.
       </div>
     </div>
