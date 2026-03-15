@@ -31,6 +31,7 @@
 - [ ] Audit findings remediation - Brian
 
 ### Up Next
+- [ ] Monthly memory-bank review: promote repeated lessons to CLAUDE-patterns.md or the global system prompt
 - [ ] Batch 3: Session delete capability (clinicians own, admins any, hard delete with confirmation)
 - [ ] Batch 4: Wipe test sessions from database before beta invites
 - [ ] Document Supabase dev/prod split in tracked docs

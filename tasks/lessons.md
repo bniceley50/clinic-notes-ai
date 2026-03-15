@@ -1,7 +1,24 @@
 # Lessons Log
-_Updated by agent after each user correction. Read at session start._
+_Updated by agent after each user correction or validated win. Read at session start._
 
 ---
+## How to use this file
+- Capture both mistakes and validated wins from the current session.
+- Before starting work, scan this file and flag only the entries relevant to today's task.
+- Use tags when helpful: `[GLOBAL]`, `[AUTH]`, `[SCOPE]`, `[TEST]`, `[TYPES]`, `[CI]`, `[UI]`, `[DATA]`.
+- If the same lesson is validated 2+ times or Brian confirms it as permanent, promote it to `CLAUDE-patterns.md`.
+- After promotion, append: `[PROMOTED to CLAUDE-patterns.md YYYY-MM-DD]` to the lesson entry.
+
+## Taxonomy
+- `[GLOBAL]` applies across repos and is a candidate for the system prompt.
+- `[SCOPE]` covers task boundaries, sequence, and avoiding scope creep.
+- `[AUTH]` covers auth, sessions, RLS, permissions, and access control.
+- `[TEST]` covers gates, mocks, fixtures, and test workflow mistakes.
+- `[TYPES]` covers type safety, interface drift, and schema mismatches.
+- `[CI]` covers workflow, environment, preview, and deploy issues.
+- `[UI]` covers copy, hierarchy, component contracts, and product framing.
+- `[DATA]` covers migrations, storage, prompts, transcript/note handling, and data integrity.
+
 ### 2026-03-07 - buildStubNote failed on uppercase note types
 **Pattern:** resolveSupportedNoteType() matched against lowercase keys 
 but callers passed uppercase ('DAP', 'SOAP'). Silent fallback to soap template.
