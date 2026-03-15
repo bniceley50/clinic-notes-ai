@@ -254,7 +254,7 @@ export default async function SessionDetailPage({ params }: Props) {
             </section>
           ) : null}
 
-          {hasConsent && transcript ? (
+          {transcript ? (
             <details className="card-ql overflow-hidden">
               <summary
                 className="cursor-pointer list-none border-b px-4 py-3"
