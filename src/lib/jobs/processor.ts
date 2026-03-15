@@ -1,17 +1,21 @@
 import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getJobById, updateJobWorkerFields } from "@/lib/jobs/queries";
+import { getJobById, updateJobWorkerFields, type JobNoteType } from "@/lib/jobs/queries";
 import { downloadAudioForJob } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudioChunked } from "@/lib/ai/whisper";
 import { generateNote } from "@/lib/ai/claude";
-import { upsertTranscriptForJob } from "@/lib/clinical/queries";
+import { upsertNoteForJob, upsertTranscriptForJob } from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
 
 type ProcessResult = {
   success: boolean;
   error: string | null;
+};
+
+type TranscriptLookupRow = {
+  content: string;
 };
 
 async function failJob(jobId: string, error: string): Promise<ProcessResult> {
@@ -21,6 +25,73 @@ async function failJob(jobId: string, error: string): Promise<ProcessResult> {
     error_message: error,
   });
   return { success: false, error };
+}
+
+export async function generateNoteForJob(jobId: string): Promise<ProcessResult> {
+  try {
+    const job = await getJobById(jobId);
+
+    if (!job) {
+      return { success: false, error: "Job not found" };
+    }
+
+    const db = createServiceClient();
+    const { data: transcriptRow, error: transcriptError } = await db
+      .from("transcripts")
+      .select("content")
+      .eq("job_id", jobId)
+      .eq("session_id", job.session_id)
+      .eq("org_id", job.org_id)
+      .maybeSingle();
+
+    if (transcriptError) {
+      return { success: false, error: transcriptError.message };
+    }
+
+    if (!(transcriptRow as TranscriptLookupRow | null)?.content) {
+      return { success: false, error: "Transcript not found for job" };
+    }
+
+    const transcript = (transcriptRow as TranscriptLookupRow).content;
+
+    void writeAuditLog({
+      orgId: job.org_id,
+      actorId: job.created_by,
+      sessionId: job.session_id,
+      jobId,
+      action: "transcript.sent_to_vendor",
+      vendor: "anthropic",
+    });
+
+    const noteResult = await generateNote({
+      transcript,
+      noteType: job.note_type,
+    });
+
+    if (noteResult.error || !noteResult.content) {
+      return { success: false, error: noteResult.error ?? "Failed to generate note" };
+    }
+
+    const saved = await upsertNoteForJob({
+      sessionId: job.session_id,
+      orgId: job.org_id,
+      jobId,
+      createdBy: job.created_by,
+      noteType: job.note_type as JobNoteType,
+      content: noteResult.content,
+    });
+
+    if (saved.error || !saved.data) {
+      return { success: false, error: saved.error ?? "Failed to save note" };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to generate note",
+    };
+  }
 }
 
 export async function processJob(jobId: string): Promise<ProcessResult> {
@@ -82,15 +153,6 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(jobId, transcription.error ?? "Failed to transcribe audio");
     }
 
-    const generating = await updateJobWorkerFields(jobId, {
-      stage: "drafting",
-      progress: 50,
-    });
-
-    if (generating.error || !generating.data) {
-      return await failJob(jobId, generating.error ?? "Failed to update job progress");
-    }
-
     let transcriptStoragePath: string | null = null;
 
     const transcriptUpload = await uploadTranscript({
@@ -104,7 +166,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       transcriptStoragePath = transcriptUpload.storagePath;
     }
 
-    await upsertTranscriptForJob({
+    const transcriptRow = await upsertTranscriptForJob({
       sessionId: job.session_id,
       orgId: job.org_id,
       jobId,
@@ -112,6 +174,10 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       durationSeconds: 0,
       wordCount: transcription.text.trim().split(/\s+/).filter(Boolean).length,
     });
+
+    if (transcriptRow.error || !transcriptRow.data) {
+      return await failJob(jobId, transcriptRow.error ?? "Failed to store transcript");
+    }
 
     void writeAuditLog({
       orgId: job.org_id,
@@ -121,38 +187,6 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       action: "transcript.sent_to_vendor",
       vendor: "anthropic",
     });
-
-    const noteResult = await generateNote({
-      transcript: transcription.text,
-      noteType: job.note_type,
-    });
-
-    if (noteResult.error || !noteResult.content) {
-      return await failJob(jobId, noteResult.error ?? "Failed to generate note");
-    }
-
-    const saving = await updateJobWorkerFields(jobId, {
-      stage: "drafting",
-      progress: 80,
-    });
-
-    if (saving.error || !saving.data) {
-      return await failJob(jobId, saving.error ?? "Failed to update save progress");
-    }
-
-    const db = createServiceClient();
-    const { error: noteError } = await db.from("notes").insert({
-      session_id: job.session_id,
-      org_id: job.org_id,
-      created_by: job.created_by,
-      job_id: jobId,
-      note_type: job.note_type,
-      content: noteResult.content,
-    });
-
-    if (noteError) {
-      return await failJob(jobId, noteError.message);
-    }
 
     const completed = await updateJobWorkerFields(jobId, {
       status: "complete",
@@ -164,6 +198,9 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     if (completed.error || !completed.data) {
       return await failJob(jobId, completed.error ?? "Failed to complete job");
     }
+
+    // NOTE GENERATION: disabled in the default pipeline.
+    // Optional note generation remains available via generateNoteForJob(jobId).
 
     return { success: true, error: null };
   } catch (error) {

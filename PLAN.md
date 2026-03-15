@@ -3,6 +3,7 @@
 ## Target: March 2026
 
 ### Done
+- [x] Pipeline change: job completes after transcription, note generation is optional
 - [x] Structured logging helper for API routes
 - [x] Auth path tests (callback, logout, session parsing)
 - [x] Upload and CareLogic route tests
@@ -29,6 +30,9 @@
 - [ ] Audit findings remediation - Brian
 
 ### Up Next
+- [ ] Batch 2: UI changes - rename to EHR Fields, hide note generation behind Advanced menu
+- [ ] Batch 3: Session delete capability (clinicians own, admins any, hard delete with confirmation)
+- [ ] Batch 4: Wipe test sessions from database before beta invites
 - [ ] Document Supabase dev/prod split in tracked docs
 - [ ] Populate docs/RUNBOOK.md with production deployment details
 - [ ] Run Playwright E2E against Vercel preview deployment URL in CI (requires Supabase access)

@@ -118,6 +118,60 @@ async function failJob(jobId: string, message: string): Promise<void> {
   });
 }
 
+export async function generateStubNoteForJob(jobId: string): Promise<PipelineRunResult> {
+  try {
+    const current = await readCurrentJob(jobId);
+    const seed = await loadSeed(current);
+    const noteContent = buildStubNote(
+      current.note_type as JobNoteType,
+      seed,
+    );
+    const draftPath = buildDraftStoragePath({
+      orgId: current.org_id,
+      sessionId: current.session_id,
+      jobId,
+    });
+
+    const draftsBucket = await ensureDraftsBucket();
+    if (draftsBucket.error) {
+      throw new Error(draftsBucket.error);
+    }
+
+    void writeAuditLog({
+      orgId: current.org_id,
+      actorId: current.created_by,
+      sessionId: current.session_id,
+      jobId,
+      action: "transcript.sent_to_vendor",
+      vendor: "anthropic",
+      metadata: { stub: true },
+    });
+
+    await uploadTextArtifact(DRAFTS_BUCKET, draftPath, noteContent);
+
+    const noteRow = await upsertNoteForJob({
+      sessionId: current.session_id,
+      orgId: current.org_id,
+      jobId,
+      createdBy: current.created_by,
+      noteType: current.note_type as JobNoteType,
+      content: noteContent,
+    });
+
+    if (noteRow.error || !noteRow.data) {
+      throw new Error(noteRow.error ?? "Failed to write note row");
+    }
+
+    await updateJobWorkerFields(jobId, {
+      draft_storage_path: draftPath,
+    });
+
+    return { jobId, status: "completed" };
+  } catch {
+    return { jobId, status: "failed" };
+  }
+}
+
 export async function runStubPipeline(jobId: string): Promise<PipelineRunResult> {
   const current = await readCurrentJob(jobId);
 
@@ -195,48 +249,6 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
       throw new Error(transcriptRow.error ?? "Failed to write transcript row");
     }
 
-    const transcriptUpdated = await updateJobWorkerFields(jobId, {
-      stage: "transcribing",
-      progress: 50,
-      transcript_storage_path: transcriptPath,
-    });
-
-    if (transcriptUpdated.error || !transcriptUpdated.data) {
-      throw new Error(
-        transcriptUpdated.error ?? "Failed to update transcript progress",
-      );
-    }
-
-    await delay(STUB_STAGE_DELAY_MS);
-    const beforeDraft = await stopIfTerminal(jobId);
-    if (beforeDraft.status === "cancelled") {
-      return { jobId, status: "cancelled" };
-    }
-
-    const drafting = await updateJobWorkerFields(jobId, {
-      stage: "drafting",
-      progress: 75,
-    });
-
-    if (drafting.error || !drafting.data) {
-      throw new Error(drafting.error ?? "Failed to move job into drafting");
-    }
-
-    const noteContent = buildStubNote(
-      current.note_type as JobNoteType,
-      seed,
-    );
-    const draftPath = buildDraftStoragePath({
-      orgId: current.org_id,
-      sessionId: current.session_id,
-      jobId,
-    });
-
-    const draftsBucket = await ensureDraftsBucket();
-    if (draftsBucket.error) {
-      throw new Error(draftsBucket.error);
-    }
-
     void writeAuditLog({
       orgId: current.org_id,
       actorId: current.created_by,
@@ -247,31 +259,19 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
       metadata: { stub: true },
     });
 
-    await uploadTextArtifact(DRAFTS_BUCKET, draftPath, noteContent);
-
-    const noteRow = await upsertNoteForJob({
-      sessionId: current.session_id,
-      orgId: current.org_id,
-      jobId,
-      createdBy: current.created_by,
-      noteType: current.note_type as JobNoteType,
-      content: noteContent,
-    });
-
-    if (noteRow.error || !noteRow.data) {
-      throw new Error(noteRow.error ?? "Failed to write note row");
-    }
-
     const completed = await updateJobWorkerFields(jobId, {
       status: "complete",
       stage: "complete",
       progress: 100,
-      draft_storage_path: draftPath,
+      transcript_storage_path: transcriptPath,
     });
 
     if (completed.error || !completed.data) {
       throw new Error(completed.error ?? "Failed to complete job");
     }
+
+    // NOTE GENERATION: disabled in the default stub pipeline.
+    // Optional note generation remains available via generateStubNoteForJob(jobId).
 
     return { jobId, status: "completed" };
   } catch (error) {
