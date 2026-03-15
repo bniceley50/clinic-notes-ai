@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import {
-  archiveMySession,
+  deleteSessionCascade,
+  getSessionForOrg,
   getMySession,
   updateMySession,
 } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
+import { writeAuditLog } from "@/lib/audit";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
@@ -121,11 +123,35 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   if (limited) return limited;
 
   const { sessionId } = await ctx.params;
-  const { data, error } = await archiveMySession(result.user, sessionId);
+  const { data: session, error } = await getSessionForOrg(result.user.orgId, sessionId);
 
-  if (error || !data) {
+  if (error || !session) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ session: data });
+  if (result.user.role !== "admin" && session.created_by !== result.user.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    await deleteSessionCascade(sessionId, result.user.orgId);
+  } catch (cascadeError) {
+    const message =
+      cascadeError instanceof Error ? cascadeError.message : "Failed to delete session";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  void writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    sessionId,
+    action: "session.deleted",
+    requestId: request.headers.get("x-vercel-id") ?? undefined,
+    metadata: {
+      deleted_by_role: result.user.role,
+      deleted_session_owner: session.created_by,
+    },
+  });
+
+  return NextResponse.json({ deleted: true });
 });

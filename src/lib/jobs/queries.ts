@@ -53,6 +53,10 @@ const JOB_COLUMNS =
 
 const UNIQUE_VIOLATION = "23505";
 
+function isOrgAdmin(user: AppUser): boolean {
+  return user.role === "admin";
+}
+
 export async function createJob(
   user: AppUser,
   input: CreateJobInput,
@@ -91,13 +95,18 @@ export async function getJobsForSession(
 ): Promise<{ data: JobRow[]; error: string | null }> {
   const db = createServiceClient();
 
-  const { data, error } = await db
+  let query = db
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
-    .eq("created_by", user.userId)
     .order("created_at", { ascending: false });
+
+  if (!isOrgAdmin(user)) {
+    query = query.eq("created_by", user.userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return { data: [], error: error.message };
@@ -112,16 +121,20 @@ export async function getActiveJobForSession(
 ): Promise<{ data: JobRow | null; error: string | null }> {
   const db = createServiceClient();
 
-  const { data, error } = await db
+  let query = db
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
-    .eq("created_by", user.userId)
     .in("status", ["queued", "running"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (!isOrgAdmin(user)) {
+    query = query.eq("created_by", user.userId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     return { data: null, error: error.message };
@@ -136,13 +149,18 @@ export async function getMyJob(
 ): Promise<{ data: JobRow | null; error: string | null }> {
   const db = createServiceClient();
 
-  const { data, error } = await db
+  let query = db
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("id", jobId)
     .eq("org_id", user.orgId)
-    .eq("created_by", user.userId)
-    .single();
+    .limit(1);
+
+  if (!isOrgAdmin(user)) {
+    query = query.eq("created_by", user.userId);
+  }
+
+  const { data, error } = await query.single();
 
   if (error) {
     return { data: null, error: error.message };

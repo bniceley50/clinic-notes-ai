@@ -3,6 +3,7 @@
 ## Target: March 2026
 
 ### Done
+- [x] Batch 3: Session delete (clinicians own, admins any, hard cascade delete with confirmation)
 - [x] Batch 2: UI reframe - transcript-first flow, EHR Fields rename, Advanced menu for note generation
 - [x] Pipeline change: job completes after transcription, note generation is optional
 - [x] Structured logging helper for API routes
@@ -32,7 +33,6 @@
 
 ### Up Next
 - [ ] Monthly memory-bank review: promote repeated lessons to CLAUDE-patterns.md or the global system prompt
-- [ ] Batch 3: Session delete capability (clinicians own, admins any, hard delete with confirmation)
 - [ ] Batch 4: Wipe test sessions from database before beta invites
 - [ ] Document Supabase dev/prod split in tracked docs
 - [ ] Populate docs/RUNBOOK.md with production deployment details
