@@ -35,6 +35,17 @@ function parseJsonPayload(text: string): Record<string, string> {
   return JSON.parse(cleaned) as Record<string, string>;
 }
 
+function getAnthropicApiKeyOrError(): { key: string | null; error: string | null } {
+  try {
+    return { key: anthropicApiKey(), error: null };
+  } catch {
+    return {
+      key: null,
+      error: "Anthropic EHR field extraction is not configured",
+    };
+  }
+}
+
 export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
@@ -76,7 +87,15 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
 
   if (!aiRealApisEnabled()) {
     return NextResponse.json(
-      { error: "CareLogic field generation is unavailable" },
+      { error: "EHR field extraction is unavailable" },
+      { status: 503 },
+    );
+  }
+
+  const { key: apiKey, error: apiKeyError } = getAnthropicApiKeyOrError();
+  if (apiKeyError || !apiKey) {
+    return NextResponse.json(
+      { error: apiKeyError ?? "EHR field extraction is unavailable" },
       { status: 503 },
     );
   }
@@ -91,7 +110,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey(),
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
@@ -131,7 +150,15 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       );
     }
 
-    const fields = parseJsonPayload(firstTextBlock.text);
+    let fields: Record<string, string>;
+    try {
+      fields = parseJsonPayload(firstTextBlock.text);
+    } catch {
+      return NextResponse.json(
+        { error: "Anthropic returned invalid JSON for EHR fields" },
+        { status: 502 },
+      );
+    }
 
     void writeAuditLog({
       orgId: result.user.orgId,
@@ -151,14 +178,24 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       sessionType: sessionResult.data.session_type,
     });
   } catch (error) {
+    const detail =
+      error instanceof Error
+        ? error.message
+        : "Failed to generate EHR fields";
+
+    console.error(
+      JSON.stringify({
+        route: "/api/jobs/[id]/carelogic-fields",
+        error: detail,
+        job_id: jobResult.data.id,
+      }),
+    );
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate CareLogic fields",
+        error: detail,
       },
-      { status: 500 },
+      { status: detail.includes("fetch") ? 502 : 500 },
     );
   }
 });

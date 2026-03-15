@@ -135,8 +135,13 @@ export function CreateJobForm({
         | null;
 
       if (!response.ok || !payload || !("note_id" in payload)) {
+        const detail =
+          payload && "detail" in payload && typeof payload.detail === "string"
+            ? payload.detail
+            : null;
         setError(
-          (payload && "error" in payload && payload.error) ||
+          detail ||
+            (payload && "error" in payload && payload.error) ||
             "Failed to generate note",
         );
         return;

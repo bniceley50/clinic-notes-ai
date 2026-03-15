@@ -206,4 +206,46 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
     expect(mockGetLatestTranscriptForSession).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it("returns 503 when Anthropic is not configured", async () => {
+    mockAnthropicApiKey.mockImplementation(() => {
+      throw new Error("Missing required environment variable: ANTHROPIC_API_KEY");
+    });
+
+    const response = await GET(
+      makeRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload).toEqual({
+      error: "Anthropic EHR field extraction is not configured",
+    });
+  });
+
+  it("returns 502 when Claude returns invalid JSON", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: [
+          {
+            type: "text",
+            text: "not-json",
+          },
+        ],
+      }),
+    });
+
+    const response = await GET(
+      makeRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(payload).toEqual({
+      error: "Anthropic returned invalid JSON for EHR fields",
+    });
+  });
 });

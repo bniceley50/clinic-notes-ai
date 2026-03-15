@@ -298,7 +298,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
       if (!response.ok || !payload?.fields) {
         setState({
           loading: false,
-          error: "Failed to load EHR fields",
+          error: payload?.error ?? "Failed to load EHR fields",
           fields: null,
         });
         return;
