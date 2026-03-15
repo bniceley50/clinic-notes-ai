@@ -11,6 +11,7 @@ import { getMySession } from "@/lib/sessions/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
 import { AppShell } from "@/components/layout/AppShell";
+import { AudioPlayer } from "@/components/audio/AudioPlayer";
 import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
 import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
@@ -74,6 +75,12 @@ export default async function SessionDetailPage({ params }: Props) {
     jobs.find((job) => job.transcript_storage_path) ??
     jobs.find((job) => job.status === "complete") ??
     null;
+  const latestCompletedAudioJob =
+    jobs.find((job) => job.status === "complete" && job.audio_storage_path) ??
+    null;
+  const completedAudioJobs = jobs.filter(
+    (job) => job.status === "complete" && job.audio_storage_path,
+  );
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
   );
@@ -218,15 +225,44 @@ export default async function SessionDetailPage({ params }: Props) {
             >
               Job History
             </div>
-            <div className="p-3">
+            <div className="space-y-3 p-3">
               <JobStatusPanel initialJobs={jobs} />
+              {completedAudioJobs.length > 0 ? (
+                <div className="space-y-3 border-t pt-3" style={{ borderColor: "#E7E9EC" }}>
+                  {completedAudioJobs.map((job) => (
+                    <div key={job.id} className="space-y-2 rounded border p-3" style={{ borderColor: "#E7E9EC" }}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#3B276A" }}>
+                            Recorded audio
+                          </p>
+                          <p className="text-xs" style={{ color: "#777777" }}>
+                            {new Date(job.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <span
+                          className="inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide chip-complete"
+                        >
+                          {job.status}
+                        </span>
+                      </div>
+                      <AudioPlayer jobId={job.id} />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
           {transcript ? (
-            <TranscriptViewer transcript={transcript.content} />
+            <section className="space-y-3">
+              {latestCompletedAudioJob ? (
+                <AudioPlayer jobId={latestCompletedAudioJob.id} compact />
+              ) : null}
+              <TranscriptViewer transcript={transcript.content} />
+            </section>
           ) : (
             <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
               Upload audio to transcribe.
