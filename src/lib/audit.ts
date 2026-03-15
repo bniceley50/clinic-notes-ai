@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 export type AuditAction =
   | "session.created"
   | "session.viewed"
+  | "session.deleted"
   | "job.created"
   | "job.triggered"
   | "job.cancelled"

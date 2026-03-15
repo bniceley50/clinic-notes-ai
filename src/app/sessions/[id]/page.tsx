@@ -15,6 +15,7 @@ import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
 import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
+import { SessionDeleteButton } from "@/components/sessions/SessionList";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -172,6 +173,19 @@ export default async function SessionDetailPage({ params }: Props) {
                 </tr>
               </tbody>
             </table>
+            {(user.role === "admin" || session.created_by === user.userId) && (
+              <div className="border-t px-3 py-3" style={{ borderColor: "#E7E9EC" }}>
+                <SessionDeleteButton
+                  sessionId={session.id}
+                  patientLabel={session.patient_label}
+                  redirectTo="/sessions"
+                  className="text-xs font-semibold"
+                  style={{ color: "#B42318" }}
+                >
+                  Delete session
+                </SessionDeleteButton>
+              </div>
+            )}
           </div>
 
           <ConsentStatusCard

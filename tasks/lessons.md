@@ -69,3 +69,8 @@ after any manual download.
 **What happened:** Removed automatic note generation from the default job pipeline. Jobs now complete after transcription. Note generation is preserved as an optional action.
 **Root cause:** Product feedback from Gillian - clinicians need EHR fields extracted from transcripts, not a separate SOAP note as the primary output.
 **Rule going forward:** The default pipeline should be the minimal path that gives clinicians what they need. Additional outputs (notes, exports) are optional extras, not required steps.
+
+## 2026-03-15 - Session delete with cascade
+**What happened:** Added hard delete for sessions with full cascade (notes, transcripts, audio, jobs, consents).
+**Root cause:** Beta readiness requires clinicians to manage their own data and prevent PII accumulation.
+**Rule going forward:** Any delete operation on clinical data must cascade completely - no orphaned PHI.
