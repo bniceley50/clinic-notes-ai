@@ -7,7 +7,7 @@ import "server-only";
  * fields: status, stage, progress, error_message, and storage paths.
  *
  * Gated by JOBS_RUNNER_TOKEN bearer auth. Browser/client code cannot
- * call this â€” only the worker process with the shared secret.
+ * call this - only the worker process with the shared secret.
  *
  * Validates state transitions: status can only move forward through
  * the defined FSM, never backwards or to arbitrary values.
@@ -87,7 +87,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     if (!allowed || !allowed.includes(body.status)) {
       return NextResponse.json(
         {
-          error: `Invalid transition: ${current.status} â†’ ${body.status}`,
+          error: `Invalid transition: ${current.status} -> ${body.status}`,
         },
         { status: 422 },
       );
@@ -110,7 +110,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
       body.progress > 100
     ) {
       return NextResponse.json(
-        { error: "progress must be 0â€“100" },
+        { error: "progress must be 0-100" },
         { status: 422 },
       );
     }

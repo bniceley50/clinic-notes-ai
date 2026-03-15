@@ -43,7 +43,7 @@ export const createAnonClient = (): SupabaseClient => {
  * createServerClient()
  * Cookie-bound Supabase client for server components and route handlers.
  * Use this whenever you need auth.getUser() to reflect the real caller session.
- * Uses the anon key + RLS â€” does NOT bypass row-level security.
+ * Uses the anon key + RLS - does NOT bypass row-level security.
  */
 export const createServerClient = async (): Promise<SupabaseClient> => {
   const cookieStore = await cookies();
@@ -58,7 +58,7 @@ export const createServerClient = async (): Promise<SupabaseClient> => {
             cookieStore.set(name, value, options)
           );
         } catch {
-          // setAll called from a Server Component â€” safe to ignore
+          // setAll called from a Server Component - safe to ignore
         }
       },
     },
