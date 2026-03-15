@@ -28,6 +28,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState("session-recording.webm");
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -161,6 +162,34 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
     seekTo(nextTime);
   }
 
+  async function handleDownload() {
+    if (!signedUrl || downloading) return;
+
+    setDownloading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(signedUrl);
+      if (!response.ok) {
+        throw new Error("Failed to download audio");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      setError("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: "#E7E9EC", color: "#777777" }}>
@@ -247,14 +276,15 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
           <span className="shrink-0 text-xs tabular-nums" style={{ color: "#555555" }}>
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
-          <a
-            href={signedUrl}
-            download={fileName}
-            className="shrink-0 text-xs font-medium no-underline"
+          <button
+            type="button"
+            onClick={() => void handleDownload()}
+            disabled={downloading}
+            className="shrink-0 text-xs font-medium"
             style={{ color: "#517AB7" }}
           >
-            Download
-          </a>
+            {downloading ? "Downloading..." : "Download"}
+          </button>
         </div>
       </div>
     </div>
