@@ -64,9 +64,12 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       vendor: "openai",
     });
 
+    const ext = job.audio_storage_path.split(".").pop()?.toLowerCase() || "webm";
+    const transcriptionFilename = `recording.${ext}`;
+
     const transcription = await transcribeAudioChunked(
       downloaded.data,
-      "recording.webm",
+      transcriptionFilename,
       async (chunkIndex, totalChunks) => {
         const progress = Math.round(10 + (chunkIndex / totalChunks) * 38);
         await updateJobWorkerFields(jobId, {
