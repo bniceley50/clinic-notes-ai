@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * AppShell â€” wraps authenticated pages with the CareLogic-aligned
+ * AppShell - wraps authenticated pages with the CareLogic-aligned
  * top-nav header + page content area. Drop this around any page's
  * return value once the user is confirmed authenticated.
  */

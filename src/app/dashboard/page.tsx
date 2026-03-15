@@ -244,7 +244,10 @@ export default async function DashboardPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Role
                   </td>
                   <td>
@@ -254,7 +257,10 @@ export default async function DashboardPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Org
                   </td>
                   <td className="text-xs" style={{ color: "#333333" }}>

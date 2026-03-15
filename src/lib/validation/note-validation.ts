@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 
-// â”€â”€â”€ Shared primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Shared primitives
 
 const NoteFormatSchema = z.enum(["SOAP", "DAP", "BIRP", "GIRP"], {
   error: "Format must be SOAP, DAP, BIRP, or GIRP",
@@ -40,7 +40,7 @@ const SafeSummarySchema = z
     message: "Summary contains invalid characters",
   });
 
-// â”€â”€â”€ Generate Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Generate Note
 
 export const GenerateNoteSchema = z.object({
   format: NoteFormatSchema,
@@ -71,7 +71,7 @@ export const GenerateNoteSchema = z.object({
 
 export type GenerateNoteInput = z.infer<typeof GenerateNoteSchema>;
 
-// â”€â”€â”€ Save Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Save Note
 
 export const SaveNoteSchema = z.object({
   noteContent: z
@@ -93,7 +93,7 @@ export const SaveNoteSchema = z.object({
 
 export type SaveNoteInput = z.infer<typeof SaveNoteSchema>;
 
-// â”€â”€â”€ Update Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Update Note
 
 export const UpdateNoteSchema = z.object({
   noteContent: z.string().min(1).max(20000).trim().optional(),
@@ -113,13 +113,13 @@ export const UpdateNoteSchema = z.object({
 
 export type UpdateNoteInput = z.infer<typeof UpdateNoteSchema>;
 
-// â”€â”€â”€ Note ID param â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Note ID param
 
 export const NoteIdParamSchema = z.object({
   id: z.string().uuid("Note ID must be a valid UUID"),
 });
 
-// â”€â”€â”€ List Notes query â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// List Notes query
 
 export const ListNotesQuerySchema = z.object({
   clientId: z.string().uuid("Invalid client ID").optional(),
@@ -138,7 +138,7 @@ export const ListNotesQuerySchema = z.object({
   { message: "startDate must be before endDate", path: ["startDate"] }
 );
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 
 export async function validateBody<T extends z.ZodTypeAny>(
   request: Request,
