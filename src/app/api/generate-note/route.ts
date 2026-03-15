@@ -64,6 +64,11 @@ type AnthropicResponse = {
   };
 };
 
+type RouteError = {
+  message: string;
+  status: number;
+};
+
 function getRequiredString(
   body: Record<string, unknown>,
   field: keyof GenerateNoteBody,
@@ -214,6 +219,20 @@ Generate the ${noteType} note now based solely on the transcript above.`,
   }
 }
 
+function getAnthropicApiKeyOrError(): { key: string | null; error: RouteError | null } {
+  try {
+    return { key: anthropicApiKey(), error: null };
+  } catch {
+    return {
+      key: null,
+      error: {
+        message: "Anthropic note generation is not configured",
+        status: 503,
+      },
+    };
+  }
+}
+
 export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
@@ -246,20 +265,37 @@ export const POST = withLogging(async (request: NextRequest) => {
 
   const noteTypeKey = NOTE_TYPE_MAP[body.note_type];
 
+  if (!body.transcript.trim()) {
+    return NextResponse.json(
+      { error: "Transcript is required before generating a note" },
+      { status: 400 },
+    );
+  }
+
   try {
-    const content = aiStubApisEnabled()
-      ? buildStubNote(noteTypeKey, {
-          patientLabel: session.data.patient_label ?? "Patient A",
-          providerName: result.user.profile.display_name,
-          sessionType: session.data.session_type,
-        })
-      : aiRealApisEnabled()
-        ? await generateRealNote(body.note_type, body.transcript)
-        : (() => {
-            throw new Error(
-              "Neither AI_ENABLE_STUB_APIS nor AI_ENABLE_REAL_APIS is enabled",
-            );
-          })();
+    let content: string;
+
+    if (aiStubApisEnabled()) {
+      content = buildStubNote(noteTypeKey, {
+        patientLabel: session.data.patient_label ?? "Patient A",
+        providerName: result.user.profile.display_name,
+        sessionType: session.data.session_type,
+      });
+    } else {
+      if (!aiRealApisEnabled()) {
+        return NextResponse.json(
+          { error: "Note generation is unavailable" },
+          { status: 503 },
+        );
+      }
+
+      const { key, error } = getAnthropicApiKeyOrError();
+      if (error || !key) {
+        return NextResponse.json({ error: error?.message ?? "Note generation is unavailable" }, { status: error?.status ?? 503 });
+      }
+
+      content = await generateRealNote(body.note_type, body.transcript);
+    }
 
     const db = createServiceClient();
     const { data, error } = await db
@@ -300,9 +336,18 @@ export const POST = withLogging(async (request: NextRequest) => {
     const detail =
       error instanceof Error ? error.message : "Unexpected generation failure";
 
+    console.error(
+      JSON.stringify({
+        route: "/api/generate-note",
+        error: detail,
+        session_id: body.session_id,
+        note_type: body.note_type,
+      }),
+    );
+
     return NextResponse.json(
       { error: "Note generation failed", detail },
-      { status: 500 },
+      { status: detail.includes("Anthropic request failed") ? 502 : 500 },
     );
   }
 });
