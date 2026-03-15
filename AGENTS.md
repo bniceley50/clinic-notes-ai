@@ -24,6 +24,9 @@ Blocked means missing input would cause: incorrect behavior, security risk, dest
 
 If not blocked, pick defaults and proceed.
 
+Before starting, scan `tasks/lessons.md` and `CLAUDE-patterns.md`, then flag
+only the entries directly relevant to today's task before touching any file.
+
 If you must ask:
 - One question, one sentence
 - State the default you will use if unanswered
@@ -186,7 +189,33 @@ Peer review handoff format:
 - Keep diffs tight
 - Every change must have a stated reason
 
-## 14) Weekly Quality Pass (Once Per Week, Not Every Day)
+## 14) Memory Bank
+
+### update memory bank command
+When Brian says "update memory bank", do the following in order:
+1. Append any new lessons or validated wins from this session to `tasks/lessons.md`
+2. Review `tasks/lessons.md` - if any lesson has been validated 2+ times
+   or Brian confirms it as permanent, promote it to `CLAUDE-patterns.md`
+   and mark the original lesson: `[PROMOTED to CLAUDE-patterns.md YYYY-MM-DD]`
+3. Update `DECISIONS.md` with any architectural decisions made this session
+4. Update `CLAUDE-patterns.md` with any new confirmed patterns
+5. Report what was added to each file, what was promoted, and what is still
+   a candidate lesson
+
+### Session self-assessment
+At session end, before any memory bank update, rate the session in one sentence each:
+- Scope discipline: did you stay within stated task boundaries?
+- Gate compliance: did you run gates and stop at decision points?
+- Correction count: how many times did Brian correct direction?
+
+If any dimension is poor, add it as a `tasks/lessons.md` candidate.
+
+### Global lessons
+Mistakes that apply across all projects go in `tasks/lessons.md` with the
+tag `[GLOBAL]`. Brian can periodically promote `[GLOBAL]` lessons to the
+global system prompt.
+
+## 15) Weekly Quality Pass (Once Per Week, Not Every Day)
 
 - Remove dead code
 - Tighten types
@@ -195,7 +224,7 @@ Peer review handoff format:
 
 Keep it small and boring. Prevent rot.
 
-## 15) Docs Minimum (Add Over Time, Small Patches)
+## 16) Docs Minimum (Add Over Time, Small Patches)
 
 - `docs/DEMO.md` - Exact steps to demo the app (no cloud required for local demo)
 - `docs/RUNBOOK_DEV.md` - Dev setup and common fixes
@@ -206,7 +235,7 @@ Keep it small and boring. Prevent rot.
 
 Any stubbed behavior must be labeled DEMO/STUB in code or docs.
 
-## 16) Label Taxonomy
+## 17) Label Taxonomy
 
 Source of truth: `.github/labels.json`
 
