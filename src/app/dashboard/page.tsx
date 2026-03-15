@@ -21,8 +21,6 @@ export default async function DashboardPage() {
     result.status === "no_org" ||
     result.status === "error"
   ) {
-  /* Error states (no shell, full-screen) */
-  if (result.status === "no_profile" || result.status === "no_org" || result.status === "error") {
     const title =
       result.status === "no_profile"
         ? "Profile not found"
@@ -66,10 +64,6 @@ export default async function DashboardPage() {
   const completedSessions = sessions.filter(
     (s) => s.status === "completed",
   ).length;
-  /* Compute stats */
-  const totalSessions   = sessions.length;
-  const activeSessions  = sessions.filter((s) => s.status === "active").length;
-  const completedSessions = sessions.filter((s) => s.status === "completed").length;
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -88,7 +82,6 @@ export default async function DashboardPage() {
       }}
       userId={user.userId}
     >
-      {/* Page heading */}
       <div className="mb-5">
         <h1
           className="text-base font-bold uppercase tracking-wider"
@@ -108,12 +101,6 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-5 grid grid-cols-4 gap-3">
-          {user.org.name} - {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-        </p>
-      </div>
-
-      {/* Stat cards row */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard
           label="Total Sessions"
           value={totalSessions}
@@ -140,7 +127,6 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Two-column content area */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 280px" }}>
         <div className="card-ql overflow-hidden">
           <div
@@ -258,7 +244,10 @@ export default async function DashboardPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Role
                   </td>
                   <td>
@@ -268,7 +257,10 @@ export default async function DashboardPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Org
                   </td>
                   <td className="text-xs" style={{ color: "#333333" }}>
