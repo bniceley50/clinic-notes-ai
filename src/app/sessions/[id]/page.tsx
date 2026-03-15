@@ -7,6 +7,18 @@ import {
   getLatestTranscriptForSession,
 } from "@/lib/clinical/queries";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  deriveConsentStatus,
+  shouldAllowJobStart,
+  type ConsentRecord,
+} from "@/lib/models/consent";
+import {
+  deriveJobState,
+  shouldShowAdvancedSection,
+  shouldShowAudioPlayer,
+  shouldShowEhrFields,
+  shouldShowTranscript,
+} from "@/lib/models/job-lifecycle";
 import { getMySession } from "@/lib/sessions/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
@@ -20,13 +32,6 @@ import { SessionDeleteButton } from "@/components/sessions/SessionList";
 
 type Props = {
   params: Promise<{ id: string }>;
-};
-
-type ConsentRow = {
-  hipaa_consent: boolean;
-  part2_applicable: boolean;
-  part2_consent: boolean | null;
-  created_at: string;
 };
 
 const SESSION_STATUS_CHIP: Record<string, string> = {
@@ -48,7 +53,7 @@ export default async function SessionDetailPage({ params }: Props) {
 
   if (error || !session) notFound();
 
-  let consent: ConsentRow | null = null;
+  let consent: ConsentRecord = null;
   try {
     const db = createServiceClient();
     const { data: consentRow } = await db
@@ -59,7 +64,7 @@ export default async function SessionDetailPage({ params }: Props) {
       .limit(1)
       .maybeSingle();
 
-    consent = (consentRow ?? null) as ConsentRow | null;
+    consent = (consentRow ?? null) as ConsentRecord;
   } catch {
     consent = null;
   }
@@ -71,22 +76,30 @@ export default async function SessionDetailPage({ params }: Props) {
   ]);
   const note = noteResult.data;
   const transcript = transcriptResult.data;
+  const transcriptContent = transcript?.content ?? null;
+  const consentStatus = deriveConsentStatus(consent);
   const latestTranscriptJob =
     jobs.find((job) => job.transcript_storage_path) ??
-    jobs.find((job) => job.status === "complete") ??
-    null;
+      jobs.find((job) => job.status === "complete") ??
+      null;
+  const latestJobState = latestTranscriptJob
+    ? deriveJobState(latestTranscriptJob, {
+        hasTranscript: !!transcriptContent,
+        hasNote: !!note,
+      })
+    : null;
   const latestCompletedAudioJob =
-    jobs.find((job) => job.status === "complete" && job.audio_storage_path) ??
+    jobs.find((job) => shouldShowAudioPlayer(deriveJobState(job))) ??
     null;
   const completedAudioJobs = jobs.filter(
-    (job) => job.status === "complete" && job.audio_storage_path,
+    (job) => shouldShowAudioPlayer(deriveJobState(job)),
   );
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
   );
-  const hasConsent = consent?.hipaa_consent === true;
-  const initialConsentLabel = hasConsent
-    ? consent?.part2_applicable && consent.part2_consent
+  const initialConsentLabel =
+    consentStatus.state === "recorded"
+    ? consentStatus.type === "hipaa_42cfr"
       ? "HIPAA + 42 CFR Part 2 consent recorded"
       : "Consent recorded"
     : "Consent not yet recorded";
@@ -197,9 +210,11 @@ export default async function SessionDetailPage({ params }: Props) {
 
           <ConsentStatusCard
             sessionId={session.id}
-            initialHasConsent={hasConsent}
+            initialHasConsent={shouldAllowJobStart(consentStatus)}
             initialConsentLabel={initialConsentLabel}
-            initialConsentTimestamp={consent?.created_at ?? null}
+            initialConsentTimestamp={
+              consentStatus.state === "recorded" ? consentStatus.recordedAt : null
+            }
           />
 
           <div className="card-ql overflow-hidden">
@@ -213,7 +228,7 @@ export default async function SessionDetailPage({ params }: Props) {
               <CreateJobForm
                 sessionId={session.id}
                 hasActiveJob={hasActiveJob}
-                hasConsent={hasConsent}
+                consentStatus={consentStatus}
               />
             </div>
           </div>
@@ -256,12 +271,13 @@ export default async function SessionDetailPage({ params }: Props) {
         </div>
 
         <div className="space-y-4">
-          {transcript ? (
+          {latestJobState && transcriptContent && shouldShowTranscript(latestJobState) ? (
             <section className="space-y-3">
-              {latestCompletedAudioJob ? (
+              {latestCompletedAudioJob &&
+              shouldShowAudioPlayer(deriveJobState(latestCompletedAudioJob)) ? (
                 <AudioPlayer jobId={latestCompletedAudioJob.id} compact />
               ) : null}
-              <TranscriptViewer transcript={transcript.content} />
+              <TranscriptViewer transcript={transcriptContent} />
             </section>
           ) : (
             <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
@@ -269,7 +285,10 @@ export default async function SessionDetailPage({ params }: Props) {
             </div>
           )}
 
-          {transcript && latestTranscriptJob ? (
+          {latestTranscriptJob &&
+          transcriptContent &&
+          latestJobState &&
+          shouldShowEhrFields(latestJobState) ? (
             <section className="card-ql overflow-hidden">
               <div
                 className="border-b px-4 py-3"
@@ -290,7 +309,7 @@ export default async function SessionDetailPage({ params }: Props) {
             </section>
           ) : null}
 
-          {transcript ? (
+          {latestJobState && transcriptContent && shouldShowAdvancedSection(latestJobState) ? (
             <details className="card-ql overflow-hidden">
               <summary
                 className="cursor-pointer list-none border-b px-4 py-3"
@@ -308,9 +327,9 @@ export default async function SessionDetailPage({ params }: Props) {
                 <CreateJobForm
                   sessionId={session.id}
                   hasActiveJob={hasActiveJob}
-                  hasConsent={hasConsent}
+                  consentStatus={consentStatus}
                   mode="advanced"
-                  transcript={transcript.content}
+                  transcript={transcriptContent}
                   orgId={user.orgId}
                   noteGenerated={!!note}
                 />

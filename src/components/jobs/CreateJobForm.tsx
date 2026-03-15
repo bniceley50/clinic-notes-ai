@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import {
+  deriveConsentStatus,
+  deriveDeclinedConsentStatus,
+  shouldAllowJobStart,
+  shouldShowConsentPrompt,
+  type ConsentStatus,
+} from "@/lib/models/consent";
 import { AudioUpload } from "./AudioUpload";
 import { AudioRecorder } from "./AudioRecorder";
 import { ConsentGate } from "./ConsentGate";
@@ -8,7 +15,7 @@ import { ConsentGate } from "./ConsentGate";
 type Props = {
   sessionId: string;
   hasActiveJob: boolean;
-  hasConsent: boolean;
+  consentStatus: ConsentStatus;
   mode?: "job" | "advanced";
   transcript?: string | null;
   orgId?: string;
@@ -43,7 +50,7 @@ type GenerateNoteSuccess = {
 export function CreateJobForm({
   sessionId,
   hasActiveJob,
-  hasConsent,
+  consentStatus,
   mode = "job",
   transcript = null,
   orgId,
@@ -55,11 +62,11 @@ export function CreateJobForm({
   const [jobId, setJobId] = useState<string | null>(null);
   const [audioUploaded, setAudioUploaded] = useState(false);
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
-  const [consentState, setConsentState] = useState<
-    "unknown" | "confirmed" | "declined"
-  >(hasConsent ? "confirmed" : "unknown");
-  const canStartJob = hasConsent === true;
-  const canGenerateNote = hasConsent && !!transcript && !!orgId;
+  const [localConsentStatus, setLocalConsentStatus] =
+    useState<ConsentStatus>(consentStatus);
+  const canStartJob = shouldAllowJobStart(localConsentStatus);
+  const canGenerateNote =
+    shouldAllowJobStart(localConsentStatus) && !!transcript && !!orgId;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -199,7 +206,7 @@ export function CreateJobForm({
             {pending ? "Generating..." : noteGenerated ? "Generate New Note" : "Generate Note"}
           </button>
 
-          {!hasConsent && (
+          {!shouldAllowJobStart(localConsentStatus) && (
             <p className="text-xs font-medium" style={{ color: "#8A4B08" }}>
               Patient consent must be recorded before optional note generation is available.
             </p>
@@ -259,26 +266,34 @@ export function CreateJobForm({
 
       {jobId && !audioUploaded && (
         <>
-          {!hasConsent && consentState === "unknown" && (
+          {shouldShowConsentPrompt(localConsentStatus) && (
             <ConsentGate
               sessionId={sessionId}
+              consentStatus={localConsentStatus}
               onConfirmed={() => {
-                setConsentState("confirmed");
+                setLocalConsentStatus(
+                  deriveConsentStatus({
+                    hipaa_consent: true,
+                    part2_applicable: false,
+                    part2_consent: null,
+                    created_at: new Date().toISOString(),
+                  }),
+                );
                 setError(null);
               }}
               onDeclined={() => {
-                setConsentState("declined");
+                setLocalConsentStatus(deriveDeclinedConsentStatus());
               }}
             />
           )}
 
-          {consentState === "declined" && (
+          {localConsentStatus.state === "declined" && (
             <p className="mt-3 text-xs font-medium" style={{ color: "#CC2200" }}>
               Recording is blocked because the patient did not consent.
             </p>
           )}
 
-          {consentState === "confirmed" && (
+          {shouldAllowJobStart(localConsentStatus) && (
             <>
               <div className="mt-3 flex gap-2">
                 <button

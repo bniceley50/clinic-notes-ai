@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+  deriveJobState,
+  shouldShowJobProgress,
+  type JobState,
+} from "@/lib/models/job-lifecycle";
 import { AudioUpload } from "./AudioUpload";
 
 export type JobSnapshot = {
@@ -35,12 +40,15 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
 const POLL_INTERVAL_MS = 10_000;
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
-function getJobTitle(job: JobSnapshot): string {
-  if (job.status === "complete") return "Transcription complete";
-  if (job.status === "failed") return "Transcription failed";
-  if (job.status === "cancelled") return "Transcription cancelled";
-  if (job.status === "running") {
-    return job.stage === "transcribing"
+function getJobTitle(job: JobSnapshot, jobState: JobState): string {
+  if (jobState.isComplete) return "Transcription complete";
+  if (jobState.isFailed || job.status === "cancelled") {
+    return job.status === "cancelled"
+      ? "Transcription cancelled"
+      : "Transcription failed";
+  }
+  if (jobState.isProcessing) {
+    return jobState.stage === "transcribing"
       ? "Transcription in progress"
       : "Processing in progress";
   }
@@ -160,9 +168,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
     <div className="mt-4 space-y-3" data-testid="job-status-panel">
       {state.jobs.map((job) => (
         <div key={job.id} className="card-ql p-4">
+          {(() => {
+            const jobState = deriveJobState(job);
+            return (
+              <>
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
-              {getJobTitle(job)}
+              {getJobTitle(job, jobState)}
             </span>
             <span
               className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
@@ -179,10 +191,10 @@ export function JobStatusPanel({ initialJobs }: Props) {
             <span className="font-medium">{formatNoteType(job.note_type)}</span>
           </p>
 
-          {ACTIVE_STATUSES.has(job.status) && (
+          {shouldShowJobProgress(jobState) && (
             <div className="mt-3">
               <div className="mb-1 flex items-center justify-between text-xs" style={{ color: "#777777" }}>
-                <span className="uppercase tracking-wide">{job.stage}</span>
+                <span className="uppercase tracking-wide">{jobState.stage}</span>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
               <div className="h-1.5 w-full rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
@@ -197,10 +209,10 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </div>
           )}
 
-          {!ACTIVE_STATUSES.has(job.status) && (
+          {!shouldShowJobProgress(jobState) && (
             <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
               <span>
-                Stage: <span className="font-medium">{job.stage}</span>
+                Stage: <span className="font-medium">{jobState.stage}</span>
               </span>
               <span>
                 Progress: <span className="font-medium" data-testid="job-progress">{job.progress}%</span>
@@ -213,7 +225,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </div>
           )}
 
-          {job.status === "queued" && !job.audio_storage_path && (
+          {jobState.stage === "queued" && !jobState.hasAudio && (
             <AudioUpload
               jobId={job.id}
               onUploaded={(path) =>
@@ -231,7 +243,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </p>
           )}
 
-          {ACTIVE_STATUSES.has(job.status) && (
+          {shouldShowJobProgress(jobState) && (
             <div className="mt-3">
               <button
                 type="button"
@@ -258,7 +270,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             <p className="text-[11px]" suppressHydrationWarning style={{ color: "#777777" }}>
               {new Date(job.created_at).toLocaleString()}
             </p>
-            {ACTIVE_STATUSES.has(job.status) && (
+            {shouldShowJobProgress(jobState) && (
               <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#746EB1" }}>
                 <span
                   className="h-1.5 w-1.5 animate-pulse rounded-full"
@@ -268,6 +280,9 @@ export function JobStatusPanel({ initialJobs }: Props) {
               </span>
             )}
           </div>
+              </>
+            );
+          })()}
         </div>
       ))}
     </div>

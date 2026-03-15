@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsentGate } from "./ConsentGate";
+import { deriveConsentStatus } from "@/lib/models/consent";
 
 type Props = {
   sessionId: string;
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export function ConsentPrompt({ sessionId, onConsented }: Props) {
+  const consentStatus = deriveConsentStatus(null);
+
   return (
     <div className="card-ql overflow-hidden">
       <div
@@ -28,6 +31,7 @@ export function ConsentPrompt({ sessionId, onConsented }: Props) {
         </p>
         <ConsentGate
           sessionId={sessionId}
+          consentStatus={consentStatus}
           onConfirmed={onConsented}
           onDeclined={() => {
             // Keep the prompt visible; ConsentGate already handles the declined UI.
