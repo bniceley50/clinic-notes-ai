@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   createSessionAction,
   type ActionResult,
@@ -12,6 +12,10 @@ export function CreateSessionForm() {
   const [state, action, pending] = useActionState(
     createSessionAction,
     initial,
+  );
+  const [patientIdentifier, setPatientIdentifier] = useState("");
+  const looksLikeName = /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(
+    patientIdentifier.trim(),
   );
 
   return (
@@ -36,17 +40,28 @@ export function CreateSessionForm() {
             className="block text-xs font-semibold mb-1"
             style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
           >
-            Patient Label
+            Patient Identifier
           </label>
           <input
             id="patient_label"
             name="patient_label"
             type="text"
             required
-            placeholder="e.g. Patient A"
+            placeholder="e.g. Chart #12345 or J.S."
             className="input-ql"
             data-testid="session-patient-label"
+            value={patientIdentifier}
+            onChange={(event) => setPatientIdentifier(event.target.value)}
           />
+          <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+            Use chart numbers or initials only. Do not enter real patient names.
+          </p>
+          {looksLikeName && (
+            <p className="mt-1 text-xs font-medium" style={{ color: "#8A4B08" }}>
+              This looks like a real name. Please use chart numbers or initials
+              to protect patient privacy.
+            </p>
+          )}
         </div>
 
         <div>

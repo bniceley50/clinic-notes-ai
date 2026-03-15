@@ -57,7 +57,7 @@ export function CreateJobForm({
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [consentState, setConsentState] = useState<
     "unknown" | "confirmed" | "declined"
-  >("unknown");
+  >(hasConsent ? "confirmed" : "unknown");
   const canStartJob = hasConsent === true;
   const canGenerateNote = hasConsent && !!transcript && !!orgId;
 
@@ -259,7 +259,7 @@ export function CreateJobForm({
 
       {jobId && !audioUploaded && (
         <>
-          {consentState === "unknown" && (
+          {!hasConsent && consentState === "unknown" && (
             <ConsentGate
               sessionId={sessionId}
               onConfirmed={() => {
