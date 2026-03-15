@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioUpload } from "./AudioUpload";
 import { AudioRecorder } from "./AudioRecorder";
 import { ConsentGate } from "./ConsentGate";
@@ -57,9 +57,99 @@ export function CreateJobForm({
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [consentState, setConsentState] = useState<
     "unknown" | "confirmed" | "declined"
-  >("unknown");
+  >(hasConsent ? "confirmed" : "unknown");
+  const [processingStatus, setProcessingStatus] = useState<
+    "idle" | "transcribing" | "complete"
+  >("idle");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const canStartJob = hasConsent === true;
   const canGenerateNote = hasConsent && !!transcript && !!orgId;
+
+  const clearPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearPolling, [clearPolling]);
+
+  const beginPolling = useCallback(
+    (activeJobId: string) => {
+      clearPolling();
+      setProcessingStatus("transcribing");
+
+      async function refreshJob() {
+        try {
+          const response = await fetch(`/api/jobs/${activeJobId}`);
+          const payload = (await response.json().catch(() => null)) as
+            | { status?: string; error_message?: string | null }
+            | null;
+
+          if (!response.ok) {
+            throw new Error(payload?.error_message ?? "Unable to refresh job status");
+          }
+
+          if (payload?.status === "complete") {
+            clearPolling();
+            setProcessingStatus("complete");
+            window.setTimeout(() => {
+              window.location.reload();
+            }, 900);
+            return;
+          }
+
+          if (payload?.status === "failed" || payload?.status === "cancelled") {
+            clearPolling();
+            setProcessingStatus("idle");
+            setError(
+              payload.error_message ??
+                `Transcription ${payload.status}. Reload the page to continue.`,
+            );
+          }
+        } catch (refreshError) {
+          clearPolling();
+          setProcessingStatus("idle");
+          setError(
+            refreshError instanceof Error
+              ? refreshError.message
+              : "Unable to refresh transcription status. Reload the page to continue.",
+          );
+        }
+      }
+
+      void refreshJob();
+      pollingRef.current = setInterval(() => {
+        void refreshJob();
+      }, 3_000);
+    },
+    [clearPolling],
+  );
+
+  const handleAudioUploaded = useCallback(
+    async (storagePath: string) => {
+      if (!jobId) {
+        throw new Error("Job was created but could not be found for processing.");
+      }
+
+      void storagePath;
+      setAudioUploaded(true);
+      setError(null);
+
+      const response = await fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" });
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        setAudioUploaded(false);
+        throw new Error(payload?.error ?? "Failed to start transcription");
+      }
+
+      beginPolling(jobId);
+    },
+    [beginPolling, jobId],
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,6 +188,8 @@ export function CreateJobForm({
 
       setJobId(payload.job.id);
       setAudioUploaded(false);
+      setProcessingStatus("idle");
+      setConsentState(hasConsent ? "confirmed" : "unknown");
     } catch {
       setError("Failed to create job");
     } finally {
@@ -303,32 +395,12 @@ export function CreateJobForm({
               {audioMode === "record" ? (
                 <AudioRecorder
                   jobId={jobId}
-                  onUploaded={() => {
-                    setAudioUploaded(true);
-                    setError(null);
-                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => {
-                        /* trigger failed silently */
-                      })
-                      .finally(() => {
-                        window.location.reload();
-                      });
-                  }}
+                  onUploaded={handleAudioUploaded}
                 />
               ) : (
                 <AudioUpload
                   jobId={jobId}
-                  onUploaded={() => {
-                    setAudioUploaded(true);
-                    setError(null);
-                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => {
-                        /* trigger failed silently */
-                      })
-                      .finally(() => {
-                        window.location.reload();
-                      });
-                  }}
+                  onUploaded={handleAudioUploaded}
                 />
               )}
             </>
@@ -336,9 +408,12 @@ export function CreateJobForm({
         </>
       )}
 
-      {audioUploaded && (
-        <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
-          Audio uploaded - transcription will begin shortly
+      {audioUploaded && processingStatus !== "idle" && (
+        <p
+          className="mt-3 text-sm font-medium"
+          style={{ color: processingStatus === "complete" ? "#2F6F44" : "#517AB7" }}
+        >
+          {processingStatus === "complete" ? "Complete" : "Transcribing..."}
         </p>
       )}
     </div>

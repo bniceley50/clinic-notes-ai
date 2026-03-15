@@ -1,10 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 type Props = {
   transcript: string;
+  audioPlayer?: ReactNode;
 };
 
-export function TranscriptViewer({ transcript }: Props) {
+export function TranscriptViewer({ transcript, audioPlayer }: Props) {
   return (
     <section className="ql-panel" data-testid="session-transcript">
       <div className="ql-copy-row">
@@ -17,6 +20,8 @@ export function TranscriptViewer({ transcript }: Props) {
       <div className="ql-alert ql-alert-warning">
         AI-generated transcript. Review for accuracy before clinical use.
       </div>
+
+      {audioPlayer ? <div className="mt-3">{audioPlayer}</div> : null}
 
       <pre
         className="ql-note-copy"

@@ -11,6 +11,7 @@ import { getMySession } from "@/lib/sessions/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
 import { AppShell } from "@/components/layout/AppShell";
+import { AudioPlayer } from "@/components/audio/AudioPlayer";
 import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
 import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
@@ -212,7 +213,18 @@ export default async function SessionDetailPage({ params }: Props) {
 
         <div className="space-y-4">
           {transcript ? (
-            <TranscriptViewer transcript={transcript.content} />
+            <TranscriptViewer
+              transcript={transcript.content}
+              audioPlayer={
+                latestTranscriptJob?.audio_storage_path ? (
+                  <AudioPlayer
+                    jobId={latestTranscriptJob.id}
+                    storagePath={latestTranscriptJob.audio_storage_path}
+                    compact
+                  />
+                ) : null
+              }
+            />
           ) : (
             <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
               Upload audio to transcribe.

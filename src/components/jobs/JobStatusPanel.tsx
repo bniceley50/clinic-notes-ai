@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { AudioPlayer } from "@/components/audio/AudioPlayer";
 import { AudioUpload } from "./AudioUpload";
 
 export type JobSnapshot = {
@@ -49,6 +50,16 @@ function getJobTitle(job: JobSnapshot): string {
 
 function formatNoteType(noteType: string): string {
   return noteType.toUpperCase();
+}
+
+function getStageLabel(job: JobSnapshot): string {
+  if (job.status === "complete") return "Complete";
+  if (job.status === "failed") return "Failed";
+  if (job.status === "cancelled") return "Cancelled";
+  if (job.stage === "transcribing") return "Transcribing";
+  if (job.stage === "drafting") return "Drafting";
+  if (job.audio_storage_path) return "Uploading complete";
+  return "Waiting for audio";
 }
 
 type State = {
@@ -144,6 +155,22 @@ export function JobStatusPanel({ initialJobs }: Props) {
     }
   }
 
+  async function handleQueuedAudioUploaded(job: JobSnapshot, path: string) {
+    dispatch({
+      type: "update",
+      job: { ...job, audio_storage_path: path },
+    });
+
+    const response = await fetch(`/api/jobs/${job.id}/trigger`, { method: "POST" });
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(payload?.error ?? "Failed to start transcription");
+    }
+  }
+
   if (state.jobs.length === 0) {
     return (
       <p
@@ -175,14 +202,14 @@ export function JobStatusPanel({ initialJobs }: Props) {
           </div>
 
           <p className="mt-1 text-xs" style={{ color: "#777777" }}>
-            Created {new Date(job.created_at).toLocaleDateString()} · Optional note format:{" "}
+            Created {new Date(job.created_at).toLocaleDateString()} - Optional note format:{" "}
             <span className="font-medium">{formatNoteType(job.note_type)}</span>
           </p>
 
           {ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-3">
               <div className="mb-1 flex items-center justify-between text-xs" style={{ color: "#777777" }}>
-                <span className="uppercase tracking-wide">{job.stage}</span>
+                <span className="uppercase tracking-wide">{getStageLabel(job)}</span>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
               <div className="h-1.5 w-full rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
@@ -200,7 +227,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {!ACTIVE_STATUSES.has(job.status) && (
             <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
               <span>
-                Stage: <span className="font-medium">{job.stage}</span>
+                Stage: <span className="font-medium">{getStageLabel(job)}</span>
               </span>
               <span>
                 Progress: <span className="font-medium" data-testid="job-progress">{job.progress}%</span>
@@ -216,12 +243,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {job.status === "queued" && !job.audio_storage_path && (
             <AudioUpload
               jobId={job.id}
-              onUploaded={(path) =>
-                dispatch({
-                  type: "update",
-                  job: { ...job, audio_storage_path: path },
-                })
-              }
+              onUploaded={(path) => handleQueuedAudioUploaded(job, path)}
             />
           )}
 
@@ -229,6 +251,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
             <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
               &#10003; Audio uploaded
             </p>
+          )}
+
+          {job.status === "complete" && job.audio_storage_path && (
+            <div className="mt-3">
+              <AudioPlayer jobId={job.id} storagePath={job.audio_storage_path} />
+            </div>
           )}
 
           {ACTIVE_STATUSES.has(job.status) && (

@@ -6,8 +6,24 @@ import { uploadAudioForJobDirect } from "@/lib/storage/audio-upload-client";
 
 type Props = {
   jobId: string;
-  onUploaded: (storagePath: string) => void;
+  onUploaded: (storagePath: string) => Promise<void> | void;
 };
+
+type RecorderUploadPhase = "idle" | "finalizing" | "uploading";
+
+function buildRecordedFile(blobToUpload: Blob): File {
+  const contentType = blobToUpload.type || "audio/webm";
+  const extension =
+    contentType === "audio/mp4"
+      ? "m4a"
+      : contentType === "audio/ogg"
+        ? "ogg"
+        : contentType === "audio/wav"
+          ? "wav"
+          : "webm";
+
+  return new File([blobToUpload], `recording.${extension}`, { type: contentType });
+}
 
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -19,21 +35,26 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
   const { state, elapsed, blob, error, start, pause, resume, stop, reset } = useAudioRecorder();
   const uploadedRef = useRef(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadPhase, setUploadPhase] = useState<RecorderUploadPhase>("idle");
 
   useEffect(() => {
     if (!blob || uploadedRef.current) return;
     uploadedRef.current = true;
     setUploadError(null);
+    setUploadPhase("finalizing");
 
-    const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
+    const file = buildRecordedFile(blob);
+    setUploadPhase("uploading");
 
     uploadAudioForJobDirect(jobId, file)
-      .then((storagePath) => {
-        onUploaded(storagePath);
+      .then(async (storagePath) => {
+        await onUploaded(storagePath);
+        setUploadPhase("idle");
       })
       .catch((uploadError: unknown) => {
         const msg = uploadError instanceof Error ? uploadError.message : "Upload failed";
         setUploadError(msg);
+        setUploadPhase("idle");
         uploadedRef.current = false;
         reset();
       });
@@ -121,13 +142,23 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
         </div>
       )}
 
-      {state === "stopped" && (
+      {state === "stopped" && uploadPhase === "finalizing" && (
         <div className="flex items-center justify-center gap-2 text-sm" style={{ color: "#746EB1" }}>
           <span
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
           />
-          Finalizing and uploading recording...
+          Finalizing recording...
+        </div>
+      )}
+
+      {state === "stopped" && uploadPhase === "uploading" && (
+        <div className="flex items-center justify-center gap-2 text-sm" style={{ color: "#746EB1" }}>
+          <span
+            className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
+            style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
+          />
+          Uploading audio...
         </div>
       )}
 

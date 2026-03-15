@@ -30,14 +30,30 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const processUrl = `${baseUrl}/api/jobs/${jobId}/process`;
 
-  void fetch(processUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN}`,
-    },
-  }).catch(() => {
-    // Trigger failures are intentionally non-blocking for the client.
-  });
+  try {
+    const processResponse = await fetch(processUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN}`,
+      },
+    });
+
+    if (!processResponse.ok) {
+      const payload = (await processResponse.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      return NextResponse.json(
+        { error: payload?.error ?? "Failed to start transcription" },
+        { status: 502 },
+      );
+    }
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to start transcription" },
+      { status: 502 },
+    );
+  }
 
   void writeAuditLog({
     orgId: result.user.orgId,
