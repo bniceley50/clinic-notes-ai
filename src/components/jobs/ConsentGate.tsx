@@ -1,18 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import {
+  shouldShowConsentPrompt,
+  type ConsentStatus,
+} from "@/lib/models/consent";
 
 type Props = {
   sessionId: string;
+  consentStatus: ConsentStatus;
   onConfirmed: () => void;
   onDeclined: () => void;
 };
 
-export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
+export function ConsentGate({
+  sessionId,
+  consentStatus,
+  onConfirmed,
+  onDeclined,
+}: Props) {
   const [part2Applicable, setPart2Applicable] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [declined, setDeclined] = useState(false);
+
+  if (!shouldShowConsentPrompt(consentStatus)) {
+    return null;
+  }
 
   async function handleConfirm() {
     setSubmitting(true);
