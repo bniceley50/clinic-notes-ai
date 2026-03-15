@@ -117,6 +117,22 @@ export async function finalizeAudioUploadForJob(input: {
   return { storagePath: input.storagePath, error: null };
 }
 
+export async function getSignedAudioUrl(
+  storagePath: string,
+  expiresIn: number = 3600,
+): Promise<string> {
+  const db = createServiceClient();
+  const { data, error } = await db.storage
+    .from(AUDIO_BUCKET)
+    .createSignedUrl(storagePath, expiresIn);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message ?? "Failed to generate signed audio URL");
+  }
+
+  return data.signedUrl;
+}
+
 export async function uploadAudioForJob(
   input: UploadAudioInput,
 ): Promise<UploadResult> {
