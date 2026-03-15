@@ -231,6 +231,16 @@ export function AudioPlayer({ jobId, storagePath, compact = false }: Props) {
                   </option>
                 ))}
               </select>
+              {audioUrl ? (
+                <a
+                  href={audioUrl}
+                  download="session-recording.webm"
+                  className="ml-2 text-sm hover:underline"
+                  style={{ color: "#517AB7" }}
+                >
+                  Download
+                </a>
+              ) : null}
             </div>
           </div>
         </div>
