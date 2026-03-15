@@ -214,7 +214,7 @@ export function NoteWorkspace({
               onClick={() => setActiveTab("carelogic")}
               data-testid="note-tab-carelogic"
             >
-              CareLogic Forms
+              EHR Fields
             </button>
           </div>
         </div>
@@ -253,7 +253,7 @@ export function NoteWorkspace({
                   onClick={() => void handleCopy()}
                   data-testid="copy-note-button"
                 >
-                  {copyState === "copied" ? "Copied!" : "Copy for CareLogic"}
+                  {copyState === "copied" ? "Copied!" : "Copy for EHR"}
                 </button>
                 <button
                   type="button"

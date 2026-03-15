@@ -76,7 +76,7 @@ export default async function ReportsPage() {
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard label="Total Sessions"  value={total}     subtext="all time"          variant="accent"  />
         <StatCard label="Active"          value={active}    subtext="open sessions"      variant="primary" />
-        <StatCard label="Completed"       value={completed} subtext="notes ready"        variant="success" />
+        <StatCard label="Completed"       value={completed} subtext="transcriptions complete" variant="success" />
         <StatCard label="Last 7 Days"     value={last7}     subtext="new sessions"       variant="muted"   />
       </div>
 

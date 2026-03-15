@@ -12,6 +12,7 @@ import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
+import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
 
@@ -68,6 +69,10 @@ export default async function SessionDetailPage({ params }: Props) {
   ]);
   const note = noteResult.data;
   const transcript = transcriptResult.data;
+  const latestTranscriptJob =
+    jobs.find((job) => job.transcript_storage_path) ??
+    jobs.find((job) => job.status === "complete") ??
+    null;
   const hasActiveJob = jobs.some(
     (j) => j.status === "queued" || j.status === "running",
   );
@@ -181,7 +186,7 @@ export default async function SessionDetailPage({ params }: Props) {
               className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
               style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
             >
-              Generate Note
+              Transcription
             </div>
             <div className="p-3">
               <CreateJobForm
@@ -206,27 +211,82 @@ export default async function SessionDetailPage({ params }: Props) {
         </div>
 
         <div className="space-y-4">
-          {transcript && <TranscriptViewer transcript={transcript.content} />}
-
-          {note ? (
-            <NoteWorkspace
-              sessionId={session.id}
-              noteId={note.id}
-              noteType={note.note_type}
-              jobId={note.job_id ?? ""}
-              sessionType={session.session_type ?? "general"}
-              sessionCreatedAt={session.created_at}
-              sessionDate={new Date(session.created_at).toLocaleDateString()}
-              patientLabel={session.patient_label ?? "Untitled"}
-              providerName={user.profile.display_name}
-              initialContent={note.content}
-              initialUpdatedAt={note.updated_at}
-            />
+          {transcript ? (
+            <TranscriptViewer transcript={transcript.content} />
           ) : (
             <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
-              No note generated yet. Upload audio to generate a note.
+              Upload audio to transcribe.
             </div>
           )}
+
+          {transcript && latestTranscriptJob ? (
+            <section className="card-ql overflow-hidden">
+              <div
+                className="border-b px-4 py-3"
+                style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
+              >
+                <p className="ql-kicker">EHR Fields</p>
+                <h2 className="ql-panel-title">EHR Documentation</h2>
+                <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+                  Extract structured EHR-ready fields directly from the transcript.
+                </p>
+              </div>
+              <div className="p-3">
+                <CareLogicFormsPanel
+                  jobId={latestTranscriptJob.id}
+                  sessionType={session.session_type ?? "general"}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {hasConsent && transcript ? (
+            <details className="card-ql overflow-hidden">
+              <summary
+                className="cursor-pointer list-none border-b px-4 py-3"
+                style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
+              >
+                <div>
+                  <p className="ql-kicker">Advanced</p>
+                  <h2 className="ql-panel-title">Optional Note Generation</h2>
+                  <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+                    Generate an optional SOAP-style note after transcription if you need one.
+                  </p>
+                </div>
+              </summary>
+              <div className="space-y-4 p-4">
+                <CreateJobForm
+                  sessionId={session.id}
+                  hasActiveJob={hasActiveJob}
+                  hasConsent={hasConsent}
+                  mode="advanced"
+                  transcript={transcript.content}
+                  orgId={user.orgId}
+                  noteGenerated={!!note}
+                />
+
+                {note ? (
+                  <NoteWorkspace
+                    sessionId={session.id}
+                    noteId={note.id}
+                    noteType={note.note_type}
+                    jobId={note.job_id ?? latestTranscriptJob?.id ?? ""}
+                    sessionType={session.session_type ?? "general"}
+                    sessionCreatedAt={session.created_at}
+                    sessionDate={new Date(session.created_at).toLocaleDateString()}
+                    patientLabel={session.patient_label ?? "Untitled"}
+                    providerName={user.profile.display_name}
+                    initialContent={note.content}
+                    initialUpdatedAt={note.updated_at}
+                  />
+                ) : (
+                  <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
+                    No optional note has been generated for this session yet.
+                  </div>
+                )}
+              </div>
+            </details>
+          ) : null}
         </div>
       </div>
     </AppShell>

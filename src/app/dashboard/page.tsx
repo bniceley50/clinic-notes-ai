@@ -6,9 +6,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { StatCard } from "@/components/ui/StatCard";
 
 const SESSION_STATUS_CHIP: Record<string, string> = {
-  active:    "chip-running",
+  active: "chip-running",
   completed: "chip-complete",
-  archived:  "chip-cancelled",
+  archived: "chip-cancelled",
 };
 
 export default async function DashboardPage() {
@@ -16,24 +16,40 @@ export default async function DashboardPage() {
 
   if (result.status === "no_session") redirect("/login");
 
-  /* Error states (no shell, full-screen) */
-  if (result.status === "no_profile" || result.status === "no_org" || result.status === "error") {
+  if (
+    result.status === "no_profile" ||
+    result.status === "no_org" ||
+    result.status === "error"
+  ) {
     const title =
-      result.status === "no_profile" ? "Profile not found" :
-      result.status === "no_org"     ? "Organization not found" :
-                                       "Something went wrong";
+      result.status === "no_profile"
+        ? "Profile not found"
+        : result.status === "no_org"
+          ? "Organization not found"
+          : "Something went wrong";
     const message =
-      result.status === "error" ? result.message :
-      result.status === "no_profile" ? "An administrator needs to provision your access." :
-      "Your session references an organization that does not exist.";
+      result.status === "error"
+        ? result.message
+        : result.status === "no_profile"
+          ? "An administrator needs to provision your access."
+          : "Your session references an organization that does not exist.";
 
     return (
-      <main className="flex min-h-screen items-center justify-center" style={{ backgroundColor: "#F9F9F9" }}>
-        <div className="card-ql w-full max-w-md p-8 space-y-4">
-          <h1 className="text-base font-bold" style={{ color: "#CC2200" }}>{title}</h1>
-          <p className="text-sm" style={{ color: "#333333" }}>{message}</p>
+      <main
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: "#F9F9F9" }}
+      >
+        <div className="card-ql w-full max-w-md space-y-4 p-8">
+          <h1 className="text-base font-bold" style={{ color: "#CC2200" }}>
+            {title}
+          </h1>
+          <p className="text-sm" style={{ color: "#333333" }}>
+            {message}
+          </p>
           <form action="/api/auth/logout" method="POST">
-            <button type="submit" className="btn-ql-ghost text-sm">Sign out</button>
+            <button type="submit" className="btn-ql-ghost text-sm">
+              Sign out
+            </button>
           </form>
         </div>
       </main>
@@ -43,19 +59,18 @@ export default async function DashboardPage() {
   const { user } = result;
   const { data: sessions } = await listMySessions(user);
 
-  /* Compute stats */
-  const totalSessions   = sessions.length;
-  const activeSessions  = sessions.filter((s) => s.status === "active").length;
-  const completedSessions = sessions.filter((s) => s.status === "completed").length;
+  const totalSessions = sessions.length;
+  const activeSessions = sessions.filter((s) => s.status === "active").length;
+  const completedSessions = sessions.filter(
+    (s) => s.status === "completed",
+  ).length;
 
-  // Sessions in the last 7 days
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const recentSessions = sessions.filter(
     (s) => new Date(s.created_at) >= sevenDaysAgo,
   ).length;
 
-  // Most recent 10 for the table
   const recentRows = sessions.slice(0, 10);
 
   return (
@@ -67,7 +82,6 @@ export default async function DashboardPage() {
       }}
       userId={user.userId}
     >
-      {/* Page heading */}
       <div className="mb-5">
         <h1
           className="text-base font-bold uppercase tracking-wider"
@@ -76,12 +90,17 @@ export default async function DashboardPage() {
           Dashboard
         </h1>
         <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
-          {user.org.name} - {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          {user.org.name} -{" "}
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
         </p>
       </div>
 
-      {/* Stat cards row */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="mb-5 grid grid-cols-4 gap-3">
         <StatCard
           label="Total Sessions"
           value={totalSessions}
@@ -97,7 +116,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Completed"
           value={completedSessions}
-          subtext="notes generated"
+          subtext="transcriptions completed"
           variant="success"
         />
         <StatCard
@@ -108,13 +127,10 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Two-column content area */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 280px" }}>
-
-        {/* Recent sessions table */}
         <div className="card-ql overflow-hidden">
           <div
-            className="flex items-center justify-between px-4 py-2 border-b"
+            className="flex items-center justify-between border-b px-4 py-2"
             style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
           >
             <span
@@ -125,7 +141,7 @@ export default async function DashboardPage() {
             </span>
             <Link
               href="/sessions"
-              className="text-xs no-underline font-medium"
+              className="text-xs font-medium no-underline"
               style={{ color: "#517AB7" }}
             >
               View all
@@ -146,7 +162,7 @@ export default async function DashboardPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="text-center py-8"
+                    className="py-8 text-center"
                     style={{ color: "#777777" }}
                   >
                     No sessions yet.{" "}
@@ -158,7 +174,10 @@ export default async function DashboardPage() {
               )}
               {recentRows.map((s) => (
                 <tr key={s.id}>
-                  <td className="font-medium text-xs" style={{ color: "#0B1215" }}>
+                  <td
+                    className="font-medium text-xs"
+                    style={{ color: "#0B1215" }}
+                  >
                     {s.patient_label || "Untitled"}
                   </td>
                   <td>
@@ -196,41 +215,52 @@ export default async function DashboardPage() {
           </table>
         </div>
 
-        {/* Right column: provider card + quick actions */}
         <div className="space-y-4">
-
-          {/* Provider info */}
           <div className="card-ql overflow-hidden">
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: "#F9F9F9",
+                borderColor: "#E7E9EC",
+                color: "#517AB7",
+              }}
             >
               Provider
             </div>
             <table>
               <tbody>
                 <tr>
-                  <td className="text-xs font-semibold w-20" style={{ color: "#517AB7" }}>
+                  <td
+                    className="w-20 text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Name
                   </td>
-                  <td className="text-xs font-semibold" style={{ color: "#0B1215" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#0B1215" }}
+                  >
                     {user.profile.display_name}
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Role
                   </td>
                   <td>
-                    <span
-                      className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-semibold uppercase chip-running"
-                    >
+                    <span className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-semibold uppercase chip-running">
                       {user.role}
                     </span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td
+                    className="text-xs font-semibold"
+                    style={{ color: "#517AB7" }}
+                  >
                     Org
                   </td>
                   <td className="text-xs" style={{ color: "#333333" }}>
@@ -241,15 +271,18 @@ export default async function DashboardPage() {
             </table>
           </div>
 
-          {/* Quick actions */}
           <div className="card-ql overflow-hidden">
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
+              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: "#F9F9F9",
+                borderColor: "#E7E9EC",
+                color: "#517AB7",
+              }}
             >
               Quick Actions
             </div>
-            <div className="p-3 space-y-2">
+            <div className="space-y-2 p-3">
               <Link
                 href="/sessions"
                 className="btn-ql w-full justify-start text-xs no-underline"

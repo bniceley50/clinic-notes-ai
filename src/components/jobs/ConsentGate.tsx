@@ -72,7 +72,7 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
       >
         Before recording, confirm that the patient has verbally consented to
         AI-assisted documentation. Audio will be processed by OpenAI
-        (transcription) and Anthropic (note generation).
+        (transcription) and Anthropic (EHR field extraction and optional notes).
       </p>
 
       <label
@@ -109,7 +109,7 @@ export function ConsentGate({ sessionId, onConfirmed, onDeclined }: Props) {
           </p>
           <ul className="list-disc list-inside space-y-0.5 mt-1">
             <li>OpenAI - audio transcription</li>
-            <li>Anthropic - clinical note generation</li>
+            <li>Anthropic - EHR field extraction and optional note generation</li>
             <li>Supabase - encrypted storage</li>
             <li>Vercel - application hosting</li>
             <li>Upstash - session management</li>
