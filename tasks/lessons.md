@@ -47,3 +47,8 @@ after any manual download.
 **What happened:** Added test coverage for auth callback/logout/session and PHI-handling upload/CareLogic routes.
 **Root cause:** Repo audit flagged zero test coverage on sensitive paths as HIGH.
 **Rule going forward:** Any new route handling auth or user data ships with at least happy-path + failure tests.
+
+## 2026-03-14 - Pipeline simplified to transcript-first
+**What happened:** Removed automatic note generation from the default job pipeline. Jobs now complete after transcription. Note generation is preserved as an optional action.
+**Root cause:** Product feedback from Gillian - clinicians need EHR fields extracted from transcripts, not a separate SOAP note as the primary output.
+**Rule going forward:** The default pipeline should be the minimal path that gives clinicians what they need. Additional outputs (notes, exports) are optional extras, not required steps.

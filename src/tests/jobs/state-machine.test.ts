@@ -8,8 +8,14 @@ const {
   mockTranscribeAudioChunked,
   mockGenerateNote,
   mockUpsertTranscriptForJob,
+  mockUpsertNoteForJob,
   mockWriteAuditLog,
   mockInsert,
+  mockMaybeSingle,
+  mockEqOrgId,
+  mockEqSessionId,
+  mockEqJobId,
+  mockSelect,
   mockFrom,
   mockCreateServiceClient,
 } = vi.hoisted(() => ({
@@ -20,11 +26,28 @@ const {
   mockTranscribeAudioChunked: vi.fn(),
   mockGenerateNote: vi.fn(),
   mockUpsertTranscriptForJob: vi.fn(),
+  mockUpsertNoteForJob: vi.fn(),
   mockWriteAuditLog: vi.fn(),
   mockInsert: vi.fn(),
-  mockFrom: vi.fn(() => ({
-    insert: mockInsert,
+  mockMaybeSingle: vi.fn(),
+  mockEqOrgId: vi.fn(() => ({
+    maybeSingle: mockMaybeSingle,
   })),
+  mockEqSessionId: vi.fn(() => ({
+    eq: mockEqOrgId,
+  })),
+  mockEqJobId: vi.fn(() => ({
+    eq: mockEqSessionId,
+  })),
+  mockSelect: vi.fn(() => ({
+    eq: mockEqJobId,
+  })),
+  mockFrom: vi.fn((table?: string) => {
+    if (table === 'transcripts') {
+      return { select: mockSelect }
+    }
+    return { insert: mockInsert }
+  }),
   mockCreateServiceClient: vi.fn(() => ({
     from: mockFrom,
   })),
@@ -53,6 +76,7 @@ vi.mock('../../lib/ai/claude', () => ({
 
 vi.mock('../../lib/clinical/queries', () => ({
   upsertTranscriptForJob: mockUpsertTranscriptForJob,
+  upsertNoteForJob: mockUpsertNoteForJob,
 }))
 
 vi.mock('../../lib/supabase/server', () => ({
@@ -63,7 +87,7 @@ vi.mock('../../lib/audit', () => ({
   writeAuditLog: mockWriteAuditLog,
 }))
 
-import { processJob } from '../../lib/jobs/processor'
+import { generateNoteForJob, processJob } from '../../lib/jobs/processor'
 
 const baseJob = {
   id: 'job-1',
@@ -87,8 +111,11 @@ describe('job state machine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
+    mockFrom.mockImplementation((table?: string) => {
+      if (table === 'transcripts') {
+        return { select: mockSelect }
+      }
+      return { insert: mockInsert }
     })
 
     mockCreateServiceClient.mockReturnValue({
@@ -104,6 +131,16 @@ describe('job state machine', () => {
 
     mockUpsertTranscriptForJob.mockResolvedValue({
       data: { id: 'transcript-1' },
+      error: null,
+    })
+
+    mockUpsertNoteForJob.mockResolvedValue({
+      data: { id: 'note-1' },
+      error: null,
+    })
+
+    mockMaybeSingle.mockResolvedValue({
+      data: { content: 'Patient discussed treatment goals.' },
       error: null,
     })
 
@@ -125,11 +162,9 @@ describe('job state machine', () => {
     mockWriteAuditLog.mockResolvedValue(undefined)
   })
 
-  it('a queued job with audio can be processed successfully', async () => {
+  it('a queued job with audio completes after transcription without creating a note row', async () => {
     mockGetJobById.mockResolvedValue(baseJob)
     mockUpdateJobWorkerFields
-      .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
       .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
       .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
 
@@ -142,9 +177,32 @@ describe('job state machine', () => {
       'recording.webm',
       expect.any(Function),
     )
-    expect(mockGenerateNote).toHaveBeenCalledWith({
-      transcript: 'Patient discussed treatment goals.',
-      noteType: 'soap',
+    expect(mockUpsertTranscriptForJob).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      orgId: 'org-1',
+      jobId: 'job-1',
+      content: 'Patient discussed treatment goals.',
+      durationSeconds: 0,
+      wordCount: 4,
+    })
+    expect(mockGenerateNote).not.toHaveBeenCalled()
+    expect(mockUpsertNoteForJob).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: 'org-1',
+      actorId: 'user-1',
+      sessionId: 'session-1',
+      jobId: 'job-1',
+      action: 'audio.sent_to_vendor',
+      vendor: 'openai',
+    })
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: 'org-1',
+      actorId: 'user-1',
+      sessionId: 'session-1',
+      jobId: 'job-1',
+      action: 'transcript.sent_to_vendor',
+      vendor: 'anthropic',
     })
     expect(mockUpdateJobWorkerFields).toHaveBeenNthCalledWith(1, 'job-1', {
       status: 'running',
@@ -157,6 +215,31 @@ describe('job state machine', () => {
       stage: 'complete',
       progress: 100,
       transcript_storage_path: 'transcripts/org-1/session-1/job-1/transcript.txt',
+    })
+  })
+
+  it('generateNoteForJob remains callable independently after transcription', async () => {
+    mockGetJobById.mockResolvedValue({
+      ...baseJob,
+      status: 'complete',
+      transcript_storage_path: 'transcripts/org-1/session-1/job-1/transcript.txt',
+    })
+
+    const result = await generateNoteForJob('job-1')
+
+    expect(result).toEqual({ success: true, error: null })
+    expect(mockSelect).toHaveBeenCalledWith('content')
+    expect(mockGenerateNote).toHaveBeenCalledWith({
+      transcript: 'Patient discussed treatment goals.',
+      noteType: 'soap',
+    })
+    expect(mockUpsertNoteForJob).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      orgId: 'org-1',
+      jobId: 'job-1',
+      createdBy: 'user-1',
+      noteType: 'soap',
+      content: 'Generated SOAP note',
     })
   })
 
