@@ -14,11 +14,15 @@ export type ConsentStatus =
     }
   | { state: "declined"; declinedAt: string };
 
+export const NOT_RECORDED_CONSENT_STATUS: ConsentStatus = {
+  state: "not_recorded",
+};
+
 export function deriveConsentStatus(
   consentRecord: ConsentRecord,
 ): ConsentStatus {
   if (!consentRecord?.hipaa_consent) {
-    return { state: "not_recorded" };
+    return NOT_RECORDED_CONSENT_STATUS;
   }
 
   return {
@@ -47,4 +51,26 @@ export function shouldAllowJobStart(status: ConsentStatus): boolean {
 
 export function shouldShowConsentStatus(status: ConsentStatus): boolean {
   return status.state === "recorded" || status.state === "declined";
+}
+
+export function isConsentDeclined(status: ConsentStatus): boolean {
+  return status.state === "declined";
+}
+
+export function getConsentRecordedAt(status: ConsentStatus): string | null {
+  return status.state === "recorded" ? status.recordedAt : null;
+}
+
+export function getConsentLabel(status: ConsentStatus): string {
+  if (status.state === "recorded") {
+    return status.type === "hipaa_42cfr"
+      ? "HIPAA + 42 CFR Part 2 consent recorded"
+      : "Consent recorded";
+  }
+
+  if (status.state === "declined") {
+    return "Consent declined";
+  }
+
+  return "Consent not yet recorded";
 }
