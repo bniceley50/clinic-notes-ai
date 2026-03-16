@@ -14,9 +14,7 @@ export function CreateSessionForm() {
     initial,
   );
   const [patientIdentifier, setPatientIdentifier] = useState("");
-  const looksLikeName = /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(
-    patientIdentifier.trim(),
-  );
+  const looksLikeName = /^[a-z]+ [a-z]+$/i.test(patientIdentifier.trim());
 
   return (
     <form action={action} className="card-ql p-5 mt-6" data-testid="create-session-form">
