@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
+  didJobReachComplete,
   deriveJobState,
+  getJobTitle,
+  isJobActive,
+  shouldAllowAudioUpload,
   shouldShowJobProgress,
   type JobState,
 } from "@/lib/models/job-lifecycle";
@@ -18,6 +22,7 @@ export type JobSnapshot = {
   attempt_count: number;
   error_message: string | null;
   audio_storage_path: string | null;
+  transcript_storage_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,23 +43,6 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
 };
 
 const POLL_INTERVAL_MS = 10_000;
-const ACTIVE_STATUSES = new Set(["queued", "running"]);
-
-function getJobTitle(job: JobSnapshot, jobState: JobState): string {
-  if (jobState.isComplete) return "Transcription complete";
-  if (jobState.isFailed || job.status === "cancelled") {
-    return job.status === "cancelled"
-      ? "Transcription cancelled"
-      : "Transcription failed";
-  }
-  if (jobState.isProcessing) {
-    return jobState.stage === "transcribing"
-      ? "Transcription in progress"
-      : "Processing in progress";
-  }
-  return "Transcription queued";
-}
-
 function formatNoteType(noteType: string): string {
   return noteType.toUpperCase();
 }
@@ -74,7 +62,7 @@ function reducer(state: State, action: Action): State {
     case "init": {
       const polling = new Set<string>();
       for (const j of action.jobs) {
-        if (ACTIVE_STATUSES.has(j.status)) polling.add(j.id);
+        if (isJobActive(deriveJobState(j))) polling.add(j.id);
       }
       return { jobs: action.jobs, polling };
     }
@@ -83,7 +71,7 @@ function reducer(state: State, action: Action): State {
         j.id === action.job.id ? action.job : j,
       );
       const polling = new Set(state.polling);
-      if (!ACTIVE_STATUSES.has(action.job.status)) {
+      if (!isJobActive(deriveJobState(action.job))) {
         polling.delete(action.job.id);
       }
       return { jobs, polling };
@@ -104,13 +92,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
   const [state, dispatch] = useReducer(reducer, initialJobs, (jobs) => {
     const polling = new Set<string>();
     for (const j of jobs) {
-      if (ACTIVE_STATUSES.has(j.status)) polling.add(j.id);
+      if (isJobActive(deriveJobState(j))) polling.add(j.id);
     }
     return { jobs, polling };
   });
   const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
-  const lastKnownStatusRef = useRef<Record<string, string>>(
-    Object.fromEntries(initialJobs.map((job) => [job.id, job.status])),
+  const lastKnownStateRef = useRef<Record<string, JobState>>(
+    Object.fromEntries(initialJobs.map((job) => [job.id, deriveJobState(job)])),
   );
 
   const pollJob = useCallback(async (jobId: string) => {
@@ -121,11 +109,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
         return;
       }
       const job: JobSnapshot = await res.json();
-      const previousStatus = lastKnownStatusRef.current[job.id];
-      lastKnownStatusRef.current[job.id] = job.status;
+      const previousState = lastKnownStateRef.current[job.id] ?? null;
+      const nextState = deriveJobState(job);
+      lastKnownStateRef.current[job.id] = nextState;
       dispatch({ type: "update", job });
 
-      if (previousStatus !== "complete" && job.status === "complete") {
+      if (didJobReachComplete(previousState, nextState)) {
         window.location.reload();
       }
     } catch {
@@ -174,7 +163,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
               <>
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
-              {getJobTitle(job, jobState)}
+              {getJobTitle(jobState)}
             </span>
             <span
               className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
@@ -225,7 +214,7 @@ export function JobStatusPanel({ initialJobs }: Props) {
             </div>
           )}
 
-          {jobState.stage === "queued" && !jobState.hasAudio && (
+          {shouldAllowAudioUpload(jobState) && (
             <AudioUpload
               jobId={job.id}
               onUploaded={(path) =>

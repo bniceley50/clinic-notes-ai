@@ -11,13 +11,16 @@ export interface JobState {
   hasNote: boolean;
   isComplete: boolean;
   isFailed: boolean;
+  isCancelled: boolean;
   isProcessing: boolean;
+  isActive: boolean;
 }
 
 type DeriveJobStateInput = {
   stage: string;
   status: string;
   audio_storage_path?: string | null;
+  transcript_storage_path?: string | null;
 };
 
 type JobStateOverrides = {
@@ -48,17 +51,26 @@ export function deriveJobState(
 ): JobState {
   const stage = normalizeStage(job.stage, job.status);
   const derivedHasTranscript =
-    stage === "complete" || stage === "drafting" || stage === "exporting";
+    !!job.transcript_storage_path ||
+    stage === "complete" ||
+    stage === "drafting" ||
+    stage === "exporting";
+  const isCancelled = job.status === "cancelled";
+  const isProcessing =
+    stage === "transcribing" || stage === "drafting" || stage === "exporting";
+  const isComplete = job.status === "complete";
+  const isFailed = job.status === "failed" || stage === "failed";
 
   return {
     stage,
     hasAudio: !!job.audio_storage_path,
     hasTranscript: overrides.hasTranscript ?? derivedHasTranscript,
     hasNote: overrides.hasNote ?? false,
-    isComplete: job.status === "complete",
-    isFailed: job.status === "failed" || stage === "failed",
-    isProcessing:
-      stage === "transcribing" || stage === "drafting" || stage === "exporting",
+    isComplete,
+    isFailed,
+    isCancelled,
+    isProcessing,
+    isActive: !isComplete && !isFailed && !isCancelled,
   };
 }
 
@@ -80,4 +92,31 @@ export function shouldShowAudioPlayer(state: JobState): boolean {
 
 export function shouldShowJobProgress(state: JobState): boolean {
   return state.isProcessing;
+}
+
+export function isJobActive(state: JobState): boolean {
+  return state.isActive;
+}
+
+export function shouldAllowAudioUpload(state: JobState): boolean {
+  return state.stage === "queued" && !state.hasAudio;
+}
+
+export function didJobReachComplete(
+  previous: JobState | null,
+  next: JobState,
+): boolean {
+  return !previous?.isComplete && next.isComplete;
+}
+
+export function getJobTitle(state: JobState): string {
+  if (state.isComplete) return "Transcription complete";
+  if (state.isCancelled) return "Transcription cancelled";
+  if (state.isFailed) return "Transcription failed";
+  if (state.isProcessing) {
+    return state.stage === "transcribing"
+      ? "Transcription in progress"
+      : "Processing in progress";
+  }
+  return "Transcription queued";
 }

@@ -9,11 +9,15 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   deriveConsentStatus,
+  getConsentLabel,
+  getConsentRecordedAt,
   shouldAllowJobStart,
   type ConsentRecord,
 } from "@/lib/models/consent";
 import {
   deriveJobState,
+  isJobActive,
+  shouldShowAdvancedSection,
   shouldShowAudioPlayer,
   shouldShowEhrFields,
   shouldShowTranscript,
@@ -78,9 +82,13 @@ export default async function SessionDetailPage({ params }: Props) {
   const transcriptContent = transcript?.content ?? null;
   const consentStatus = deriveConsentStatus(consent);
   const latestTranscriptJob =
-    jobs.find((job) => job.transcript_storage_path) ??
-      jobs.find((job) => job.status === "complete") ??
-      null;
+    jobs.find((job) =>
+      shouldShowTranscript(
+        deriveJobState(job, { hasTranscript: !!job.transcript_storage_path }),
+      ),
+    ) ??
+    jobs.find((job) => deriveJobState(job).isComplete) ??
+    null;
   const latestJobState = latestTranscriptJob
     ? deriveJobState(latestTranscriptJob, {
         hasTranscript: !!transcriptContent,
@@ -93,15 +101,8 @@ export default async function SessionDetailPage({ params }: Props) {
   const completedAudioJobs = jobs.filter(
     (job) => shouldShowAudioPlayer(deriveJobState(job)),
   );
-  const hasActiveJob = jobs.some(
-    (j) => j.status === "queued" || j.status === "running",
-  );
-  const initialConsentLabel =
-    consentStatus.state === "recorded"
-    ? consentStatus.type === "hipaa_42cfr"
-      ? "HIPAA + 42 CFR Part 2 consent recorded"
-      : "Consent recorded"
-    : "Consent not yet recorded";
+  const hasActiveJob = jobs.some((job) => isJobActive(deriveJobState(job)));
+  const initialConsentLabel = getConsentLabel(consentStatus);
 
   return (
     <AppShell
@@ -211,9 +212,7 @@ export default async function SessionDetailPage({ params }: Props) {
             sessionId={session.id}
             initialHasConsent={shouldAllowJobStart(consentStatus)}
             initialConsentLabel={initialConsentLabel}
-            initialConsentTimestamp={
-              consentStatus.state === "recorded" ? consentStatus.recordedAt : null
-            }
+            initialConsentTimestamp={getConsentRecordedAt(consentStatus)}
           />
 
           <div className="card-ql overflow-hidden">
@@ -270,13 +269,13 @@ export default async function SessionDetailPage({ params }: Props) {
         </div>
 
         <div className="space-y-4">
-          {latestJobState && transcriptContent && shouldShowTranscript(latestJobState) ? (
+          {latestJobState && shouldShowTranscript(latestJobState) ? (
             <section className="space-y-3">
               {latestCompletedAudioJob &&
               shouldShowAudioPlayer(deriveJobState(latestCompletedAudioJob)) ? (
                 <AudioPlayer jobId={latestCompletedAudioJob.id} compact />
               ) : null}
-              <TranscriptViewer transcript={transcriptContent} />
+              <TranscriptViewer transcript={transcriptContent ?? ""} />
             </section>
           ) : (
             <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
@@ -284,10 +283,7 @@ export default async function SessionDetailPage({ params }: Props) {
             </div>
           )}
 
-          {latestTranscriptJob &&
-          transcriptContent &&
-          latestJobState &&
-          shouldShowEhrFields(latestJobState) ? (
+          {latestTranscriptJob && latestJobState && shouldShowEhrFields(latestJobState) ? (
             <section className="card-ql overflow-hidden">
               <div
                 className="border-b px-4 py-3"
@@ -308,7 +304,7 @@ export default async function SessionDetailPage({ params }: Props) {
             </section>
           ) : null}
 
-          {transcriptContent ? (
+          {latestJobState && shouldShowAdvancedSection(latestJobState) ? (
             <details className="card-ql overflow-hidden">
               <summary
                 className="cursor-pointer list-none border-b px-4 py-3"
