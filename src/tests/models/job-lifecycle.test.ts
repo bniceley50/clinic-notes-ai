@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  didJobReachComplete,
   deriveJobState,
+  getJobTitle,
+  isJobActive,
+  shouldAllowAudioUpload,
   shouldShowAdvancedSection,
   shouldShowAudioPlayer,
   shouldShowEhrFields,
@@ -56,6 +60,17 @@ describe("deriveJobState", () => {
     ).toBe(true);
   });
 
+  it("uses transcript storage path to derive transcript availability", () => {
+    expect(
+      deriveJobState({
+        stage: "queued",
+        status: "queued",
+        audio_storage_path: null,
+        transcript_storage_path: "org/session/job/transcript.txt",
+      }).hasTranscript,
+    ).toBe(true);
+  });
+
   it("hasTranscript is false when queued", () => {
     expect(
       deriveJobState({
@@ -101,6 +116,48 @@ describe("job lifecycle decision helpers", () => {
     expect(shouldShowAudioPlayer(state)).toBe(true);
   });
 
+  it("marks queued and running jobs as active", () => {
+    expect(
+      isJobActive(
+        deriveJobState({
+          stage: "queued",
+          status: "queued",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isJobActive(
+        deriveJobState({
+          stage: "transcribing",
+          status: "running",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("shows audio upload only for queued jobs without audio", () => {
+    expect(
+      shouldAllowAudioUpload(
+        deriveJobState({
+          stage: "queued",
+          status: "queued",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      shouldAllowAudioUpload(
+        deriveJobState({
+          stage: "queued",
+          status: "queued",
+          audio_storage_path: "org/session/job/recording.webm",
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("shows job progress only while processing", () => {
     expect(
       shouldShowJobProgress(
@@ -120,5 +177,42 @@ describe("job lifecycle decision helpers", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it("detects completion transitions", () => {
+    const previous = deriveJobState({
+      stage: "transcribing",
+      status: "running",
+      audio_storage_path: null,
+    });
+    const next = deriveJobState({
+      stage: "complete",
+      status: "complete",
+      audio_storage_path: null,
+    });
+
+    expect(didJobReachComplete(previous, next)).toBe(true);
+    expect(didJobReachComplete(next, next)).toBe(false);
+  });
+
+  it("returns a display title from the canonical state", () => {
+    expect(
+      getJobTitle(
+        deriveJobState({
+          stage: "complete",
+          status: "complete",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe("Transcription complete");
+    expect(
+      getJobTitle(
+        deriveJobState({
+          stage: "queued",
+          status: "cancelled",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe("Transcription cancelled");
   });
 });

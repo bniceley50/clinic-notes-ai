@@ -155,12 +155,7 @@ export function SessionList({
                       <SessionDeleteButton
                         sessionId={session.id}
                         patientLabel={session.patient_label}
-                        className="text-xs font-semibold rounded-[2px] px-3 py-1"
-                        style={{
-                          color: "#B42318",
-                          border: "1px solid #F3D1CC",
-                          backgroundColor: "#FFF5F3",
-                        }}
+                        className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700"
                       >
                         Delete
                       </SessionDeleteButton>

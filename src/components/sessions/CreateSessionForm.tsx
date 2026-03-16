@@ -19,6 +19,7 @@ export function CreateSessionForm() {
   const longWithSpace =
     trimmedIdentifier.length > 15 && trimmedIdentifier.includes(" ");
   const isBlocked = looksLikeName || longWithSpace;
+  const looksLikeName = /^[a-z]+ [a-z]+$/i.test(patientIdentifier.trim());
 
   return (
     <form
@@ -74,6 +75,7 @@ export function CreateSessionForm() {
           {isBlocked && (
             <div
               className="text-sm font-bold text-red-600 bg-red-50 border border-red-300 p-2 rounded mt-1"
+              className="mt-1 rounded border border-red-300 bg-red-50 p-2 text-sm font-bold text-red-600"
               role="alert"
             >
               Patient names are not allowed. Use chart numbers, initials, or

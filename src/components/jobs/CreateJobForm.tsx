@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   deriveConsentStatus,
   deriveDeclinedConsentStatus,
+  isConsentDeclined,
   shouldAllowJobStart,
   shouldShowConsentPrompt,
   type ConsentStatus,
@@ -287,7 +288,7 @@ export function CreateJobForm({
             />
           )}
 
-          {localConsentStatus.state === "declined" && (
+          {isConsentDeclined(localConsentStatus) && (
             <p className="mt-3 text-xs font-medium" style={{ color: "#CC2200" }}>
               Recording is blocked because the patient did not consent.
             </p>
