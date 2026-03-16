@@ -198,8 +198,7 @@ export default async function SessionDetailPage({ params }: Props) {
                   sessionId={session.id}
                   patientLabel={session.patient_label}
                   redirectTo="/sessions"
-                  className="text-xs font-semibold"
-                  style={{ color: "#B42318" }}
+                  className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700"
                 >
                   Delete session
                 </SessionDeleteButton>
