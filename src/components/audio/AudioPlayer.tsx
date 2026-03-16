@@ -175,16 +175,24 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
       }
 
       const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error("Downloaded audio was empty");
+      }
+
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
       anchor.download = fileName;
+      anchor.style.display = "none";
       document.body.appendChild(anchor);
       anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(objectUrl);
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+        document.body.removeChild(anchor);
+      }, 1_000);
     } catch {
-      setError("Download failed. Please try again.");
+      setError("Download failed. Opening audio in a new tab instead.");
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
     } finally {
       setDownloading(false);
     }

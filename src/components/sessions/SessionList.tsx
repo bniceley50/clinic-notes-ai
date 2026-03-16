@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { SessionRow } from "@/lib/sessions/queries";
@@ -29,7 +28,6 @@ export function SessionDeleteButton({
   style,
   children,
 }: SessionDeleteButtonProps) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function handleDelete() {
@@ -64,11 +62,11 @@ export function SessionDeleteButton({
       }
 
       if (redirectTo) {
-        router.push(redirectTo);
+        window.location.assign(redirectTo);
         return;
       }
 
-      router.refresh();
+      window.location.reload();
     } catch {
       window.alert("Failed to delete session");
     } finally {

@@ -57,10 +57,18 @@ export function CreateSessionForm() {
             Use chart numbers or initials only. Do not enter real patient names.
           </p>
           {looksLikeName && (
-            <p className="mt-1 text-xs font-medium" style={{ color: "#8A4B08" }}>
-              This looks like a real name. Please use chart numbers or initials
-              to protect patient privacy.
-            </p>
+            <div
+              className="mt-2 rounded border p-2 text-sm font-medium"
+              style={{
+                color: "#8A4B08",
+                backgroundColor: "#FFF6E8",
+                borderColor: "#F2C078",
+              }}
+              role="alert"
+            >
+              ⚠️ This looks like a real name. Please use chart numbers or
+              initials to protect patient privacy.
+            </div>
           )}
         </div>
 

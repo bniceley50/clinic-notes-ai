@@ -14,7 +14,6 @@ import {
 } from "@/lib/models/consent";
 import {
   deriveJobState,
-  shouldShowAdvancedSection,
   shouldShowAudioPlayer,
   shouldShowEhrFields,
   shouldShowTranscript,
@@ -309,7 +308,7 @@ export default async function SessionDetailPage({ params }: Props) {
             </section>
           ) : null}
 
-          {latestJobState && transcriptContent && shouldShowAdvancedSection(latestJobState) ? (
+          {transcriptContent ? (
             <details className="card-ql overflow-hidden">
               <summary
                 className="cursor-pointer list-none border-b px-4 py-3"
