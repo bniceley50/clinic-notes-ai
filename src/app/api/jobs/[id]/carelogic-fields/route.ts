@@ -105,6 +105,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       sessionResult.data.session_type === "intake"
         ? CARELOGIC_INTAKE_PROMPT
         : CARELOGIC_SESSION_PROMPT;
+    const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -114,7 +115,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model,
         max_tokens: 4000,
         system: prompt,
         messages: [

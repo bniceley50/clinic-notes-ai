@@ -158,6 +158,7 @@ async function generateRealNote(
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), aiClaudeTimeoutMs());
+  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -168,7 +169,7 @@ async function generateRealNote(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-latest",
+        model,
         max_tokens: 1024,
         messages: [
           {
