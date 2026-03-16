@@ -14,21 +14,31 @@ export function CreateSessionForm() {
     initial,
   );
   const [patientIdentifier, setPatientIdentifier] = useState("");
-  const looksLikeName = /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(
-    patientIdentifier.trim(),
-  );
+  const trimmedIdentifier = patientIdentifier.trim();
+  const looksLikeName = /[a-z]{2,}\s+[a-z]{2,}/i.test(trimmedIdentifier);
+  const longWithSpace =
+    trimmedIdentifier.length > 15 && trimmedIdentifier.includes(" ");
+  const isBlocked = looksLikeName || longWithSpace;
 
   return (
-    <form action={action} className="card-ql p-5 mt-6" data-testid="create-session-form">
+    <form
+      action={action}
+      className="card-ql mt-6 p-5"
+      data-testid="create-session-form"
+    >
       <h2
-        className="text-xs font-bold uppercase tracking-wider mb-4"
+        className="mb-4 text-xs font-bold uppercase tracking-wider"
         style={{ color: "#517AB7" }}
       >
         New Session
       </h2>
 
       {state.error && (
-        <p className="mb-3 text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+        <p
+          className="mb-3 text-sm font-medium"
+          style={{ color: "#CC2200" }}
+          role="alert"
+        >
           {state.error}
         </p>
       )}
@@ -37,8 +47,12 @@ export function CreateSessionForm() {
         <div>
           <label
             htmlFor="patient_label"
-            className="block text-xs font-semibold mb-1"
-            style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
+            className="mb-1 block text-xs font-semibold"
+            style={{
+              color: "#517AB7",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
           >
             Patient Identifier
           </label>
@@ -54,20 +68,16 @@ export function CreateSessionForm() {
             onChange={(event) => setPatientIdentifier(event.target.value)}
           />
           <p className="mt-1 text-xs" style={{ color: "#777777" }}>
-            Use chart numbers or initials only. Do not enter real patient names.
+            Use chart numbers or initials only. Do not enter real patient
+            names.
           </p>
-          {looksLikeName && (
+          {isBlocked && (
             <div
-              className="mt-2 rounded border p-2 text-sm font-medium"
-              style={{
-                color: "#8A4B08",
-                backgroundColor: "#FFF6E8",
-                borderColor: "#F2C078",
-              }}
+              className="text-sm font-bold text-red-600 bg-red-50 border border-red-300 p-2 rounded mt-1"
               role="alert"
             >
-              ⚠️ This looks like a real name. Please use chart numbers or
-              initials to protect patient privacy.
+              Patient names are not allowed. Use chart numbers, initials, or
+              short identifiers to protect patient privacy.
             </div>
           )}
         </div>
@@ -75,8 +85,12 @@ export function CreateSessionForm() {
         <div>
           <label
             htmlFor="session_type"
-            className="block text-xs font-semibold mb-1"
-            style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
+            className="mb-1 block text-xs font-semibold"
+            style={{
+              color: "#517AB7",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
           >
             Session Type
           </label>
@@ -96,11 +110,11 @@ export function CreateSessionForm() {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || isBlocked}
         className="btn-ql mt-4"
         data-testid="create-session-submit"
       >
-        {pending ? "Creating…" : "Create Session"}
+        {pending ? "Creating..." : "Create Session"}
       </button>
     </form>
   );
