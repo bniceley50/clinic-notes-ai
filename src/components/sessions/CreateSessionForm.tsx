@@ -58,12 +58,7 @@ export function CreateSessionForm() {
           </p>
           {looksLikeName && (
             <div
-              className="mt-2 rounded border p-2 text-sm font-medium"
-              style={{
-                color: "#8A4B08",
-                backgroundColor: "#FFF6E8",
-                borderColor: "#F2C078",
-              }}
+              className="mt-1 rounded border border-red-300 bg-red-50 p-2 text-sm font-bold text-red-600"
               role="alert"
             >
               ⚠️ This looks like a real name. Please use chart numbers or
