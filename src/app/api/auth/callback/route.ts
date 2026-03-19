@@ -6,7 +6,19 @@ import { createSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/types";
 import { withLogging } from "@/lib/logger";
 
-const DEFAULT_REDIRECT = "/dashboard";
+const DEFAULT_REDIRECT = "/sessions";
+
+function sanitizeNext(rawNext: string | null | undefined): string {
+  if (
+    typeof rawNext === "string" &&
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//")
+  ) {
+    return rawNext;
+  }
+
+  return DEFAULT_REDIRECT;
+}
 
 function getSupabaseClient() {
   return createClient(supabaseUrl(), supabaseAnonKey(), {
@@ -200,7 +212,7 @@ export const GET = withLogging(async (request: NextRequest) => {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? DEFAULT_REDIRECT;
+  const next = sanitizeNext(searchParams.get("next"));
 
   const supabase = getSupabaseClient();
 
@@ -257,10 +269,9 @@ export const POST = withLogging(async (request: NextRequest) => {
     );
   }
 
-  const next =
-    typeof body.next === "string" && body.next.startsWith("/")
-      ? body.next
-      : DEFAULT_REDIRECT;
+  const next = sanitizeNext(
+    typeof body.next === "string" ? body.next : null,
+  );
 
   const supabase = getSupabaseClient();
   const { data: userData, error: userError } = await supabase.auth.getUser(
