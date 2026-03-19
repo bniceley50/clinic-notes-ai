@@ -11,10 +11,16 @@ const {
   mockCreateServiceClient,
   mockFetch,
 } = vi.hoisted(() => {
-  const noteInsert = {
-    insert: vi.fn(() => noteInsert),
-    select: vi.fn(() => noteInsert),
+  const builder = {
+    insert: vi.fn(() => builder),
+    select: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
     single: vi.fn(),
+    maybeSingle: vi.fn().mockResolvedValue({
+      data: { id: "consent-1" },
+      error: null,
+    }),
   };
 
   return {
@@ -26,7 +32,7 @@ const {
     mockAiStubApisEnabled: vi.fn(),
     mockAnthropicApiKey: vi.fn(),
     mockCreateServiceClient: vi.fn(() => ({
-      from: vi.fn(() => noteInsert),
+      from: vi.fn(() => builder),
     })),
     mockFetch: vi.fn(),
   };

@@ -169,6 +169,26 @@ export async function getMyJob(
   return { data: data as JobRow, error: null };
 }
 
+export async function getJobForOrg(
+  user: AppUser,
+  jobId: string,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("id", jobId)
+    .eq("org_id", user.orgId)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as JobRow | null, error: null };
+}
+
 /**
  * Fetch a job by ID without ownership check. Used by the worker
  * endpoint to validate transitions before applying updates.
