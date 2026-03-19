@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { getJobForOrg } from "@/lib/jobs/queries";
 import { getMySession } from "@/lib/sessions/queries";
 import { createServiceClient } from "@/lib/supabase/server";
 import { buildStubNote } from "@/lib/jobs/stubs";
@@ -30,6 +31,9 @@ const NOTE_TYPE_MAP = {
   GIRP: "girp",
 } as const satisfies Record<string, JobNoteType>;
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type SupportedNoteType = keyof typeof NOTE_TYPE_MAP;
 
 type GenerateNoteBody = {
@@ -37,6 +41,7 @@ type GenerateNoteBody = {
   transcript: string;
   note_type: SupportedNoteType;
   org_id: string;
+  jobId: string | null;
 };
 
 type NoteInsertRow = {
@@ -112,6 +117,11 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
   const orgId = getRequiredString(body, "org_id");
   if (!orgId) return null;
 
+  const jobId =
+    typeof body.jobId === "string" && body.jobId.trim() !== ""
+      ? body.jobId.trim()
+      : null;
+
   if (!(noteType in NOTE_TYPE_MAP)) {
     return null;
   }
@@ -121,6 +131,7 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
     transcript,
     note_type: noteType as SupportedNoteType,
     org_id: orgId,
+    jobId,
   };
 }
 
@@ -264,6 +275,50 @@ export const POST = withLogging(async (request: NextRequest) => {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let noteJobId: string | null = null;
+  if (body.jobId) {
+    if (!UUID_PATTERN.test(body.jobId)) {
+      return NextResponse.json({ error: "Invalid jobId" }, { status: 400 });
+    }
+
+    const job = await getJobForOrg(result.user, body.jobId);
+    if (job.error) {
+      return NextResponse.json(
+        { error: "Failed to verify job" },
+        { status: 500 },
+      );
+    }
+
+    if (!job.data || job.data.session_id !== body.session_id) {
+      return NextResponse.json({ error: "Invalid jobId" }, { status: 400 });
+    }
+
+    noteJobId = job.data.id;
+  }
+
+  const db = createServiceClient();
+  const { data: consent, error: consentError } = await db
+    .from("session_consents")
+    .select("id")
+    .eq("session_id", body.session_id)
+    .eq("org_id", result.user.orgId)
+    .limit(1)
+    .maybeSingle();
+
+  if (consentError) {
+    return NextResponse.json(
+      { error: "Failed to verify patient consent" },
+      { status: 500 },
+    );
+  }
+
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Patient consent must be recorded before generating a note" },
+      { status: 403 },
+    );
+  }
+
   const noteTypeKey = NOTE_TYPE_MAP[body.note_type];
 
   if (!body.transcript.trim()) {
@@ -298,13 +353,12 @@ export const POST = withLogging(async (request: NextRequest) => {
       content = await generateRealNote(body.note_type, body.transcript);
     }
 
-    const db = createServiceClient();
     const { data, error } = await db
       .from("notes")
       .insert({
         session_id: body.session_id,
         org_id: result.user.orgId,
-        job_id: null,
+        job_id: noteJobId,
         content,
         note_type: noteTypeKey,
         status: "draft",
