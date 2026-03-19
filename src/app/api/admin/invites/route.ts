@@ -30,7 +30,8 @@ export const POST = withLogging(async (request: NextRequest) => {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim() : "";
+  const email =
+    typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const role = typeof body.role === "string" ? body.role : "";
 
   if (!email) {
