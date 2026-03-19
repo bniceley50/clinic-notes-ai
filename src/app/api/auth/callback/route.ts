@@ -8,6 +8,8 @@ import { withLogging } from "@/lib/logger";
 
 const DEFAULT_REDIRECT = "/sessions";
 
+type ProvisioningErrorCode = "no_invite" | "bootstrap_failed";
+
 function sanitizeNext(rawNext: string | null | undefined): string {
   if (
     typeof rawNext === "string" &&
@@ -76,7 +78,7 @@ function renderImplicitBridge(next: string): string {
 </html>`;
 }
 
-async function resolveUserProfile(user: User, request: NextRequest) {
+async function resolveUserProfile(user: User) {
   const admin = createServiceClient();
 
   const { data: profile } = await admin
@@ -89,7 +91,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
     return {
       practiceId: profile.org_id,
       role: profile.role as SessionRole,
-      error: null,
+      errorCode: null as ProvisioningErrorCode | null,
     };
   }
 
@@ -97,7 +99,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
     const { data: invite } = await admin
       .from("invites")
       .select("id, org_id, role")
-      .eq("email", user.email ?? "")
+      .eq("email", (user.email ?? "").toLowerCase())
       .is("used_at", null)
       .single();
 
@@ -105,9 +107,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
       return {
         practiceId: null,
         role: null,
-        error: NextResponse.redirect(
-          new URL("/login?error=no_profile", request.url),
-        ),
+        errorCode: "no_invite" as const,
       };
     }
 
@@ -124,9 +124,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
       return {
         practiceId: null,
         role: null,
-        error: NextResponse.redirect(
-          new URL("/login?error=bootstrap_failed", request.url),
-        ),
+        errorCode: "bootstrap_failed" as const,
       };
     }
 
@@ -138,7 +136,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
     return {
       practiceId: invite.org_id,
       role: invite.role as SessionRole,
-      error: null,
+      errorCode: null as ProvisioningErrorCode | null,
     };
   }
 
@@ -152,9 +150,7 @@ async function resolveUserProfile(user: User, request: NextRequest) {
     return {
       practiceId: null,
       role: null,
-      error: NextResponse.redirect(
-        new URL("/login?error=bootstrap_failed", request.url),
-      ),
+      errorCode: "bootstrap_failed" as const,
     };
   }
 
@@ -169,17 +165,24 @@ async function resolveUserProfile(user: User, request: NextRequest) {
     return {
       practiceId: null,
       role: null,
-      error: NextResponse.redirect(
-        new URL("/login?error=bootstrap_failed", request.url),
-      ),
+      errorCode: "bootstrap_failed" as const,
     };
   }
 
   return {
     practiceId: newOrg.id,
     role: "provider" as SessionRole,
-    error: null,
+    errorCode: null as ProvisioningErrorCode | null,
   };
+}
+
+function redirectForProvisioningError(
+  code: ProvisioningErrorCode,
+  request: NextRequest,
+) {
+  return NextResponse.redirect(
+    new URL(`/login?error=${code}`, request.url),
+  );
 }
 
 async function createAppRedirectResponse(input: {
@@ -187,9 +190,9 @@ async function createAppRedirectResponse(input: {
   user: User;
   next: string;
 }) {
-  const resolved = await resolveUserProfile(input.user, input.request);
-  if (resolved.error) {
-    return resolved.error;
+  const resolved = await resolveUserProfile(input.user);
+  if (resolved.errorCode) {
+    return redirectForProvisioningError(resolved.errorCode, input.request);
   }
 
   const cookie = await createSessionCookie({
@@ -286,9 +289,17 @@ export const POST = withLogging(async (request: NextRequest) => {
   }
 
   const response = NextResponse.json({ ok: true, redirectTo: next });
-  const resolved = await resolveUserProfile(userData.user, request);
+  const resolved = await resolveUserProfile(userData.user);
 
-  if (resolved.error) {
+  if (resolved.errorCode === "no_invite") {
+    return NextResponse.json({ error: "no_invite" }, { status: 403 });
+  }
+
+  if (resolved.errorCode === "bootstrap_failed") {
+    return NextResponse.json({ error: "bootstrap_failed" }, { status: 403 });
+  }
+
+  if (resolved.errorCode) {
     return NextResponse.json({ error: "No profile" }, { status: 403 });
   }
 
