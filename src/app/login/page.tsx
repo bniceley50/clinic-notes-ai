@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  no_invite: "Your email hasn't been invited yet. Contact your administrator.",
+  bootstrap_failed: "Account setup failed. Please try again or contact support.",
+  invalid_token: "Your sign-in link has expired. Please request a new one.",
+  missing_token: "Invalid sign-in link. Please request a new one.",
+  auth_callback_failed: "Sign-in failed. Please try again.",
+};
+
 export default function LoginPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail]   = useState("");
   const [sent, setSent]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const callbackError = searchParams.get("error");
+  const callbackErrorMessage = callbackError ? ERROR_MESSAGES[callbackError] ?? null : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +133,20 @@ export default function LoginPage() {
         >
           Sign In
         </div>
+
+        {callbackErrorMessage && !error && (
+          <div
+            role="alert"
+            className="rounded border px-3 py-2 text-sm font-medium"
+            style={{
+              borderColor: "#E7B8AF",
+              backgroundColor: "#FFF1ED",
+              color: "#8A1F11",
+            }}
+          >
+            {callbackErrorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
