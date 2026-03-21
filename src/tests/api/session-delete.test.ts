@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockLoadCurrentUser,
-  mockGetSessionForOrg,
+  mockGetMySession,
   mockDeleteSessionCascade,
   mockCheckRateLimit,
   mockWriteAuditLog,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
-  mockGetSessionForOrg: vi.fn(),
+  mockGetMySession: vi.fn(),
   mockDeleteSessionCascade: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
@@ -19,9 +19,9 @@ vi.mock("../../lib/auth/loader", () => ({
 }));
 
 vi.mock("../../lib/sessions/queries", () => ({
-  getSessionForOrg: mockGetSessionForOrg,
+  getSessionForOrg: vi.fn(),
   deleteSessionCascade: mockDeleteSessionCascade,
-  getMySession: vi.fn(),
+  getMySession: mockGetMySession,
   updateMySession: vi.fn(),
 }));
 
@@ -78,7 +78,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     vi.clearAllMocks();
     mockLoadCurrentUser.mockResolvedValue(providerAuth);
     mockCheckRateLimit.mockResolvedValue(null);
-    mockGetSessionForOrg.mockResolvedValue({
+    mockGetMySession.mockResolvedValue({
       data: {
         id: "session-1",
         org_id: "org-1",
@@ -106,7 +106,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
 
     expect(response.status).toBe(401);
     expect(payload).toEqual({ error: "Unauthorized" });
-    expect(mockGetSessionForOrg).not.toHaveBeenCalled();
+    expect(mockGetMySession).not.toHaveBeenCalled();
   });
 
   it("allows a provider to delete their own session", async () => {
@@ -117,7 +117,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toEqual({ deleted: true });
-    expect(mockGetSessionForOrg).toHaveBeenCalledWith("org-1", "session-1");
+    expect(mockGetMySession).toHaveBeenCalledWith(providerAuth.user, "session-1");
     expect(mockDeleteSessionCascade).toHaveBeenCalledWith("session-1", "org-1");
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
@@ -146,7 +146,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
         },
       },
     });
-    mockGetSessionForOrg.mockResolvedValue({
+    mockGetMySession.mockResolvedValue({
       data: {
         id: "session-1",
         org_id: "org-1",
@@ -169,20 +169,10 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     expect(mockDeleteSessionCascade).toHaveBeenCalledWith("session-1", "org-1");
   });
 
-  it("returns 403 when a provider tries to delete another provider's session in the same org", async () => {
-    mockGetSessionForOrg.mockResolvedValue({
-      data: {
-        id: "session-1",
-        org_id: "org-1",
-        created_by: "other-user",
-        patient_label: "Patient Two",
-        session_type: "general",
-        status: "active",
-        created_at: "2026-03-15T09:00:00.000Z",
-        updated_at: "2026-03-15T09:00:00.000Z",
-        completed_at: null,
-      },
-      error: null,
+  it("returns 404 when a provider tries to delete another provider's session in the same org", async () => {
+    mockGetMySession.mockResolvedValue({
+      data: null,
+      error: "not found",
     });
 
     const response = await DELETE(makeRequest() as never, {
@@ -190,13 +180,13 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     });
     const payload = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(payload).toEqual({ error: "Forbidden" });
+    expect(response.status).toBe(404);
+    expect(payload).toEqual({ error: "Not found" });
     expect(mockDeleteSessionCascade).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the session is outside the authenticated org", async () => {
-    mockGetSessionForOrg.mockResolvedValue({
+    mockGetMySession.mockResolvedValue({
       data: null,
       error: null,
     });

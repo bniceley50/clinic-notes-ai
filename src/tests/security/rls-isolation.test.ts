@@ -67,6 +67,7 @@ let orgAJobId: string
 let orgBJobId: string
 let orgANoteId: string
 let orgBNoteId: string
+let orgAStoragePath: string
 
 async function signIn(email: string, password: string): Promise<SupabaseClient> {
   const client = createClient(supabaseUrl, anonKey!, {
@@ -132,6 +133,19 @@ describeIntegration('RLS org isolation', () => {
 
     orgAOrgId = orgAProfile.org_id
     orgBOrgId = orgBProfile.org_id
+
+    const { error: crossOrgMembershipError } = await admin
+      .from('profiles')
+      .upsert({
+        user_id: orgBUserId,
+        org_id: orgAOrgId,
+        display_name: 'Org B User (Org A Provider)',
+        role: 'provider',
+      }, { onConflict: 'user_id,org_id' })
+
+    if (crossOrgMembershipError) {
+      throw new Error(`Failed to grant same-org membership for storage test: ${crossOrgMembershipError.message}`)
+    }
 
     const { data: orgASession, error: orgASessionError } = await admin
       .from('sessions')
@@ -227,6 +241,18 @@ describeIntegration('RLS org isolation', () => {
 
     orgANoteId = orgANote.id
     orgBNoteId = orgBNote.id
+    orgAStoragePath = `${orgAOrgId}/${orgASessionId}/${orgAJobId}/rls-test.webm`
+
+    const { error: uploadError } = await admin.storage
+      .from('audio')
+      .upload(orgAStoragePath, new Blob(['audio-test-bytes']), {
+        contentType: 'audio/webm',
+        upsert: true,
+      })
+
+    if (uploadError) {
+      throw new Error(`Failed to seed storage object: ${uploadError.message}`)
+    }
 
     await admin.from('session_consents').insert([
       {
@@ -338,5 +364,14 @@ describeIntegration('RLS org isolation', () => {
 
     expect(error).toBeNull()
     expect(data).toEqual([])
+  })
+
+  it('A same-org clinician cannot download another clinician\'s audio object from Storage', async () => {
+    const { data, error } = await orgBClient.storage
+      .from('audio')
+      .download(orgAStoragePath)
+
+    expect(data).toBeNull()
+    expect(error).not.toBeNull()
   })
 })
