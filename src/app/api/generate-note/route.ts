@@ -2,6 +2,10 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import {
+  getLatestTranscriptForSession,
+  getTranscriptForJob,
+} from "@/lib/clinical/queries";
 import { getJobForOrg } from "@/lib/jobs/queries";
 import { getMySession } from "@/lib/sessions/queries";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -38,7 +42,6 @@ type SupportedNoteType = keyof typeof NOTE_TYPE_MAP;
 
 type GenerateNoteBody = {
   session_id: string;
-  transcript: string;
   note_type: SupportedNoteType;
   jobId: string | null;
 };
@@ -82,19 +85,6 @@ function getRequiredString(
     return null;
   }
 
-  if (field === "transcript") {
-    if (value.length > 50000) return null;
-    let cleaned = value;
-    let prev = "";
-    while (cleaned !== prev) {
-      prev = cleaned;
-      cleaned = cleaned.replace(/<[^>]*>/g, "");
-    }
-    return cleaned
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-      .trim();
-  }
-
   return value.trim();
 }
 
@@ -106,9 +96,6 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
   const body = raw as Record<string, unknown>;
   const sessionId = getRequiredString(body, "session_id");
   if (!sessionId) return null;
-
-  const transcript = getRequiredString(body, "transcript");
-  if (!transcript) return null;
 
   const noteType = getRequiredString(body, "note_type");
   if (!noteType) return null;
@@ -123,7 +110,6 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
 
   return {
     session_id: sessionId,
-    transcript,
     note_type: noteType as SupportedNoteType,
     jobId,
   };
@@ -137,7 +123,6 @@ function missingFieldError(raw: unknown): string {
   const body = raw as Record<string, unknown>;
   const requiredFields: Array<keyof GenerateNoteBody> = [
     "session_id",
-    "transcript",
     "note_type",
   ];
 
@@ -309,11 +294,22 @@ export const POST = withLogging(async (request: NextRequest) => {
   }
 
   const noteTypeKey = NOTE_TYPE_MAP[body.note_type];
+  const transcriptResult = noteJobId
+    ? await getTranscriptForJob(result.user, body.session_id, noteJobId)
+    : await getLatestTranscriptForSession(result.user, body.session_id);
 
-  if (!body.transcript.trim()) {
+  if (transcriptResult.error) {
     return NextResponse.json(
-      { error: "Transcript is required before generating a note" },
-      { status: 400 },
+      { error: "Failed to load transcript" },
+      { status: 500 },
+    );
+  }
+
+  const transcript = transcriptResult.data?.content.trim() ?? "";
+  if (!transcript) {
+    return NextResponse.json(
+      { error: "Stored transcript is required before generating a note" },
+      { status: 422 },
     );
   }
 
@@ -339,7 +335,7 @@ export const POST = withLogging(async (request: NextRequest) => {
         return NextResponse.json({ error: error?.message ?? "Note generation is unavailable" }, { status: error?.status ?? 503 });
       }
 
-      content = await generateRealNote(body.note_type, body.transcript);
+      content = await generateRealNote(body.note_type, transcript);
     }
 
     const { data, error } = await db

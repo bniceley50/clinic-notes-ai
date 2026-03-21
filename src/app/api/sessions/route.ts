@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { jsonNoStore } from "@/lib/http/response";
 import { createSession, listMySessions } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
@@ -10,7 +11,7 @@ export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -20,20 +21,20 @@ export const GET = withLogging(async (request: NextRequest) => {
   const { data, error } = await listMySessions(result.user);
 
   if (error) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "Failed to load sessions" },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ sessions: data });
+  return jsonNoStore({ sessions: data });
 });
 
 export const POST = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -47,14 +48,14 @@ export const POST = withLogging(async (request: NextRequest) => {
     body && typeof body.session_type === "string" ? body.session_type : "general";
 
   if (!patientLabel) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "patient_label is required" },
       { status: 400 },
     );
   }
 
   if (!VALID_SESSION_TYPES.includes(sessionType as (typeof VALID_SESSION_TYPES)[number])) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "session_type must be one of: general, intake, follow-up" },
       { status: 400 },
     );
@@ -66,8 +67,8 @@ export const POST = withLogging(async (request: NextRequest) => {
   });
 
   if (error || !data) {
-    return NextResponse.json({ error: error ?? "Failed to create session" }, { status: 500 });
+    return jsonNoStore({ error: error ?? "Failed to create session" }, { status: 500 });
   }
 
-  return NextResponse.json({ session: data }, { status: 201 });
+  return jsonNoStore({ session: data }, { status: 201 });
 });

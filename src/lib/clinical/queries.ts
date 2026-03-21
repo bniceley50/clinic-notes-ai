@@ -154,6 +154,28 @@ export async function getLatestTranscriptForSession(
   return { data: (data ?? null) as TranscriptRow | null, error: null };
 }
 
+export async function getTranscriptForJob(
+  user: AppUser,
+  sessionId: string,
+  jobId: string,
+): Promise<{ data: TranscriptRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("transcripts")
+    .select(TRANSCRIPT_COLUMNS)
+    .eq("session_id", sessionId)
+    .eq("org_id", user.orgId)
+    .eq("job_id", jobId)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as TranscriptRow | null, error: null };
+}
+
 export async function getLatestNoteForSession(
   user: AppUser,
   sessionId: string,

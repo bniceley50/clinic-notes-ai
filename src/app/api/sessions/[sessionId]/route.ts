@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { jsonNoStore } from "@/lib/http/response";
 import {
   deleteSessionCascade,
   getMySession,
@@ -18,7 +19,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -29,17 +30,17 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const { data, error } = await getMySession(result.user, sessionId);
 
   if (error || !data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ session: data });
+  return jsonNoStore({ session: data });
 });
 
 export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -48,7 +49,7 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return jsonNoStore({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const update: {
@@ -59,7 +60,7 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
 
   if ("patient_label" in body) {
     if (body.patient_label !== null && typeof body.patient_label !== "string") {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: "patient_label must be a string or null" },
         { status: 400 },
       );
@@ -73,7 +74,7 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
       typeof body.session_type !== "string" ||
       !VALID_SESSION_TYPES.includes(body.session_type as (typeof VALID_SESSION_TYPES)[number])
     ) {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: "session_type must be one of: general, intake, follow-up" },
         { status: 400 },
       );
@@ -87,7 +88,7 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
       typeof body.status !== "string" ||
       !VALID_STATUSES.includes(body.status as (typeof VALID_STATUSES)[number])
     ) {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: "status must be one of: active, completed, archived" },
         { status: 400 },
       );
@@ -97,24 +98,24 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
   }
 
   if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    return jsonNoStore({ error: "No valid fields to update" }, { status: 400 });
   }
 
   const { sessionId } = await ctx.params;
   const { data, error } = await updateMySession(result.user, sessionId, update);
 
   if (error || !data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ session: data });
+  return jsonNoStore({ session: data });
 });
 
 export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -125,7 +126,7 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   const { data: session, error } = await getMySession(result.user, sessionId);
 
   if (error || !session) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
   try {
@@ -133,7 +134,7 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   } catch (cascadeError) {
     const message =
       cascadeError instanceof Error ? cascadeError.message : "Failed to delete session";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonNoStore({ error: message }, { status: 500 });
   }
 
   void writeAuditLog({
@@ -148,5 +149,5 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
     },
   });
 
-  return NextResponse.json({ deleted: true });
+  return jsonNoStore({ deleted: true });
 });

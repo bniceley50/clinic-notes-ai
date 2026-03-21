@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyNote, updateMyNoteContent } from "@/lib/clinical/queries";
+import { jsonNoStore } from "@/lib/http/response";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -12,7 +13,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -23,17 +24,17 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const current = await getMyNote(result.user, sessionId, noteId);
 
   if (current.error || !current.data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ note: current.data });
+  return jsonNoStore({ note: current.data });
 });
 
 export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -42,18 +43,18 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return jsonNoStore({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   if ("note_type" in body) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "note_type cannot be edited" },
       { status: 400 },
     );
   }
 
   if (typeof body.content !== "string") {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "content must be a string" },
       { status: 400 },
     );
@@ -63,7 +64,7 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
   const current = await getMyNote(result.user, sessionId, noteId);
 
   if (current.error || !current.data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
   const { data, error } = await updateMyNoteContent(
@@ -74,11 +75,11 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
   );
 
   if (error || !data) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: error ?? "Failed to update note" },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ note: data });
+  return jsonNoStore({ note: data });
 });
