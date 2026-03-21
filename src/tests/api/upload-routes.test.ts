@@ -266,4 +266,27 @@ describe("POST /api/jobs/[id]/upload-complete", () => {
     expect(response.status).toBe(404);
     expect(payload).toEqual({ error: "Job not found" });
   });
+
+  it("returns 500 when uploaded bytes do not match a supported audio format", async () => {
+    mockFinalizeAudioUploadForJob.mockResolvedValue({
+      storagePath: null,
+      error: "Uploaded audio content does not match a supported format",
+    });
+
+    const request = new Request("http://localhost:3000/api/jobs/job-1/upload-complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: "test.webm" }),
+    });
+
+    const response = await postUploadComplete(request as never, {
+      params: Promise.resolve({ id: "job-1" }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toEqual({
+      error: "Uploaded audio content does not match a supported format",
+    });
+  });
 });

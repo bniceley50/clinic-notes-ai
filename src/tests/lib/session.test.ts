@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { SignJWT } from "jose";
 import {
+  clearSessionCookie,
   createSessionCookie,
   readSessionFromCookieHeader,
   SESSION_COOKIE_NAME,
@@ -29,6 +30,7 @@ describe("auth session helpers", () => {
       role: "provider",
     });
     expect(session?.jti).toBeTypeOf("string");
+    expect(cookie).toContain("SameSite=strict");
   });
 
   it("returns null for an expired session token", async () => {
@@ -59,5 +61,12 @@ describe("auth session helpers", () => {
     );
 
     expect(session).toBeNull();
+  });
+
+  it("clears the session cookie with SameSite=Strict", () => {
+    const cookie = clearSessionCookie();
+
+    expect(cookie).toContain("SameSite=strict");
+    expect(cookie).toContain("Max-Age=0");
   });
 });

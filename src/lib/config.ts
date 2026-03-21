@@ -127,6 +127,30 @@ export function jobsRunnerToken(): string | undefined {
   return process.env.JOBS_RUNNER_TOKEN || undefined;
 }
 
+export function redisRateLimitConfigured(): boolean {
+  return Boolean(
+    process.env.UPSTASH_REDIS_REST_URL &&
+      process.env.UPSTASH_REDIS_REST_TOKEN,
+  );
+}
+
+export function validateRedisRateLimitConfig(): void {
+  const hasRedisUrl = Boolean(process.env.UPSTASH_REDIS_REST_URL);
+  const hasRedisToken = Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (hasRedisUrl !== hasRedisToken) {
+    throw new Error(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set together.",
+    );
+  }
+
+  if (isProduction() && aiRealApisEnabled() && !hasRedisUrl) {
+    throw new Error(
+      "Redis-backed rate limiting is required in production when AI_ENABLE_REAL_APIS is enabled. Missing UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN.",
+    );
+  }
+}
+
 // ── Dev-only flags ───────────────────────────────────────────
 
 export function isDevLoginAllowed(): boolean {

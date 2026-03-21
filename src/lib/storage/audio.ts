@@ -22,6 +22,8 @@ const ALLOWED_AUDIO_MIME_TYPES = new Set([
   "audio/x-wav",
 ]);
 
+const AUDIO_SIGNATURE_BYTES = 12;
+
 type UploadAudioInput = {
   orgId: string;
   sessionId: string;
@@ -59,6 +61,17 @@ export function buildAudioStoragePath(input: {
 
 export function isAllowedAudioMimeType(contentType: string): boolean {
   return ALLOWED_AUDIO_MIME_TYPES.has(contentType);
+}
+
+export function hasValidAudioSignature(bytes: Uint8Array): boolean {
+  return (
+    (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) ||
+    (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) ||
+    (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) ||
+    (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) ||
+    (bytes[0] === 0xff && (bytes[1] === 0xfb || bytes[1] === 0xf3 || bytes[1] === 0xf2)) ||
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+  );
 }
 
 export async function createSignedAudioUpload(
@@ -99,6 +112,28 @@ export async function finalizeAudioUploadForJob(input: {
     return {
       storagePath: null,
       error: infoError?.message ?? "Uploaded audio could not be verified",
+    };
+  }
+
+  const { data: objectData, error: downloadError } = await db.storage
+    .from(AUDIO_BUCKET)
+    .download(input.storagePath);
+
+  if (downloadError || !objectData) {
+    return {
+      storagePath: null,
+      error: downloadError?.message ?? "Uploaded audio could not be downloaded for verification",
+    };
+  }
+
+  const signatureBytes = new Uint8Array(
+    await objectData.slice(0, AUDIO_SIGNATURE_BYTES).arrayBuffer(),
+  );
+
+  if (!hasValidAudioSignature(signatureBytes)) {
+    return {
+      storagePath: null,
+      error: "Uploaded audio content does not match a supported format",
     };
   }
 

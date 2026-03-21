@@ -131,7 +131,6 @@ describe("POST /api/generate-note", () => {
         session_id: "session-1",
         transcript: "Client reports improved mood.",
         note_type: "SOAP",
-        org_id: "org-1",
       }) as never,
     );
     const payload = await response.json();
@@ -150,7 +149,6 @@ describe("POST /api/generate-note", () => {
         session_id: "session-1",
         transcript: "Client reports improved mood.",
         note_type: "SOAP",
-        org_id: "org-1",
       }) as never,
     );
     const payload = await response.json();

@@ -19,7 +19,6 @@ type Props = {
   consentStatus: ConsentStatus;
   mode?: "job" | "advanced";
   transcript?: string | null;
-  orgId?: string;
   noteGenerated?: boolean;
 };
 
@@ -54,7 +53,6 @@ export function CreateJobForm({
   consentStatus,
   mode = "job",
   transcript = null,
-  orgId,
   noteGenerated = false,
 }: Props) {
   const [noteType, setNoteType] = useState<NoteType>("soap");
@@ -67,7 +65,7 @@ export function CreateJobForm({
     useState<ConsentStatus>(consentStatus);
   const canStartJob = shouldAllowJobStart(localConsentStatus);
   const canGenerateNote =
-    shouldAllowJobStart(localConsentStatus) && !!transcript && !!orgId;
+    shouldAllowJobStart(localConsentStatus) && !!transcript;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,7 +131,6 @@ export function CreateJobForm({
           session_id: sessionId,
           transcript,
           note_type: noteType.toUpperCase(),
-          org_id: orgId,
         }),
       });
 

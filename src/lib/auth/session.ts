@@ -127,7 +127,7 @@ export const createSessionCookie = async (
     value: token,
     options: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       secure: envIsProduction(),
       maxAge: ttl,
@@ -141,7 +141,7 @@ export const clearSessionCookie = (): string =>
     value: "",
     options: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       secure: envIsProduction(),
       maxAge: 0,

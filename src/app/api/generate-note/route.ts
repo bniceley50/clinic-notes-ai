@@ -40,7 +40,6 @@ type GenerateNoteBody = {
   session_id: string;
   transcript: string;
   note_type: SupportedNoteType;
-  org_id: string;
   jobId: string | null;
 };
 
@@ -114,14 +113,10 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
   const noteType = getRequiredString(body, "note_type");
   if (!noteType) return null;
 
-  const orgId = getRequiredString(body, "org_id");
-  if (!orgId) return null;
-
   const jobId =
     typeof body.jobId === "string" && body.jobId.trim() !== ""
       ? body.jobId.trim()
       : null;
-
   if (!(noteType in NOTE_TYPE_MAP)) {
     return null;
   }
@@ -130,7 +125,6 @@ function parseRequestBody(raw: unknown): GenerateNoteBody | null {
     session_id: sessionId,
     transcript,
     note_type: noteType as SupportedNoteType,
-    org_id: orgId,
     jobId,
   };
 }
@@ -145,7 +139,6 @@ function missingFieldError(raw: unknown): string {
     "session_id",
     "transcript",
     "note_type",
-    "org_id",
   ];
 
   for (const field of requiredFields) {
@@ -264,10 +257,6 @@ export const POST = withLogging(async (request: NextRequest) => {
       { error: missingFieldError(rawBody) },
       { status: 400 },
     );
-  }
-
-  if (body.org_id !== result.user.orgId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const session = await getMySession(result.user, body.session_id);

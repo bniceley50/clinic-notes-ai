@@ -324,7 +324,6 @@ export default async function SessionDetailPage({ params }: Props) {
                   consentStatus={consentStatus}
                   mode="advanced"
                   transcript={transcriptContent}
-                  orgId={user.orgId}
                   noteGenerated={!!note}
                 />
 

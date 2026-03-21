@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import {
   deleteSessionCascade,
-  getSessionForOrg,
   getMySession,
   updateMySession,
 } from "@/lib/sessions/queries";
@@ -123,14 +122,10 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   if (limited) return limited;
 
   const { sessionId } = await ctx.params;
-  const { data: session, error } = await getSessionForOrg(result.user.orgId, sessionId);
+  const { data: session, error } = await getMySession(result.user, sessionId);
 
   if (error || !session) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  if (result.user.role !== "admin" && session.created_by !== result.user.userId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
