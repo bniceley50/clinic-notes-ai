@@ -180,6 +180,7 @@ describe('POST /api/jobs consent enforcement', () => {
     const payload = await response.json()
 
     expect(response.status).toBe(201)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(payload).toEqual({
       job: { id: 'job-1', status: 'queued' },
     })

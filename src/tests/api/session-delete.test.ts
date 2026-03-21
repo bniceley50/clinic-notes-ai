@@ -116,6 +116,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(payload).toEqual({ deleted: true });
     expect(mockGetMySession).toHaveBeenCalledWith(providerAuth.user, "session-1");
     expect(mockDeleteSessionCascade).toHaveBeenCalledWith("session-1", "org-1");

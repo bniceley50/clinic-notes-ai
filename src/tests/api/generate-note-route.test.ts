@@ -2,38 +2,34 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockLoadCurrentUser,
+  mockGetJobForOrg,
   mockGetMySession,
+  mockGetLatestTranscriptForSession,
+  mockGetTranscriptForJob,
   mockCheckRateLimit,
   mockAiClaudeTimeoutMs,
   mockAiRealApisEnabled,
   mockAiStubApisEnabled,
   mockAnthropicApiKey,
   mockCreateServiceClient,
+  mockMaybeSingle,
+  mockNoteSingle,
   mockFetch,
 } = vi.hoisted(() => {
-  const builder = {
-    insert: vi.fn(() => builder),
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    single: vi.fn(),
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: { id: "consent-1" },
-      error: null,
-    }),
-  };
-
   return {
     mockLoadCurrentUser: vi.fn(),
+    mockGetJobForOrg: vi.fn(),
     mockGetMySession: vi.fn(),
+    mockGetLatestTranscriptForSession: vi.fn(),
+    mockGetTranscriptForJob: vi.fn(),
     mockCheckRateLimit: vi.fn(),
     mockAiClaudeTimeoutMs: vi.fn(() => 1000),
     mockAiRealApisEnabled: vi.fn(),
     mockAiStubApisEnabled: vi.fn(),
     mockAnthropicApiKey: vi.fn(),
-    mockCreateServiceClient: vi.fn(() => ({
-      from: vi.fn(() => builder),
-    })),
+    mockCreateServiceClient: vi.fn(),
+    mockMaybeSingle: vi.fn(),
+    mockNoteSingle: vi.fn(),
     mockFetch: vi.fn(),
   };
 });
@@ -44,6 +40,15 @@ vi.mock("@/lib/auth/loader", () => ({
 
 vi.mock("@/lib/sessions/queries", () => ({
   getMySession: mockGetMySession,
+}));
+
+vi.mock("@/lib/jobs/queries", () => ({
+  getJobForOrg: mockGetJobForOrg,
+}));
+
+vi.mock("@/lib/clinical/queries", () => ({
+  getLatestTranscriptForSession: mockGetLatestTranscriptForSession,
+  getTranscriptForJob: mockGetTranscriptForJob,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -108,6 +113,7 @@ describe("POST /api/generate-note", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult);
+    mockGetJobForOrg.mockResolvedValue({ data: null, error: null });
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMySession.mockResolvedValue({
       data: {
@@ -117,9 +123,79 @@ describe("POST /api/generate-note", () => {
       },
       error: null,
     });
+    mockGetLatestTranscriptForSession.mockResolvedValue({
+      data: {
+        id: "transcript-1",
+        session_id: "session-1",
+        org_id: "org-1",
+        job_id: "job-1",
+        content: "Server-stored transcript content.",
+        duration_seconds: 42,
+        word_count: 4,
+        created_at: "2026-03-21T10:00:00.000Z",
+      },
+      error: null,
+    });
+    mockGetTranscriptForJob.mockResolvedValue({
+      data: {
+        id: "transcript-1",
+        session_id: "session-1",
+        org_id: "org-1",
+        job_id: "job-1",
+        content: "Server-stored transcript content.",
+        duration_seconds: 42,
+        word_count: 4,
+        created_at: "2026-03-21T10:00:00.000Z",
+      },
+      error: null,
+    });
     mockAiStubApisEnabled.mockReturnValue(false);
     mockAiRealApisEnabled.mockReturnValue(true);
     mockAnthropicApiKey.mockReturnValue("test-key");
+    mockMaybeSingle.mockResolvedValue({
+      data: { id: "consent-1" },
+      error: null,
+    });
+    mockNoteSingle.mockResolvedValue({
+      data: {
+        id: "note-1",
+        session_id: "session-1",
+        org_id: "org-1",
+        content: "Generated note content",
+        note_type: "soap",
+        created_at: "2026-03-21T10:05:00.000Z",
+      },
+      error: null,
+    });
+    mockCreateServiceClient.mockReturnValue({
+      from: (table: string) => {
+        if (table === "session_consents") {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  limit: () => ({
+                    maybeSingle: mockMaybeSingle,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "notes") {
+          return {
+            insert: () => ({
+              select: () => ({
+                single: mockNoteSingle,
+              }),
+            }),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      },
+    });
     vi.stubGlobal("fetch", mockFetch);
   });
 
@@ -129,7 +205,6 @@ describe("POST /api/generate-note", () => {
     const response = await POST(
       makeRequest({
         session_id: "session-1",
-        transcript: "Client reports improved mood.",
         note_type: "SOAP",
       }) as never,
     );
@@ -147,7 +222,6 @@ describe("POST /api/generate-note", () => {
     const response = await POST(
       makeRequest({
         session_id: "session-1",
-        transcript: "Client reports improved mood.",
         note_type: "SOAP",
       }) as never,
     );
@@ -155,5 +229,54 @@ describe("POST /api/generate-note", () => {
 
     expect(response.status).toBe(503);
     expect(payload).toEqual({ error: "Anthropic note generation is not configured" });
+  });
+
+  it("uses the stored transcript instead of client-supplied transcript text", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        content: [{ type: "text", text: "Generated note content" }],
+      }),
+    });
+
+    const response = await POST(
+      makeRequest({
+        session_id: "session-1",
+        transcript: "Client injected transcript should be ignored.",
+        note_type: "SOAP",
+      }) as never,
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.note_id).toBe("note-1");
+
+    const fetchInit = mockFetch.mock.calls[0]?.[1] as RequestInit | undefined;
+    const requestBody = JSON.parse(String(fetchInit?.body));
+    const prompt = requestBody.messages[0].content as string;
+
+    expect(prompt).toContain("Server-stored transcript content.");
+    expect(prompt).not.toContain("Client injected transcript should be ignored.");
+  });
+
+  it("returns 422 when no stored transcript exists", async () => {
+    mockGetLatestTranscriptForSession.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const response = await POST(
+      makeRequest({
+        session_id: "session-1",
+        note_type: "SOAP",
+      }) as never,
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(payload).toEqual({
+      error: "Stored transcript is required before generating a note",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

@@ -9,8 +9,9 @@ import "server-only";
  * Ownership is enforced server-side: org_id + created_by must match.
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { jsonNoStore } from "@/lib/http/response";
 import { getMyJob } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
@@ -21,7 +22,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -32,10 +33,10 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const { data: job, error } = await getMyJob(result.user, id);
 
   if (error || !job) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({
+  return jsonNoStore({
     id: job.id,
     session_id: job.session_id,
     status: job.status,

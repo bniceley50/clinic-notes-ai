@@ -129,7 +129,6 @@ export function CreateJobForm({
         },
         body: JSON.stringify({
           session_id: sessionId,
-          transcript,
           note_type: noteType.toUpperCase(),
         }),
       });
