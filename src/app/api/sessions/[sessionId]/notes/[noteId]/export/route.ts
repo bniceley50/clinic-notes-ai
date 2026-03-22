@@ -7,6 +7,7 @@ import { buildNoteDocxBuffer } from "@/lib/clinical/note-export";
 import { getMySession } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
+import { writeAuditLog } from "@/lib/audit";
 
 type RouteContext = {
   params: Promise<{ sessionId: string; noteId: string }>;
@@ -47,6 +48,16 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     patientLabel: session.patient_label ?? "Patient A",
     providerName: result.user.profile.display_name,
     content: note.content,
+  });
+
+  await writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    sessionId,
+    action: "note.exported",
+    metadata: {
+      note_id: noteId,
+    },
   });
 
   return new NextResponse(new Uint8Array(buffer), {
