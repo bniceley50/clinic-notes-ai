@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   deriveConsentStatus,
   deriveDeclinedConsentStatus,
@@ -47,6 +47,15 @@ type GenerateNoteSuccess = {
   note_id: string;
 };
 
+type TriggerJobSuccess = {
+  job_id: string;
+  status: string;
+};
+
+type TriggerJobError = {
+  error?: string;
+};
+
 export function CreateJobForm({
   sessionId,
   hasActiveJob,
@@ -58,8 +67,11 @@ export function CreateJobForm({
   const [noteType, setNoteType] = useState<NoteType>("soap");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+  const [triggerPending, setTriggerPending] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [audioUploaded, setAudioUploaded] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [localConsentStatus, setLocalConsentStatus] =
     useState<ConsentStatus>(consentStatus);
@@ -104,11 +116,61 @@ export function CreateJobForm({
 
       setJobId(payload.job.id);
       setAudioUploaded(false);
+      setUploadComplete(false);
+      setTriggerError(null);
     } catch {
       setError("Failed to create job");
     } finally {
       setPending(false);
     }
+  }
+
+  async function startProcessing(audioJobId: string) {
+    setTriggerPending(true);
+    setTriggerError(null);
+
+    try {
+      const response = await fetch(`/api/jobs/${audioJobId}/trigger`, {
+        method: "POST",
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | TriggerJobSuccess
+        | TriggerJobError
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          (payload && "error" in payload && payload.error) ||
+            "Failed to start processing",
+        );
+      }
+
+      setAudioUploaded(true);
+      setUploadComplete(false);
+      window.location.reload();
+    } catch (triggerError) {
+      setAudioUploaded(false);
+      setUploadComplete(true);
+      setTriggerError(
+        triggerError instanceof Error
+          ? triggerError.message
+          : "Failed to start processing",
+      );
+    } finally {
+      setTriggerPending(false);
+    }
+  }
+
+  function handleAudioUploaded() {
+    if (!jobId) {
+      setTriggerError("Failed to start processing");
+      return;
+    }
+
+    setError(null);
+    setUploadComplete(true);
+    void startProcessing(jobId);
   }
 
   async function handleGenerateNote(event: React.FormEvent<HTMLFormElement>) {
@@ -321,32 +383,43 @@ export function CreateJobForm({
                 <AudioRecorder
                   jobId={jobId}
                   onUploaded={() => {
-                    setAudioUploaded(true);
-                    setError(null);
-                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => {
-                        /* trigger failed silently */
-                      })
-                      .finally(() => {
-                        window.location.reload();
-                      });
+                    handleAudioUploaded();
                   }}
                 />
               ) : (
                 <AudioUpload
                   jobId={jobId}
                   onUploaded={() => {
-                    setAudioUploaded(true);
-                    setError(null);
-                    fetch(`/api/jobs/${jobId}/trigger`, { method: "POST" })
-                      .catch(() => {
-                        /* trigger failed silently */
-                      })
-                      .finally(() => {
-                        window.location.reload();
-                      });
+                    handleAudioUploaded();
                   }}
                 />
+              )}
+
+              {triggerPending && uploadComplete && (
+                <p className="mt-3 text-sm font-medium" style={{ color: "#746EB1" }}>
+                  Audio uploaded - starting transcription...
+                </p>
+              )}
+
+              {triggerError && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+                    {triggerError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (jobId) {
+                        void startProcessing(jobId);
+                      }
+                    }}
+                    disabled={triggerPending}
+                    className="text-xs font-medium underline"
+                    style={{ color: "#517AB7" }}
+                  >
+                    Try again
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -355,7 +428,7 @@ export function CreateJobForm({
 
       {audioUploaded && (
         <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
-          Audio uploaded - transcription will begin shortly
+          Audio uploaded - transcription started
         </p>
       )}
     </div>
