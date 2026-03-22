@@ -28,6 +28,9 @@ export type JobRow = {
   audio_storage_path: string | null;
   transcript_storage_path: string | null;
   draft_storage_path: string | null;
+  claimed_at: string | null;
+  lease_expires_at: string | null;
+  run_token: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -49,7 +52,7 @@ export type CreateJobInput = {
 };
 
 const JOB_COLUMNS =
-  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, audio_storage_path, transcript_storage_path, draft_storage_path, created_at, updated_at";
+  "id, session_id, org_id, created_by, status, progress, stage, note_type, attempt_count, error_message, audio_storage_path, transcript_storage_path, draft_storage_path, claimed_at, lease_expires_at, run_token, created_at, updated_at";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -227,6 +230,25 @@ export async function listQueuedJobs(): Promise<{
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
+export async function claimJobForProcessing(
+  jobId: string,
+  leaseDurationSeconds: number,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db.rpc("claim_job_for_processing", {
+    p_job_id: jobId,
+    p_lease_seconds: leaseDurationSeconds,
+  });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const claimed = Array.isArray(data) ? data[0] : null;
+  return { data: (claimed ?? null) as JobRow | null, error: null };
+}
+
 /**
  * Update worker-owned fields on a job. Only callable from the
  * backend worker endpoint — never from browser code.
@@ -249,4 +271,26 @@ export async function updateJobWorkerFields(
   }
 
   return { data: data as JobRow, error: null };
+}
+
+export async function updateClaimedJobWorkerFields(
+  jobId: string,
+  runToken: string,
+  fields: Record<string, unknown>,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", jobId)
+    .eq("run_token", runToken)
+    .select(JOB_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as JobRow | null, error: null };
 }
