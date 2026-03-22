@@ -12,6 +12,7 @@ import {
 import { AudioUpload } from "./AudioUpload";
 import { AudioRecorder } from "./AudioRecorder";
 import { ConsentGate } from "./ConsentGate";
+import type { JobSnapshot } from "./JobStatusPanel";
 
 type Props = {
   sessionId: string;
@@ -20,6 +21,7 @@ type Props = {
   mode?: "job" | "advanced";
   transcript?: string | null;
   noteGenerated?: boolean;
+  onJobStarted?: (job: JobSnapshot) => void;
 };
 
 const NOTE_TYPES = ["soap", "dap", "birp", "girp"] as const;
@@ -34,9 +36,7 @@ const NOTE_TYPE_LABELS: Record<NoteType, string> = {
 };
 
 type CreateJobSuccess = {
-  job: {
-    id: string;
-  };
+  job: JobSnapshot;
 };
 
 type CreateJobError = {
@@ -63,6 +63,7 @@ export function CreateJobForm({
   mode = "job",
   transcript = null,
   noteGenerated = false,
+  onJobStarted,
 }: Props) {
   const [noteType, setNoteType] = useState<NoteType>("soap");
   const [pending, setPending] = useState(false);
@@ -70,6 +71,7 @@ export function CreateJobForm({
   const [triggerError, setTriggerError] = useState<string | null>(null);
   const [triggerPending, setTriggerPending] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [createdJob, setCreatedJob] = useState<JobSnapshot | null>(null);
   const [audioUploaded, setAudioUploaded] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
@@ -115,6 +117,7 @@ export function CreateJobForm({
       }
 
       setJobId(payload.job.id);
+      setCreatedJob(payload.job);
       setAudioUploaded(false);
       setUploadComplete(false);
       setTriggerError(null);
@@ -125,7 +128,7 @@ export function CreateJobForm({
     }
   }
 
-  async function startProcessing(audioJobId: string) {
+  async function startProcessing(audioJobId: string, audioStoragePath?: string) {
     setTriggerPending(true);
     setTriggerError(null);
 
@@ -148,7 +151,24 @@ export function CreateJobForm({
 
       setAudioUploaded(true);
       setUploadComplete(false);
-      window.location.reload();
+      onJobStarted?.({
+        ...(createdJob ?? {
+          id: audioJobId,
+          session_id: sessionId,
+          status: "queued",
+          stage: "queued",
+          progress: 0,
+          note_type: noteType,
+          attempt_count: 0,
+          error_message: null,
+          audio_storage_path: null,
+          transcript_storage_path: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }),
+        audio_storage_path:
+          audioStoragePath ?? createdJob?.audio_storage_path ?? null,
+      });
     } catch (triggerError) {
       setAudioUploaded(false);
       setUploadComplete(true);
@@ -162,7 +182,7 @@ export function CreateJobForm({
     }
   }
 
-  function handleAudioUploaded() {
+  function handleAudioUploaded(audioStoragePath?: string) {
     if (!jobId) {
       setTriggerError("Failed to start processing");
       return;
@@ -170,7 +190,7 @@ export function CreateJobForm({
 
     setError(null);
     setUploadComplete(true);
-    void startProcessing(jobId);
+    void startProcessing(jobId, audioStoragePath);
   }
 
   async function handleGenerateNote(event: React.FormEvent<HTMLFormElement>) {
@@ -382,15 +402,15 @@ export function CreateJobForm({
               {audioMode === "record" ? (
                 <AudioRecorder
                   jobId={jobId}
-                  onUploaded={() => {
-                    handleAudioUploaded();
+                  onUploaded={(storagePath) => {
+                    handleAudioUploaded(storagePath);
                   }}
                 />
               ) : (
                 <AudioUpload
                   jobId={jobId}
-                  onUploaded={() => {
-                    handleAudioUploaded();
+                  onUploaded={(storagePath) => {
+                    handleAudioUploaded(storagePath);
                   }}
                 />
               )}

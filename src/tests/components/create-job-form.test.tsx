@@ -44,6 +44,7 @@ vi.mock("@/components/jobs/ConsentGate", () => ({
 }));
 
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
+import type { JobSnapshot } from "@/components/jobs/JobStatusPanel";
 
 const recordedConsent: ConsentStatus = {
   state: "recorded",
@@ -91,6 +92,7 @@ describe("CreateJobForm trigger failures", () => {
   let root: Root;
   let fetchMock: ReturnType<typeof vi.fn>;
   let reloadMock: ReturnType<typeof vi.fn>;
+  let onJobStarted: ReturnType<typeof vi.fn<(job: JobSnapshot) => void>>;
 
   beforeEach(async () => {
     (globalThis as typeof globalThis & {
@@ -98,6 +100,7 @@ describe("CreateJobForm trigger failures", () => {
     }).IS_REACT_ACT_ENVIRONMENT = true;
     fetchMock = vi.fn();
     reloadMock = vi.fn();
+    onJobStarted = vi.fn<(job: JobSnapshot) => void>();
     vi.stubGlobal("fetch", fetchMock);
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -117,6 +120,7 @@ describe("CreateJobForm trigger failures", () => {
           sessionId="session-1"
           hasActiveJob={false}
           consentStatus={recordedConsent}
+          onJobStarted={onJobStarted}
         />,
       );
     });
@@ -176,8 +180,23 @@ describe("CreateJobForm trigger failures", () => {
   });
 
   it("shows processing started when the trigger succeeds", async () => {
+    const createdJob: JobSnapshot = {
+      id: "job-1",
+      session_id: "session-1",
+      status: "queued",
+      stage: "queued",
+      progress: 0,
+      note_type: "soap",
+      attempt_count: 0,
+      error_message: null,
+      audio_storage_path: null,
+      transcript_storage_path: null,
+      created_at: "2026-03-22T00:00:00.000Z",
+      updated_at: "2026-03-22T00:00:00.000Z",
+    };
+
     fetchMock
-      .mockResolvedValueOnce(makeJsonResponse({ job: { id: "job-1" } }, 201))
+      .mockResolvedValueOnce(makeJsonResponse({ job: createdJob }, 201))
       .mockResolvedValueOnce(
         makeJsonResponse({ job_id: "job-1", status: "processing" }, 202),
       );
@@ -185,6 +204,10 @@ describe("CreateJobForm trigger failures", () => {
     await createJobAndUpload();
 
     expect(container.textContent).toContain("Audio uploaded - transcription started");
-    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onJobStarted).toHaveBeenCalledWith({
+      ...createdJob,
+      audio_storage_path: "org-1/session-1/job-1/recording.webm",
+    });
   });
 });

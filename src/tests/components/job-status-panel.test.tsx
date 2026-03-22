@@ -35,18 +35,26 @@ describe("JobStatusPanel", () => {
   let container: HTMLDivElement;
   let root: Root;
   let fetchMock: ReturnType<typeof vi.fn>;
+  let reloadMock: ReturnType<typeof vi.fn>;
+  let setIntervalMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     (globalThis as typeof globalThis & {
       IS_REACT_ACT_ENVIRONMENT?: boolean;
     }).IS_REACT_ACT_ENVIRONMENT = true;
     fetchMock = vi.fn();
+    reloadMock = vi.fn();
+    setIntervalMock = vi.fn(() => 1 as unknown as ReturnType<typeof setInterval>);
     vi.stubGlobal("fetch", fetchMock);
-    vi.stubGlobal(
-      "setInterval",
-      vi.fn(() => 1 as unknown as ReturnType<typeof setInterval>),
-    );
+    vi.stubGlobal("setInterval", setIntervalMock);
     vi.stubGlobal("clearInterval", vi.fn());
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        ...window.location,
+        reload: reloadMock,
+      },
+    });
 
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -61,9 +69,12 @@ describe("JobStatusPanel", () => {
     vi.unstubAllGlobals();
   });
 
-  async function renderJobs(jobs: JobSnapshot[]): Promise<void> {
+  async function renderJobs(
+    jobs: JobSnapshot[],
+    props: Partial<React.ComponentProps<typeof JobStatusPanel>> = {},
+  ): Promise<void> {
     await act(async () => {
-      root.render(<JobStatusPanel initialJobs={jobs} />);
+      root.render(<JobStatusPanel initialJobs={jobs} {...props} />);
     });
   }
 
@@ -132,5 +143,96 @@ describe("JobStatusPanel", () => {
     ]);
 
     expect(container.textContent).toContain("Transcription cancelled");
+  });
+
+  it("calls onJobComplete without reloading when a job reaches complete", async () => {
+    const onJobComplete = vi.fn();
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify(
+          makeJob({
+            status: "complete",
+            stage: "complete",
+            progress: 100,
+            audio_storage_path: "audio/path.webm",
+            transcript_storage_path: "transcripts/path.txt",
+          }),
+        ),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      ),
+    );
+
+    await renderJobs(
+      [
+        makeJob({
+          status: "running",
+          stage: "transcribing",
+          progress: 40,
+          audio_storage_path: "audio/path.webm",
+        }),
+      ],
+      { onJobComplete },
+    );
+
+    const pollCallback = setIntervalMock.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
+
+    if (!pollCallback) {
+      throw new Error("Polling callback was not registered");
+    }
+
+    await act(async () => {
+      pollCallback();
+      await Promise.resolve();
+    });
+
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onJobComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onJobCancelled without reloading when cancel succeeds", async () => {
+    const onJobCancelled = vi.fn();
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 200,
+      }),
+    );
+
+    await renderJobs(
+      [
+        makeJob({
+          status: "running",
+          stage: "transcribing",
+          progress: 30,
+          audio_storage_path: "audio/path.webm",
+        }),
+      ],
+      { onJobCancelled },
+    );
+
+    const cancelButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Cancel Job"),
+    );
+
+    if (!(cancelButton instanceof HTMLButtonElement)) {
+      throw new Error("Cancel button not found");
+    }
+
+    await act(async () => {
+      cancelButton.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onJobCancelled).toHaveBeenCalledTimes(1);
   });
 });
