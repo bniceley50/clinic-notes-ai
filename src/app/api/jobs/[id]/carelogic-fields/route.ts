@@ -1,8 +1,13 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
-import { getLatestTranscriptForSession } from "@/lib/clinical/queries";
+import {
+  getExtractionForTranscript,
+  getTranscriptForJob,
+  upsertExtraction,
+} from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
 import { anthropicApiKey, aiRealApisEnabled } from "@/lib/config";
+import { jsonNoStore } from "@/lib/http/response";
 import { getMyJob } from "@/lib/jobs/queries";
 import {
   CARELOGIC_INTAKE_PROMPT,
@@ -50,7 +55,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
   }
 
   const identifier = getIdentifier(request, result.user.userId);
@@ -61,32 +66,53 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   const jobResult = await getMyJob(result.user, id);
 
   if (jobResult.error || !jobResult.data) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    return jsonNoStore({ error: "Job not found" }, { status: 404 });
   }
 
   const sessionResult = await getMySession(result.user, jobResult.data.session_id);
   if (sessionResult.error || !sessionResult.data) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    return jsonNoStore({ error: "Session not found" }, { status: 404 });
   }
 
-  const transcriptResult = await getLatestTranscriptForSession(
+  const transcriptResult = await getTranscriptForJob(
     result.user,
     jobResult.data.session_id,
+    jobResult.data.id,
   );
 
   if (transcriptResult.error) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "Failed to load transcript" },
       { status: 500 },
     );
   }
 
   if (!transcriptResult.data) {
-    return NextResponse.json({ error: "Transcript not found" }, { status: 404 });
+    return jsonNoStore({ error: "Transcript not found" }, { status: 404 });
+  }
+
+  const extractionResult = await getExtractionForTranscript(
+    result.user,
+    transcriptResult.data.id,
+  );
+
+  if (extractionResult.error) {
+    return jsonNoStore(
+      { error: "Failed to load stored EHR fields" },
+      { status: 500 },
+    );
+  }
+
+  if (extractionResult.data) {
+    return jsonNoStore({
+      fields: extractionResult.data.fields,
+      generated_at: extractionResult.data.generated_at,
+      sessionType: extractionResult.data.session_type,
+    });
   }
 
   if (!aiRealApisEnabled()) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "EHR field extraction is unavailable" },
       { status: 503 },
     );
@@ -94,7 +120,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
 
   const { key: apiKey, error: apiKeyError } = getAnthropicApiKeyOrError();
   if (apiKeyError || !apiKey) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: apiKeyError ?? "EHR field extraction is unavailable" },
       { status: 503 },
     );
@@ -130,7 +156,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     const payload = (await response.json().catch(() => null)) as AnthropicResponse | null;
 
     if (!response.ok || !payload) {
-      return NextResponse.json(
+      return jsonNoStore(
         {
           error:
             payload?.error?.message ??
@@ -145,7 +171,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     );
 
     if (!firstTextBlock?.text) {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: "Claude returned no text content" },
         { status: 502 },
       );
@@ -155,9 +181,24 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     try {
       fields = parseJsonPayload(firstTextBlock.text);
     } catch {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: "Anthropic returned invalid JSON for EHR fields" },
         { status: 502 },
+      );
+    }
+
+    const storedExtraction = await upsertExtraction(result.user, {
+      sessionId: jobResult.data.session_id,
+      jobId: jobResult.data.id,
+      transcriptId: transcriptResult.data.id,
+      sessionType: sessionResult.data.session_type,
+      fields,
+    });
+
+    if (storedExtraction.error || !storedExtraction.data) {
+      return jsonNoStore(
+        { error: "Failed to store EHR fields" },
+        { status: 500 },
       );
     }
 
@@ -174,8 +215,9 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       },
     });
 
-    return NextResponse.json({
-      fields,
+    return jsonNoStore({
+      fields: storedExtraction.data.fields,
+      generated_at: storedExtraction.data.generated_at,
       sessionType: sessionResult.data.session_type,
     });
   } catch (error) {
@@ -192,7 +234,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       }),
     );
 
-    return NextResponse.json(
+    return jsonNoStore(
       {
         error: detail,
       },
