@@ -179,15 +179,6 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(jobId, transcriptRow.error ?? "Failed to store transcript");
     }
 
-    void writeAuditLog({
-      orgId: job.org_id,
-      actorId: job.created_by,
-      sessionId: job.session_id,
-      jobId,
-      action: "transcript.sent_to_vendor",
-      vendor: "anthropic",
-    });
-
     const completed = await updateJobWorkerFields(jobId, {
       status: "complete",
       stage: "complete",
