@@ -4,6 +4,7 @@ import { supabaseUrl, supabaseAnonKey, isDevLoginAllowed } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/types";
+import { writeAuditLog } from "@/lib/audit";
 import { withLogging } from "@/lib/logger";
 
 const DEFAULT_REDIRECT = "/sessions";
@@ -207,6 +208,11 @@ async function createAppRedirectResponse(input: {
     303,
   );
   response.headers.append("Set-Cookie", cookie);
+  void writeAuditLog({
+    orgId: resolved.orgId!,
+    actorId: input.user.id,
+    action: "auth.login",
+  });
   return response;
 }
 
@@ -311,5 +317,10 @@ export const POST = withLogging(async (request: NextRequest) => {
   });
 
   response.headers.append("Set-Cookie", cookie);
+  void writeAuditLog({
+    orgId: resolved.orgId!,
+    actorId: userData.user.id,
+    action: "auth.login",
+  });
   return response;
 });

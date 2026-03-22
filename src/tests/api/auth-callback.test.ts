@@ -4,6 +4,7 @@ const {
   mockCreateClient,
   mockCreateServiceClient,
   mockCreateSessionCookie,
+  mockWriteAuditLog,
   mockSupabaseConfig,
   mockAdminState,
   mockInviteEmailEq,
@@ -11,6 +12,7 @@ const {
   mockCreateClient: vi.fn(),
   mockCreateServiceClient: vi.fn(),
   mockCreateSessionCookie: vi.fn(),
+  mockWriteAuditLog: vi.fn(),
   mockSupabaseConfig: {
     exchangeCodeForSession: vi.fn(),
     verifyOtp: vi.fn(),
@@ -61,6 +63,10 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   createSessionCookie: mockCreateSessionCookie,
+}));
+
+vi.mock("@/lib/audit", () => ({
+  writeAuditLog: mockWriteAuditLog,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -173,6 +179,11 @@ describe("GET /api/auth/callback", () => {
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("http://localhost:3000/dashboard");
     expect(response.headers.get("set-cookie")).toContain("cna_session=test-cookie");
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: "org-1",
+      actorId: "00000000-0000-0000-0000-000000000001",
+      action: "auth.login",
+    });
   });
 
   it("falls back to the default redirect for absolute next URLs", async () => {
@@ -390,6 +401,42 @@ describe("GET /api/auth/callback", () => {
 
     await expect(response.json()).resolves.toEqual({ error: "bootstrap_failed" });
     expect(response.status).toBe(403);
+  });
+
+  it("emits auth.login after a successful implicit bridge token exchange", async () => {
+    mockSupabaseConfig.getUser.mockResolvedValue({
+      data: {
+        user: {
+          id: "00000000-0000-0000-0000-000000000005",
+          email: "implicit@example.com",
+        },
+      },
+      error: null,
+    });
+
+    const request = new Request("http://localhost:3000/api/auth/callback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        access_token: "token",
+        next: "/sessions",
+      }),
+    });
+
+    const response = await POST(request as never);
+
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      redirectTo: "/sessions",
+    });
+    expect(response.status).toBe(200);
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: "org-1",
+      actorId: "00000000-0000-0000-0000-000000000005",
+      action: "auth.login",
+    });
   });
 
   it("returns the implicit auth bridge HTML when no code or token hash is provided", async () => {

@@ -11,6 +11,7 @@ const {
   mockAiRealApisEnabled,
   mockBuildStubNote,
   mockCreateServiceClient,
+  mockWriteAuditLog,
   mockMaybeSingle,
   mockConsentLimit,
   mockConsentEqOrg,
@@ -30,6 +31,7 @@ const {
   mockAiRealApisEnabled: vi.fn(),
   mockBuildStubNote: vi.fn(),
   mockCreateServiceClient: vi.fn(),
+  mockWriteAuditLog: vi.fn(),
   mockMaybeSingle: vi.fn(),
   mockConsentLimit: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
@@ -84,6 +86,10 @@ vi.mock("@/lib/config", async () => {
 
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: mockCreateServiceClient,
+}));
+
+vi.mock("@/lib/audit", () => ({
+  writeAuditLog: mockWriteAuditLog,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
