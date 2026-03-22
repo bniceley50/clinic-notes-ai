@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { writeAuditLog } from "@/lib/audit";
 import { getMyNote, updateMyNoteContent } from "@/lib/clinical/queries";
 import { jsonNoStore } from "@/lib/http/response";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
@@ -80,6 +81,16 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
       { status: 500 },
     );
   }
+
+  void writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    sessionId,
+    action: "note.edited",
+    metadata: {
+      note_id: noteId,
+    },
+  });
 
   return jsonNoStore({ note: data });
 });
