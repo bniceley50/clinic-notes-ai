@@ -3,6 +3,7 @@ export type JobStage = "queued" | "transcribing" | "complete" | "failed";
 export type AdvancedJobStage = "drafting" | "exporting";
 
 export type AnyJobStage = JobStage | AdvancedJobStage;
+const MAX_TRANSCRIPTION_ATTEMPTS = 3;
 
 export interface JobState {
   stage: AnyJobStage;
@@ -94,6 +95,13 @@ export function shouldShowJobProgress(state: JobState): boolean {
   return state.isProcessing;
 }
 
+export function isRetrying(job: {
+  status: string;
+  attempt_count: number;
+}): boolean {
+  return job.status === "running" && job.attempt_count > 1;
+}
+
 export function isJobActive(state: JobState): boolean {
   return state.isActive;
 }
@@ -109,11 +117,18 @@ export function didJobReachComplete(
   return !previous?.isComplete && next.isComplete;
 }
 
-export function getJobTitle(state: JobState): string {
+export function getJobTitle(state: JobState, attemptCount = 1): string {
   if (state.isComplete) return "Transcription complete";
   if (state.isCancelled) return "Transcription cancelled";
-  if (state.isFailed) return "Transcription failed";
+  if (state.isFailed) {
+    return attemptCount >= MAX_TRANSCRIPTION_ATTEMPTS
+      ? "Transcription failed after 3 attempts"
+      : "Transcription failed";
+  }
   if (state.isProcessing) {
+    if (isRetrying({ status: "running", attempt_count: attemptCount })) {
+      return "Retrying transcription...";
+    }
     return state.stage === "transcribing"
       ? "Transcription in progress"
       : "Processing in progress";
