@@ -27,7 +27,7 @@ import { CreateJobForm } from "@/components/jobs/CreateJobForm";
 import { AudioPlayer } from "@/components/audio/AudioPlayer";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
-import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
+import { CareLogicFormsPanel as EhrFieldsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
 import { SessionJobsClientSection } from "@/components/session/SessionJobsClientSection";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
@@ -250,7 +250,7 @@ export default async function SessionDetailPage({ params }: Props) {
                 </p>
               </div>
               <div className="p-3">
-                <CareLogicFormsPanel
+                <EhrFieldsPanel
                   jobId={latestTranscriptJob.id}
                   sessionType={session.session_type ?? "general"}
                 />

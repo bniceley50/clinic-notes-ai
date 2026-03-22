@@ -18,7 +18,7 @@ export function buildNoteHeaderLines(input: NoteHeaderInput): string[] {
   ];
 }
 
-export function buildCareLogicCopyText(
+export function buildEhrCopyText(
   input: NoteHeaderInput & { content: string },
 ): string {
   return [...buildNoteHeaderLines(input), "", input.content.trim()].join("\n");

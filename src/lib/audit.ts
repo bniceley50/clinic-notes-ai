@@ -17,6 +17,7 @@ export type AuditAction =
   | "note.viewed"
   | "note.exported"
   | "carelogic_fields_generated"
+  | "carelogic_fields_regenerated"
   | "consent.recorded"
   | "consent.part2_recorded"
   | "auth.login"

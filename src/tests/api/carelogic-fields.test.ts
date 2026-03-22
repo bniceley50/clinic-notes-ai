@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const {
   mockLoadCurrentUser,
@@ -101,13 +102,25 @@ const ownedJob = {
   status: "complete",
 };
 
-function makeRequest(): Request {
-  return new Request("http://localhost:3000/api/jobs/job-1/carelogic-fields", {
+function makeRequest(): NextRequest {
+  return new NextRequest("http://localhost:3000/api/jobs/job-1/carelogic-fields", {
     method: "GET",
     headers: {
       "x-vercel-id": "test-request-id",
     },
   });
+}
+
+function makeRegenerateRequest(): NextRequest {
+  return new NextRequest(
+    "http://localhost:3000/api/jobs/job-1/carelogic-fields?regenerate=true",
+    {
+      method: "GET",
+      headers: {
+        "x-vercel-id": "test-request-id",
+      },
+    },
+  );
 }
 
 describe("GET /api/jobs/[id]/carelogic-fields", () => {
@@ -271,6 +284,81 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
       sessionId: "session-1",
       jobId: "job-1",
       action: "carelogic_fields_generated",
+      vendor: "anthropic",
+      requestId: "test-request-id",
+      metadata: {
+        session_type: "general",
+      },
+    });
+  });
+
+  it("regenerate=true ignores stored extraction, calls Anthropic, and overwrites the stored result", async () => {
+    mockGetExtractionForTranscript.mockResolvedValue({
+      data: {
+        id: "extract-1",
+        session_id: "session-1",
+        org_id: authenticatedResult.user.orgId,
+        job_id: "job-1",
+        transcript_id: "tx-1",
+        session_type: "general",
+        fields: {
+          client_perspective: "Old stored value",
+        },
+        generated_by: authenticatedResult.user.userId,
+        generated_at: "2026-03-22T00:00:00.000Z",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
+      error: null,
+    });
+    mockUpsertExtraction.mockResolvedValue({
+      data: {
+        id: "extract-1",
+        session_id: "session-1",
+        org_id: authenticatedResult.user.orgId,
+        job_id: "job-1",
+        transcript_id: "tx-1",
+        session_type: "general",
+        fields: {
+          client_perspective: "Regenerated value",
+        },
+        generated_by: authenticatedResult.user.userId,
+        generated_at: "2026-03-22T01:00:00.000Z",
+        updated_at: "2026-03-22T01:00:00.000Z",
+      },
+      error: null,
+    });
+
+    const response = await GET(
+      makeRegenerateRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({
+      fields: {
+        client_perspective: "Regenerated value",
+      },
+      generated_at: "2026-03-22T01:00:00.000Z",
+      sessionType: "general",
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockUpsertExtraction).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes a distinct regeneration audit event when regenerate=true", async () => {
+    const response = await GET(
+      makeRegenerateRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: authenticatedResult.user.orgId,
+      actorId: authenticatedResult.user.userId,
+      sessionId: "session-1",
+      jobId: "job-1",
+      action: "carelogic_fields_regenerated",
       vendor: "anthropic",
       requestId: "test-request-id",
       metadata: {
