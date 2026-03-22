@@ -1,7 +1,13 @@
 import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getJobById, updateJobWorkerFields, type JobNoteType } from "@/lib/jobs/queries";
+import {
+  claimJobForProcessing,
+  getJobById,
+  updateClaimedJobWorkerFields,
+  type JobNoteType,
+  type JobRow,
+} from "@/lib/jobs/queries";
 import { downloadAudioForJob } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudioChunked } from "@/lib/ai/whisper";
@@ -18,12 +24,57 @@ type TranscriptLookupRow = {
   content: string;
 };
 
-async function failJob(jobId: string, error: string): Promise<ProcessResult> {
-  await updateJobWorkerFields(jobId, {
-    status: "failed",
-    stage: "failed",
-    error_message: error,
+const PROCESSING_LEASE_SECONDS = 300;
+const MAX_PROCESS_ATTEMPTS = 3;
+const CLAIM_LOST_ERROR = "Job claim lost";
+
+function clearedClaimFields() {
+  return {
+    claimed_at: null,
+    lease_expires_at: null,
+    run_token: null,
+  };
+}
+
+async function updateClaimedJob(
+  jobId: string,
+  runToken: string,
+  fields: Record<string, unknown>,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const updated = await updateClaimedJobWorkerFields(jobId, runToken, fields);
+  if (updated.error) {
+    return { data: null, error: updated.error };
+  }
+
+  if (!updated.data) {
+    return { data: null, error: CLAIM_LOST_ERROR };
+  }
+
+  return updated;
+}
+
+async function failJob(job: JobRow, runToken: string, error: string): Promise<ProcessResult> {
+  const terminal = job.attempt_count >= MAX_PROCESS_ATTEMPTS;
+  const failed = await updateClaimedJob(job.id, runToken, {
+    ...(terminal
+      ? {
+          status: "failed",
+          stage: "failed",
+          error_message: error,
+        }
+      : {
+          status: "queued",
+          stage: "queued",
+          progress: 0,
+          error_message: error,
+        }),
+    ...clearedClaimFields(),
   });
+
+  if (failed.error) {
+    return { success: false, error: failed.error };
+  }
+
   return { success: false, error };
 }
 
@@ -95,35 +146,31 @@ export async function generateNoteForJob(jobId: string): Promise<ProcessResult> 
 }
 
 export async function processJob(jobId: string): Promise<ProcessResult> {
+  let claimedJob: JobRow | null = null;
+  let runToken: string | null = null;
+
   try {
-    const job = await getJobById(jobId);
-
-    if (!job) {
-      return { success: false, error: "Job not found" };
+    const claimed = await claimJobForProcessing(jobId, PROCESSING_LEASE_SECONDS);
+    if (claimed.error) {
+      return { success: false, error: claimed.error };
     }
 
-    if (job.status !== "queued") {
-      return { success: false, error: "Job not in queued state" };
+    if (!claimed.data?.run_token) {
+      return { success: false, error: "already claimed or not queued" };
     }
+
+    const job = claimed.data;
+    const claimedRunToken = claimed.data.run_token;
+    claimedJob = job;
+    runToken = claimedRunToken;
 
     if (!job.audio_storage_path) {
-      return { success: false, error: "No audio uploaded" };
-    }
-
-    const started = await updateJobWorkerFields(jobId, {
-      status: "running",
-      stage: "transcribing",
-      progress: 10,
-      error_message: null,
-    });
-
-    if (started.error || !started.data) {
-      return await failJob(jobId, started.error ?? "Failed to start job");
+      return await failJob(job, claimedRunToken, "No audio uploaded");
     }
 
     const downloaded = await downloadAudioForJob(job.audio_storage_path);
     if (downloaded.error || !downloaded.data) {
-      return await failJob(jobId, downloaded.error ?? "Failed to download audio");
+      return await failJob(job, claimedRunToken, downloaded.error ?? "Failed to download audio");
     }
 
     void writeAuditLog({
@@ -143,14 +190,21 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       transcriptionFilename,
       async (chunkIndex, totalChunks) => {
         const progress = Math.round(10 + (chunkIndex / totalChunks) * 38);
-        await updateJobWorkerFields(jobId, {
+        const updated = await updateClaimedJob(jobId, claimedRunToken, {
           stage: "transcribing",
           progress,
         });
+        if (updated.error) {
+          throw new Error(updated.error);
+        }
       },
     );
     if (transcription.error || !transcription.text) {
-      return await failJob(jobId, transcription.error ?? "Failed to transcribe audio");
+      return await failJob(
+        job,
+        claimedRunToken,
+        transcription.error ?? "Failed to transcribe audio",
+      );
     }
 
     let transcriptStoragePath: string | null = null;
@@ -176,18 +230,21 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     });
 
     if (transcriptRow.error || !transcriptRow.data) {
-      return await failJob(jobId, transcriptRow.error ?? "Failed to store transcript");
+      return await failJob(job, claimedRunToken, transcriptRow.error ?? "Failed to store transcript");
     }
 
-    const completed = await updateJobWorkerFields(jobId, {
+    const completed = await updateClaimedJob(jobId, claimedRunToken, {
       status: "complete",
       stage: "complete",
       progress: 100,
       transcript_storage_path: transcriptStoragePath,
+      ...clearedClaimFields(),
     });
 
-    if (completed.error || !completed.data) {
-      return await failJob(jobId, completed.error ?? "Failed to complete job");
+    if (completed.error) {
+      return completed.error === CLAIM_LOST_ERROR
+        ? { success: false, error: CLAIM_LOST_ERROR }
+        : await failJob(job, claimedRunToken, completed.error ?? "Failed to complete job");
     }
 
     // NOTE GENERATION: disabled in the default pipeline.
@@ -195,9 +252,15 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
 
     return { success: true, error: null };
   } catch (error) {
-    return await failJob(
-      jobId,
-      error instanceof Error ? error.message : "Job processing failed",
-    );
+    const message = error instanceof Error ? error.message : "Job processing failed";
+    if (!claimedJob || !runToken) {
+      return { success: false, error: message };
+    }
+
+    if (message === CLAIM_LOST_ERROR) {
+      return { success: false, error: CLAIM_LOST_ERROR };
+    }
+
+    return await failJob(claimedJob, runToken, message);
   }
 }
