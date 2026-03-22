@@ -4,6 +4,9 @@ This document describes the current operational behavior of Clinic Notes AI as o
 
 This is not an aspirational document. If the app has no procedure, no retry, or no tooling for something, this RUNBOOK says so explicitly.
 
+Operational note:
+- The app session cookie uses `SameSite=Lax`. `SameSite=Strict` was tried as a security hardening change and broke magic-link login from email clients because the cookie did not survive the email-to-app navigation. `Lax` is required for the current auth flow.
+
 ## 1. Setup and Local Dev
 
 ### Clone and install

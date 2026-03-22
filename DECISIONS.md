@@ -174,3 +174,13 @@ This file records architectural decisions and their rationale. Entries are appen
 - Full migration requires a coordinated cookie/JWT claim rename.
 
 - No new code should introduce `practiceId` outside the auth contract layer.
+
+## 2026-03-22: SameSite Policy for Magic Link Auth
+
+- The app session cookie must use `SameSite=Lax`.
+
+- `SameSite=Strict` was tried as a hardening measure and broke magic link login flows from email clients.
+
+- Email magic links arrive as cross-site top-level navigations. With `Strict`, the app session cookie set during callback handling does not reliably survive the immediate redirect into the app.
+
+- `Lax` allows the cookie on top-level navigations while still blocking cross-site subresource requests, which is the correct tradeoff for OTP/magic-link auth in this app.
