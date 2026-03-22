@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   didJobReachComplete,
   deriveJobState,
   getJobTitle,
+  isRetrying,
   isJobActive,
   shouldAllowAudioUpload,
   shouldShowJobProgress,
@@ -43,6 +44,7 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
 };
 
 const POLL_INTERVAL_MS = 10_000;
+const MAX_TRANSCRIPTION_ATTEMPTS = 3;
 function formatNoteType(noteType: string): string {
   return noteType.toUpperCase();
 }
@@ -158,12 +160,15 @@ export function JobStatusPanel({ initialJobs }: Props) {
       {state.jobs.map((job) => (
         <div key={job.id} className="card-ql p-4">
           {(() => {
-            const jobState = deriveJobState(job);
-            return (
-              <>
+             const jobState = deriveJobState(job);
+             const retrying = isRetrying(job);
+             const exhaustedRetries =
+               job.status === "failed" && job.attempt_count >= MAX_TRANSCRIPTION_ATTEMPTS;
+             return (
+               <>
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
-              {getJobTitle(jobState)}
+              {getJobTitle(jobState, job.attempt_count)}
             </span>
             <span
               className={`inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
@@ -183,7 +188,16 @@ export function JobStatusPanel({ initialJobs }: Props) {
           {shouldShowJobProgress(jobState) && (
             <div className="mt-3">
               <div className="mb-1 flex items-center justify-between text-xs" style={{ color: "#777777" }}>
-                <span className="uppercase tracking-wide">{jobState.stage}</span>
+                <div className="flex items-center gap-3">
+                  <span className="uppercase tracking-wide">{jobState.stage}</span>
+                  {job.attempt_count > 1 && (
+                    <span className="font-medium" style={{ color: "#3B276A" }}>
+                      {retrying
+                        ? `Retry ${job.attempt_count} of ${MAX_TRANSCRIPTION_ATTEMPTS}`
+                        : `Attempt ${job.attempt_count} of ${MAX_TRANSCRIPTION_ATTEMPTS}`}
+                    </span>
+                  )}
+                </div>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
               <div className="h-1.5 w-full rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
@@ -209,6 +223,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
               {job.attempt_count > 1 && (
                 <span>
                   Attempts: <span className="font-medium">{job.attempt_count}</span>
+                </span>
+              )}
+              {job.attempt_count > 1 && !jobState.isFailed && (
+                <span>
+                  <span className="font-medium">
+                    Attempt {job.attempt_count} of {MAX_TRANSCRIPTION_ATTEMPTS}
+                  </span>
                 </span>
               )}
             </div>
@@ -253,6 +274,17 @@ export function JobStatusPanel({ initialJobs }: Props) {
             <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }}>
               {job.error_message}
             </p>
+          )}
+
+          {exhaustedRetries && (
+            <div className="mt-3 rounded-[2px] border px-3 py-2" style={{ borderColor: "#F4CCCC", backgroundColor: "#FFF4F2" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#B42318" }}>
+                What to do next
+              </p>
+              <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+                The transcription could not be completed after 3 attempts. Please try uploading the audio again or contact support if the problem continues.
+              </p>
+            </div>
           )}
 
           <div className="mt-3 flex items-center justify-between">

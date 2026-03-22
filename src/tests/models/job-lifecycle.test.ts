@@ -3,6 +3,7 @@ import {
   didJobReachComplete,
   deriveJobState,
   getJobTitle,
+  isRetrying,
   isJobActive,
   shouldAllowAudioUpload,
   shouldShowAdvancedSection,
@@ -203,6 +204,7 @@ describe("job lifecycle decision helpers", () => {
           status: "complete",
           audio_storage_path: null,
         }),
+        1,
       ),
     ).toBe("Transcription complete");
     expect(
@@ -212,7 +214,74 @@ describe("job lifecycle decision helpers", () => {
           status: "cancelled",
           audio_storage_path: null,
         }),
+        1,
       ),
     ).toBe("Transcription cancelled");
+  });
+
+  it('returns "Retrying transcription..." when running and attempt_count > 1', () => {
+    expect(
+      getJobTitle(
+        deriveJobState({
+          stage: "transcribing",
+          status: "running",
+          audio_storage_path: null,
+        }),
+        2,
+      ),
+    ).toBe("Retrying transcription...");
+  });
+
+  it('returns "Transcription failed after 3 attempts" when failed and attempts are exhausted', () => {
+    expect(
+      getJobTitle(
+        deriveJobState({
+          stage: "failed",
+          status: "failed",
+          audio_storage_path: null,
+        }),
+        3,
+      ),
+    ).toBe("Transcription failed after 3 attempts");
+  });
+
+  it('returns "Transcription failed" when failed before attempts are exhausted', () => {
+    expect(
+      getJobTitle(
+        deriveJobState({
+          stage: "failed",
+          status: "failed",
+          audio_storage_path: null,
+        }),
+        1,
+      ),
+    ).toBe("Transcription failed");
+  });
+
+  it("isRetrying returns true only for running jobs after the first attempt", () => {
+    expect(isRetrying({ status: "running", attempt_count: 2 })).toBe(true);
+    expect(isRetrying({ status: "running", attempt_count: 1 })).toBe(false);
+    expect(isRetrying({ status: "failed", attempt_count: 2 })).toBe(false);
+  });
+
+  it("shows job progress for running jobs regardless of attempt_count", () => {
+    expect(
+      shouldShowJobProgress(
+        deriveJobState({
+          stage: "transcribing",
+          status: "running",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      shouldShowJobProgress(
+        deriveJobState({
+          stage: "transcribing",
+          status: "running",
+          audio_storage_path: null,
+        }),
+      ),
+    ).toBe(true);
   });
 });
