@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type Props = {
   jobId: string;
@@ -11,6 +11,7 @@ type FetchState = {
   loading: boolean;
   error: string | null;
   fields: Record<string, string> | null;
+  generatedAt: string | null;
 };
 
 type FieldDefinition = {
@@ -279,6 +280,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     loading: true,
     error: null,
     fields: null,
+    generatedAt: null,
   });
 
   const sections = useMemo(
@@ -286,13 +288,32 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     [sessionType],
   );
 
-  async function loadFields() {
-    setState({ loading: true, error: null, fields: null });
+  const formattedGeneratedAt = useMemo(() => {
+    if (!state.generatedAt) {
+      return null;
+    }
+
+    return new Date(state.generatedAt).toLocaleString("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }, [state.generatedAt]);
+
+  const loadFields = useCallback(async (regenerate = false) => {
+    setState({
+      loading: true,
+      error: null,
+      fields: null,
+      generatedAt: null,
+    });
 
     try {
-      const response = await fetch(`/api/jobs/${jobId}/carelogic-fields`);
+      const url = regenerate
+        ? `/api/jobs/${jobId}/carelogic-fields?regenerate=true`
+        : `/api/jobs/${jobId}/carelogic-fields`;
+      const response = await fetch(url);
       const payload = (await response.json().catch(() => null)) as
-        | { fields?: Record<string, string>; error?: string }
+        | { fields?: Record<string, string>; generated_at?: string; error?: string }
         | null;
 
       if (!response.ok || !payload?.fields) {
@@ -300,23 +321,30 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
           loading: false,
           error: payload?.error ?? "Failed to load EHR fields",
           fields: null,
+          generatedAt: null,
         });
         return;
       }
 
-      setState({ loading: false, error: null, fields: payload.fields });
+      setState({
+        loading: false,
+        error: null,
+        fields: payload.fields,
+        generatedAt: payload.generated_at ?? null,
+      });
     } catch {
       setState({
         loading: false,
         error: "Failed to load EHR fields",
         fields: null,
+        generatedAt: null,
       });
     }
-  }
+  }, [jobId]);
 
   useEffect(() => {
     void loadFields();
-  }, [jobId]);
+  }, [loadFields]);
 
   if (!jobId) {
     return (
@@ -336,7 +364,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
           />
-          Loading EHR fields...
+          Extracting EHR-ready fields...
         </div>
       </div>
     );
@@ -361,6 +389,44 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
 
   return (
     <div className="ql-grid" data-testid="carelogic-forms-panel">
+      <section className="ql-panel">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: 12,
+            borderBottom: "1px solid #E7E9EC",
+          }}
+        >
+          <div>
+            <p
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "#517AB7", margin: 0 }}
+            >
+              Structured fields
+            </p>
+            {formattedGeneratedAt ? (
+              <p
+                className="text-xs"
+                style={{ color: "#666666", marginTop: 6, marginBottom: 0 }}
+              >
+                Generated {formattedGeneratedAt}
+              </p>
+            ) : null}
+          </div>
+          {state.fields ? (
+            <button
+              type="button"
+              className="ql-button-secondary"
+              onClick={() => void loadFields(true)}
+            >
+              Regenerate
+            </button>
+          ) : null}
+        </div>
+      </section>
       {sections.map((section) => (
         <section key={section.title} className="ql-panel">
           <div

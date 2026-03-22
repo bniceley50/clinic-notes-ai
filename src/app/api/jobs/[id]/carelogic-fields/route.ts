@@ -63,6 +63,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
   if (limited) return limited;
 
   const { id } = await ctx.params;
+  const regenerate = request.nextUrl.searchParams.get("regenerate") === "true";
   const jobResult = await getMyJob(result.user, id);
 
   if (jobResult.error || !jobResult.data) {
@@ -91,24 +92,26 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     return jsonNoStore({ error: "Transcript not found" }, { status: 404 });
   }
 
-  const extractionResult = await getExtractionForTranscript(
-    result.user,
-    transcriptResult.data.id,
-  );
-
-  if (extractionResult.error) {
-    return jsonNoStore(
-      { error: "Failed to load stored EHR fields" },
-      { status: 500 },
+  if (!regenerate) {
+    const extractionResult = await getExtractionForTranscript(
+      result.user,
+      transcriptResult.data.id,
     );
-  }
 
-  if (extractionResult.data) {
-    return jsonNoStore({
-      fields: extractionResult.data.fields,
-      generated_at: extractionResult.data.generated_at,
-      sessionType: extractionResult.data.session_type,
-    });
+    if (extractionResult.error) {
+      return jsonNoStore(
+        { error: "Failed to load stored EHR fields" },
+        { status: 500 },
+      );
+    }
+
+    if (extractionResult.data) {
+      return jsonNoStore({
+        fields: extractionResult.data.fields,
+        generated_at: extractionResult.data.generated_at,
+        sessionType: extractionResult.data.session_type,
+      });
+    }
   }
 
   if (!aiRealApisEnabled()) {
@@ -207,7 +210,9 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       actorId: result.user.userId,
       sessionId: jobResult.data.session_id,
       jobId: jobResult.data.id,
-      action: "carelogic_fields_generated",
+      action: regenerate
+        ? "carelogic_fields_regenerated"
+        : "carelogic_fields_generated",
       vendor: "anthropic",
       requestId: request.headers.get("x-vercel-id") ?? undefined,
       metadata: {

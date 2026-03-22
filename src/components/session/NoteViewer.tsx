@@ -65,8 +65,8 @@ function parseNoteSections(content: string, noteType: string): NoteSection[] {
   return sections;
 }
 
-// ── Format structured output for CareLogic paste ─────────────
-function formatForCareLogic(
+// ── Format structured output for EHR paste ───────────────────
+function formatForEhr(
   sections: NoteSection[],
   noteType: string,
   sessionDate: string,
@@ -120,7 +120,7 @@ export function NoteViewer({
     if (!reviewed) setShowWarning(true);
 
     const text = hasContent
-      ? formatForCareLogic(sections, noteType, sessionDate, patientLabel, providerName)
+      ? formatForEhr(sections, noteType, sessionDate, patientLabel, providerName)
       : "";
 
     try {

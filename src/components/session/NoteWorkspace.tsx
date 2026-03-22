@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildCareLogicCopyText, buildDocxFilename } from "@/lib/clinical/note-format";
-import { CareLogicFormsPanel } from "./CareLogicFormsPanel";
+import { buildEhrCopyText, buildDocxFilename } from "@/lib/clinical/note-format";
+import { CareLogicFormsPanel as EhrFieldsPanel } from "./CareLogicFormsPanel";
 import { NoteViewer } from "./NoteViewer";
 
 type Props = {
@@ -42,7 +42,7 @@ export function NoteWorkspace({
   initialUpdatedAt,
 }: Props) {
   const [mode, setMode] = useState<"preview" | "edit">("preview");
-  const [activeTab, setActiveTab] = useState<"draft" | "carelogic">("draft");
+  const [activeTab, setActiveTab] = useState<"draft" | "ehrFields">("draft");
   const [draftContent, setDraftContent] = useState(initialContent);
   const [savedContent, setSavedContent] = useState(initialContent);
   const [lastSavedAt, setLastSavedAt] = useState(initialUpdatedAt);
@@ -55,7 +55,7 @@ export function NoteWorkspace({
 
   const copyOutput = useMemo(
     () =>
-      buildCareLogicCopyText({
+      buildEhrCopyText({
         noteType,
         dateLabel: sessionDate,
         patientLabel,
@@ -190,7 +190,7 @@ export function NoteWorkspace({
             </button>
             <button
               type="button"
-              style={activeTab === "carelogic"
+              style={activeTab === "ehrFields"
                 ? {
                     backgroundColor: "#3B276A",
                     color: "#FFFFFF",
@@ -211,8 +211,8 @@ export function NoteWorkspace({
                     fontWeight: 600,
                     cursor: "pointer",
                   }}
-              onClick={() => setActiveTab("carelogic")}
-              data-testid="note-tab-carelogic"
+              onClick={() => setActiveTab("ehrFields")}
+              data-testid="note-tab-ehr-fields"
             >
               EHR Fields
             </button>
@@ -323,11 +323,11 @@ export function NoteWorkspace({
 
         <div
           style={{
-            display: activeTab === "carelogic" ? "block" : "none",
+            display: activeTab === "ehrFields" ? "block" : "none",
             marginTop: 12,
           }}
         >
-          <CareLogicFormsPanel jobId={jobId} sessionType={sessionType} />
+          <EhrFieldsPanel jobId={jobId} sessionType={sessionType} />
         </div>
       </section>
 
