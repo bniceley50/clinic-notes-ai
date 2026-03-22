@@ -245,7 +245,7 @@ export function CreateJobForm({
     return (
       <div className="space-y-3">
         <p className="text-xs" style={{ color: "#555555" }}>
-          Generate an optional SOAP-style note from the completed transcript.
+          Generate an optional draft note from the completed transcript.
           This is an advanced workflow and is not required for EHR field extraction.
         </p>
 
@@ -282,7 +282,7 @@ export function CreateJobForm({
             className="btn-ql"
             data-testid="generate-note-button"
           >
-            {pending ? "Generating..." : noteGenerated ? "Generate New Note" : "Generate Note"}
+            {pending ? "Generating..." : noteGenerated ? "Generate New Draft" : "Generate Draft Note"}
           </button>
 
           {!shouldAllowJobStart(localConsentStatus) && (
@@ -318,7 +318,7 @@ export function CreateJobForm({
                 disabled={hasActiveJob || pending || !!jobId}
                 className="btn-ql"
               >
-                {pending ? "Creating..." : "Start Job"}
+                {pending ? "Creating..." : "Start Transcript"}
               </button>
             </div>
           ) : null}

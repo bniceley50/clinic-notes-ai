@@ -243,8 +243,8 @@ export default async function SessionDetailPage({ params }: Props) {
                 className="border-b px-4 py-3"
                 style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
               >
-                <p className="ql-kicker">EHR Fields</p>
-                <h2 className="ql-panel-title">EHR Documentation</h2>
+                <p className="ql-kicker">Structured Documentation</p>
+                <h2 className="ql-panel-title">EHR-Ready Fields</h2>
                 <p className="mt-1 text-xs" style={{ color: "#777777" }}>
                   Extract structured EHR-ready fields directly from the transcript.
                 </p>
@@ -266,9 +266,9 @@ export default async function SessionDetailPage({ params }: Props) {
               >
                 <div>
                   <p className="ql-kicker">Advanced</p>
-                  <h2 className="ql-panel-title">Optional Note Generation</h2>
+                  <h2 className="ql-panel-title">Optional Draft Note</h2>
                   <p className="mt-1 text-xs" style={{ color: "#777777" }}>
-                    Generate an optional SOAP-style note after transcription if you need one.
+                    Generate an optional draft note from the transcript if you need narrative documentation in addition to structured fields.
                   </p>
                 </div>
               </summary>

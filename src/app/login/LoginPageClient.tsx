@@ -68,8 +68,8 @@ export function LoginPageClient({
             Check your email
           </div>
           <p className="text-sm" style={{ color: "#333333" }}>
-            We sent a magic link to <strong>{email}</strong>.
-            Click the link in your email to sign in.
+            We sent a secure sign-in link to <strong>{email}</strong>.
+            Open the link to continue to your session workspace.
           </p>
           <button
             type="button"
@@ -109,10 +109,10 @@ export function LoginPageClient({
           </div>
           <div>
             <p className="text-sm font-bold" style={{ color: "#3B276A" }}>
-              Clinic Notes AI
+              Structured documentation for behavioral health
             </p>
             <p className="text-xs" style={{ color: "#777777" }}>
-              Clinical documentation companion
+              Review transcripts, extract EHR-ready fields, and optionally draft notes for clinician review.
             </p>
           </div>
         </div>
@@ -169,12 +169,12 @@ export function LoginPageClient({
             disabled={loading || !email}
             className="btn-ql w-full justify-center"
           >
-            {loading ? "Sending…" : "Send Magic Link"}
+            {loading ? "Sending…" : "Email me a sign-in link"}
           </button>
         </form>
 
         <p className="text-[11px] text-center" style={{ color: "#777777" }}>
-          A sign-in link will be sent to your email address.
+          We will send a secure sign-in link to your email address.
         </p>
       </div>
     </main>
