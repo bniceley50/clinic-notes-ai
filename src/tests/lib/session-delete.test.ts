@@ -38,6 +38,10 @@ const {
     order.push("consents.delete");
     return { error: null };
   });
+  const mockExtractionsFinalEq = vi.fn(async () => {
+    order.push("extractions.delete");
+    return { error: null };
+  });
   const mockSessionsFinalEq = vi.fn(async () => {
     order.push("session.delete");
     return { error: null };
@@ -96,6 +100,14 @@ const {
               }),
             }),
           };
+        case "carelogic_field_extractions":
+          return {
+            delete: () => ({
+              eq: () => ({
+                eq: mockExtractionsFinalEq,
+              }),
+            }),
+          };
         case "sessions":
           return {
             delete: () => ({
@@ -134,6 +146,7 @@ const {
     mockTranscriptsFinalEq,
     mockJobsDeleteFinalEq,
     mockConsentsFinalEq,
+    mockExtractionsFinalEq,
     mockSessionsFinalEq,
     mockCreateServiceClient,
   };
@@ -162,6 +175,7 @@ describe("deleteSessionCascade", () => {
       "audio.storage.delete",
       "transcripts.storage.delete",
       "drafts.storage.delete",
+      "extractions.delete",
       "jobs.delete",
       "consents.delete",
       "session.delete",
