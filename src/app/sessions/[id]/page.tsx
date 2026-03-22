@@ -24,12 +24,12 @@ import {
 } from "@/lib/models/job-lifecycle";
 import { getMySession } from "@/lib/sessions/queries";
 import { CreateJobForm } from "@/components/jobs/CreateJobForm";
-import { JobStatusPanel } from "@/components/jobs/JobStatusPanel";
-import { AppShell } from "@/components/layout/AppShell";
 import { AudioPlayer } from "@/components/audio/AudioPlayer";
+import { AppShell } from "@/components/layout/AppShell";
 import { ConsentStatusCard } from "@/components/session/ConsentStatusCard";
 import { CareLogicFormsPanel } from "@/components/session/CareLogicFormsPanel";
 import { NoteWorkspace } from "@/components/session/NoteWorkspace";
+import { SessionJobsClientSection } from "@/components/session/SessionJobsClientSection";
 import { TranscriptViewer } from "@/components/session/TranscriptViewer";
 import { SessionDeleteButton } from "@/components/sessions/SessionList";
 
@@ -214,57 +214,12 @@ export default async function SessionDetailPage({ params }: Props) {
             initialConsentTimestamp={getConsentRecordedAt(consentStatus)}
           />
 
-          <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
-              Transcription
-            </div>
-            <div className="p-3">
-              <CreateJobForm
-                sessionId={session.id}
-                hasActiveJob={hasActiveJob}
-                consentStatus={consentStatus}
-              />
-            </div>
-          </div>
-
-          <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
-              Job History
-            </div>
-            <div className="space-y-3 p-3">
-              <JobStatusPanel initialJobs={jobs} />
-              {completedAudioJobs.length > 0 ? (
-                <div className="space-y-3 border-t pt-3" style={{ borderColor: "#E7E9EC" }}>
-                  {completedAudioJobs.map((job) => (
-                    <div key={job.id} className="space-y-2 rounded border p-3" style={{ borderColor: "#E7E9EC" }}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#3B276A" }}>
-                            Recorded audio
-                          </p>
-                          <p className="text-xs" style={{ color: "#777777" }}>
-                            {new Date(job.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <span
-                          className="inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide chip-complete"
-                        >
-                          {job.status}
-                        </span>
-                      </div>
-                      <AudioPlayer jobId={job.id} />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <SessionJobsClientSection
+            sessionId={session.id}
+            initialJobs={jobs}
+            completedAudioJobs={completedAudioJobs}
+            consentStatus={consentStatus}
+          />
         </div>
 
         <div className="space-y-4">

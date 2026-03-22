@@ -88,9 +88,15 @@ function reducer(state: State, action: Action): State {
 
 type Props = {
   initialJobs: JobSnapshot[];
+  onJobComplete?: () => void;
+  onJobCancelled?: () => void;
 };
 
-export function JobStatusPanel({ initialJobs }: Props) {
+export function JobStatusPanel({
+  initialJobs,
+  onJobComplete,
+  onJobCancelled,
+}: Props) {
   const [state, dispatch] = useReducer(reducer, initialJobs, (jobs) => {
     const polling = new Set<string>();
     for (const j of jobs) {
@@ -102,6 +108,13 @@ export function JobStatusPanel({ initialJobs }: Props) {
   const lastKnownStateRef = useRef<Record<string, JobState>>(
     Object.fromEntries(initialJobs.map((job) => [job.id, deriveJobState(job)])),
   );
+
+  useEffect(() => {
+    dispatch({ type: "init", jobs: initialJobs });
+    lastKnownStateRef.current = Object.fromEntries(
+      initialJobs.map((job) => [job.id, deriveJobState(job)]),
+    );
+  }, [initialJobs]);
 
   const pollJob = useCallback(async (jobId: string) => {
     try {
@@ -117,12 +130,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
       dispatch({ type: "update", job });
 
       if (didJobReachComplete(previousState, nextState)) {
-        window.location.reload();
+        onJobComplete?.();
       }
     } catch {
       dispatch({ type: "stop_polling", id: jobId });
     }
-  }, []);
+  }, [onJobComplete]);
 
   useEffect(() => {
     if (state.polling.size === 0) return;
@@ -137,9 +150,12 @@ export function JobStatusPanel({ initialJobs }: Props) {
   async function handleCancel(jobId: string) {
     setCancelingJobId(jobId);
     try {
-      await fetch(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+      const response = await fetch(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+      if (response.ok) {
+        onJobCancelled?.();
+      }
     } finally {
-      window.location.reload();
+      setCancelingJobId(null);
     }
   }
 
