@@ -11,6 +11,7 @@ import {
   clearSessionCookie,
   readSessionFromCookieHeader,
 } from "@/lib/auth/session";
+import { resolveOrgId } from "@/lib/auth/claims";
 import { revokeSession } from "@/lib/auth/revocation";
 import { writeAuditLog } from "@/lib/audit";
 import { sessionTtlSeconds } from "@/lib/config";
@@ -28,7 +29,7 @@ export const POST = withLogging(async (request: NextRequest) => {
 
   if (session) {
     void writeAuditLog({
-      orgId: session.practiceId,
+      orgId: resolveOrgId(session),
       actorId: session.sub,
       action: "auth.logout",
     });

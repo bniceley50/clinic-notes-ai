@@ -10,7 +10,7 @@ import "server-only";
  *   - profiles table (display_name, role, org_id)
  *   - orgs table (org name)
  *
- * Handles the practiceId (JWT) → org_id (DB) mapping via claims.ts.
+ * Handles the JWT org claim → org_id (DB) mapping via claims.ts.
  */
 
 import { getCurrentUser } from "./server";
