@@ -25,6 +25,15 @@ type NoteRow = {
   content: string
 }
 
+type ExtractionRow = {
+  id: string
+  session_id: string
+  org_id: string
+  job_id: string
+  transcript_id: string
+  generated_by: string
+}
+
 type ConsentRow = {
   id: string
   session_id: string
@@ -65,8 +74,12 @@ let orgASessionId: string
 let orgBSessionId: string
 let orgAJobId: string
 let orgBJobId: string
+let orgAAltSessionId: string
+let orgAAltJobId: string
 let orgANoteId: string
 let orgBNoteId: string
+let orgATranscriptId: string
+let orgAExtractionId: string
 let orgAStoragePath: string
 
 async function signIn(email: string, password: string): Promise<SupabaseClient> {
@@ -176,6 +189,23 @@ describeIntegration('RLS org isolation', () => {
     orgASessionId = orgASession.id
     orgBSessionId = orgBSession.id
 
+    const { data: orgAAltSession, error: orgAAltSessionError } = await admin
+      .from('sessions')
+      .insert({
+        org_id: orgAOrgId,
+        created_by: orgAUserId,
+        patient_label: 'RLS Org A Alternate Patient',
+        session_type: 'general',
+      })
+      .select('id')
+      .single()
+
+    if (orgAAltSessionError || !orgAAltSession) {
+      throw new Error('Failed to seed alternate Org A session')
+    }
+
+    orgAAltSessionId = orgAAltSession.id
+
     const { data: orgAJob, error: orgAJobError } = await admin
       .from('jobs')
       .insert({
@@ -208,6 +238,25 @@ describeIntegration('RLS org isolation', () => {
 
     orgAJobId = orgAJob.id
     orgBJobId = orgBJob.id
+
+    const { data: orgAAltJob, error: orgAAltJobError } = await admin
+      .from('jobs')
+      .insert({
+        session_id: orgAAltSessionId,
+        org_id: orgAOrgId,
+        created_by: orgAUserId,
+        status: 'queued',
+        stage: 'queued',
+        note_type: 'soap',
+      })
+      .select('id')
+      .single()
+
+    if (orgAAltJobError || !orgAAltJob) {
+      throw new Error('Failed to seed alternate Org A job')
+    }
+
+    orgAAltJobId = orgAAltJob.id
 
     const { data: orgANote, error: orgANoteError } = await admin
       .from('notes')
@@ -242,6 +291,45 @@ describeIntegration('RLS org isolation', () => {
     orgANoteId = orgANote.id
     orgBNoteId = orgBNote.id
     orgAStoragePath = `${orgAOrgId}/${orgASessionId}/${orgAJobId}/rls-test.webm`
+
+    const { data: orgATranscript, error: orgATranscriptError } = await admin
+      .from('transcripts')
+      .insert({
+        session_id: orgASessionId,
+        org_id: orgAOrgId,
+        job_id: orgAJobId,
+        content: 'Org A transcript',
+      })
+      .select('id')
+      .single()
+
+    if (orgATranscriptError || !orgATranscript) {
+      throw new Error(`Failed to seed transcript: ${orgATranscriptError?.message ?? 'unknown error'}`)
+    }
+
+    orgATranscriptId = orgATranscript.id
+
+    const { data: orgAExtraction, error: orgAExtractionError } = await admin
+      .from('carelogic_field_extractions')
+      .insert({
+        session_id: orgASessionId,
+        org_id: orgAOrgId,
+        job_id: orgAJobId,
+        transcript_id: orgATranscriptId,
+        session_type: 'general',
+        fields: {
+          client_perspective: 'Org A extraction',
+        },
+        generated_by: orgAUserId,
+      })
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .single()
+
+    if (orgAExtractionError || !orgAExtraction) {
+      throw new Error(`Failed to seed extraction: ${orgAExtractionError?.message ?? 'unknown error'}`)
+    }
+
+    orgAExtractionId = orgAExtraction.id
 
     const { error: uploadError } = await admin.storage
       .from('audio')
@@ -373,5 +461,104 @@ describeIntegration('RLS org isolation', () => {
 
     expect(data).toBeNull()
     expect(error).not.toBeNull()
+  })
+
+  it('The extraction owner can read their own stored CareLogic extraction row', async () => {
+    const { data, error } = await orgAClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgAExtractionId)
+
+    expect(error).toBeNull()
+    expect(data).toEqual([
+      {
+        id: orgAExtractionId,
+        session_id: orgASessionId,
+        org_id: orgAOrgId,
+        job_id: orgAJobId,
+        transcript_id: orgATranscriptId,
+        generated_by: orgAUserId,
+      } satisfies ExtractionRow,
+    ])
+  })
+
+  it('A same-org provider cannot read another provider\'s stored CareLogic extraction row', async () => {
+    const { data, error } = await orgBClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgAExtractionId)
+
+    expect(error).toBeNull()
+    expect(data).toEqual([])
+  })
+
+  it('A provider cannot rebind their note to a different session/job via direct Supabase UPDATE', async () => {
+    const { data, error } = await orgAClient
+      .from('notes')
+      .update({
+        session_id: orgAAltSessionId,
+        job_id: orgAAltJobId,
+      })
+      .eq('id', orgANoteId)
+      .select('id')
+
+    expect(data).toBeNull()
+    expect(error).not.toBeNull()
+  })
+
+  it('A provider cannot mutate note_type via direct Supabase UPDATE', async () => {
+    const { data, error } = await orgAClient
+      .from('notes')
+      .update({
+        note_type: 'dap',
+      })
+      .eq('id', orgANoteId)
+      .select('id')
+
+    expect(data).toBeNull()
+    expect(error).not.toBeNull()
+  })
+
+  it('A provider cannot mutate org_id or created_by via direct Supabase UPDATE', async () => {
+    const { data, error } = await orgAClient
+      .from('notes')
+      .update({
+        org_id: orgBOrgId,
+        created_by: orgBUserId,
+      })
+      .eq('id', orgANoteId)
+      .select('id')
+
+    expect(data).toBeNull()
+    expect(error).not.toBeNull()
+  })
+
+  it('A same-org admin can read another provider\'s stored CareLogic extraction row', async () => {
+    const { error: roleError } = await admin
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('user_id', orgBUserId)
+      .eq('org_id', orgAOrgId)
+
+    if (roleError) {
+      throw new Error(`Failed to promote same-org user to admin: ${roleError.message}`)
+    }
+
+    const { data, error } = await orgBClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgAExtractionId)
+
+    expect(error).toBeNull()
+    expect(data).toEqual([
+      {
+        id: orgAExtractionId,
+        session_id: orgASessionId,
+        org_id: orgAOrgId,
+        job_id: orgAJobId,
+        transcript_id: orgATranscriptId,
+        generated_by: orgAUserId,
+      } satisfies ExtractionRow,
+    ])
   })
 })
