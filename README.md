@@ -2,7 +2,7 @@
 
 AI-powered clinical documentation for small clinics (2-5 providers).
 
-Record → Transcribe → Draft Note → Review/Edit → Export
+Record/Upload Audio -> Transcribe -> Extract Structured EHR Fields -> Optional Note Generation -> Review/Edit -> Export
 
 ## Stack
 
@@ -45,8 +45,8 @@ See `.env.example` for all required and optional variables.
 | [DECISIONS.md](./DECISIONS.md) | Architecture decision log |
 | [SECURITY.md](./SECURITY.md) | Threat model and data handling policy |
 | [docs/DEMO.md](./docs/DEMO.md) | How to demo the app locally |
-| [docs/RUNBOOK_DEV.md](./docs/RUNBOOK_DEV.md) | Dev setup and common fixes |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Data flow and component map |
+| [RUNBOOK.md](./RUNBOOK.md) | Current operational behavior, failure modes, and operator procedures |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Current runtime data flow and component map |
 
 ## Scripts
 

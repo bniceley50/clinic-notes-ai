@@ -184,3 +184,37 @@ This file records architectural decisions and their rationale. Entries are appen
 - Email magic links arrive as cross-site top-level navigations. With `Strict`, the app session cookie set during callback handling does not reliably survive the immediate redirect into the app.
 
 - `Lax` allows the cookie on top-level navigations while still blocking cross-site subresource requests, which is the correct tradeoff for OTP/magic-link auth in this app.
+
+## 2026-03-22: Runtime Pipeline Truth
+
+- The default runtime pipeline is transcript-first.
+
+- Jobs complete after transcription in `src/lib/jobs/processor.ts`.
+
+- Automatic note generation is no longer part of the default job lifecycle.
+
+- Note generation remains available as an optional follow-up action after a transcript exists.
+
+- EHR field extraction is transcript-driven and stored separately in `carelogic_field_extractions`.
+
+## 2026-03-22: Current Job Executor Reality
+
+- Durable job state lives in Postgres, and the claim/lease model is real.
+
+- The executor is still a Vercel route-based synchronous processor, not a separate durable worker service.
+
+- `/api/jobs/[id]/trigger` starts work by calling the app's own `/api/jobs/[id]/process` endpoint over HTTP.
+
+- `/api/jobs/runner` requeues expired running leases, then dispatches queued jobs by calling the app's own `/api/jobs/[id]/process` endpoint over HTTP.
+
+- This is the current runtime truth and should be treated as such in docs and planning until the executor is replaced.
+
+## 2026-03-22: Session Delete Behavior Correction
+
+- Current session deletion behavior is a hard cascade delete, not a soft-delete/archive flow.
+
+- `deleteSessionCascade()` deletes notes, transcripts, storage artifacts, EHR extraction rows, jobs, consent rows, and the session row itself.
+
+- This runtime behavior supersedes earlier retention assumptions in D008 for session deletion.
+
+- Retention and compliance documentation must describe the current hard-delete path honestly until the implementation changes.
