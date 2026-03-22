@@ -120,6 +120,10 @@ export async function finalizeAudioUploadForJob(input: {
     .download(input.storagePath);
 
   if (downloadError || !objectData) {
+    await db.storage
+      .from(AUDIO_BUCKET)
+      .remove([input.storagePath])
+      .catch(() => {});
     return {
       storagePath: null,
       error: downloadError?.message ?? "Uploaded audio could not be downloaded for verification",
@@ -131,6 +135,10 @@ export async function finalizeAudioUploadForJob(input: {
   );
 
   if (!hasValidAudioSignature(signatureBytes)) {
+    await db.storage
+      .from(AUDIO_BUCKET)
+      .remove([input.storagePath])
+      .catch(() => {});
     return {
       storagePath: null,
       error: "Uploaded audio content does not match a supported format",
