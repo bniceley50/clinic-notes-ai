@@ -30,14 +30,34 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const processUrl = `${baseUrl}/api/jobs/${jobId}/process`;
 
-  void fetch(processUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN}`,
-    },
-  }).catch(() => {
-    // Trigger failures are intentionally non-blocking for the client.
-  });
+  let processResponse: Response;
+
+  try {
+    processResponse = await fetch(processUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN}`,
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to start processing" },
+      { status: 500 },
+    );
+  }
+
+  if (!processResponse.ok) {
+    const payload = (await processResponse.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+
+    return NextResponse.json(
+      {
+        error: payload?.error ?? "Failed to start processing",
+      },
+      { status: 500 },
+    );
+  }
 
   void writeAuditLog({
     orgId: result.user.orgId,
