@@ -30,7 +30,7 @@ describe("auth session helpers", () => {
       role: "provider",
     });
     expect(session?.jti).toBeTypeOf("string");
-    expect(cookie).toContain("SameSite=strict");
+    expect(cookie).toContain("SameSite=lax");
   });
 
   it("returns null for an expired session token", async () => {
@@ -63,10 +63,10 @@ describe("auth session helpers", () => {
     expect(session).toBeNull();
   });
 
-  it("clears the session cookie with SameSite=Strict", () => {
+  it("clears the session cookie with SameSite=Lax", () => {
     const cookie = clearSessionCookie();
 
-    expect(cookie).toContain("SameSite=strict");
+    expect(cookie).toContain("SameSite=lax");
     expect(cookie).toContain("Max-Age=0");
   });
 });
