@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   jobId: string;
@@ -282,6 +282,8 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     fields: null,
     generatedAt: null,
   });
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const regeneratingRef = useRef(false);
 
   const sections = useMemo(
     () => (sessionType === "intake" ? INTAKE_SECTIONS : SESSION_SECTIONS),
@@ -342,6 +344,51 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     }
   }, [jobId]);
 
+  const handleRegenerate = useCallback(async () => {
+    if (regeneratingRef.current || !state.fields) {
+      return;
+    }
+
+    regeneratingRef.current = true;
+    setIsRegenerating(true);
+    setState((current) => ({
+      ...current,
+      error: null,
+    }));
+
+    try {
+      const response = await fetch(
+        `/api/jobs/${jobId}/carelogic-fields?regenerate=true`,
+      );
+      const payload = (await response.json().catch(() => null)) as
+        | { fields?: Record<string, string>; generated_at?: string; error?: string }
+        | null;
+
+      if (!response.ok || !payload?.fields) {
+        setState((current) => ({
+          ...current,
+          error: payload?.error ?? "Failed to load EHR fields",
+        }));
+        return;
+      }
+
+      setState({
+        loading: false,
+        error: null,
+        fields: payload.fields,
+        generatedAt: payload.generated_at ?? null,
+      });
+    } catch {
+      setState((current) => ({
+        ...current,
+        error: "Failed to load EHR fields",
+      }));
+    } finally {
+      regeneratingRef.current = false;
+      setIsRegenerating(false);
+    }
+  }, [jobId, state.fields]);
+
   useEffect(() => {
     void loadFields();
   }, [loadFields]);
@@ -370,7 +417,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     );
   }
 
-  if (state.error || !state.fields) {
+  if (!state.fields) {
     return (
       <div className="ql-panel" data-testid="carelogic-forms-panel-error">
         <p className="ql-alert ql-alert-error" role="alert">
@@ -420,12 +467,22 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
             <button
               type="button"
               className="ql-button-secondary"
-              onClick={() => void loadFields(true)}
+              onClick={() => void handleRegenerate()}
+              disabled={isRegenerating}
             >
-              Regenerate
+              {isRegenerating ? "Regenerating..." : "Regenerate"}
             </button>
           ) : null}
         </div>
+        {state.error ? (
+          <p
+            className="ql-alert ql-alert-error"
+            role="alert"
+            style={{ margin: 12 }}
+          >
+            {state.error}
+          </p>
+        ) : null}
       </section>
       {sections.map((section) => (
         <section key={section.title} className="ql-panel">

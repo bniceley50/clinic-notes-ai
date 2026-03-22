@@ -134,7 +134,8 @@ describe("CareLogicFormsPanel", () => {
       2,
       "/api/jobs/job-1/carelogic-fields?regenerate=true",
     );
-    expect(container.textContent).toContain("Extracting EHR-ready fields...");
+    expect(container.textContent).toContain("Regenerating...");
+    expect(regenerateButton.disabled).toBe(true);
 
     regeneratePending.resolve(
       makeJsonResponse({
@@ -144,6 +145,90 @@ describe("CareLogicFormsPanel", () => {
       }),
     );
     await flushPromises();
+  });
+
+  it("double-clicking Regenerate only fires one regeneration request", async () => {
+    const regeneratePending = deferredResponse();
+    fetchMock
+      .mockResolvedValueOnce(
+        makeJsonResponse({
+          fields: { client_perspective: "Stored value" },
+          generated_at: "2026-03-22T00:00:00.000Z",
+          sessionType: "general",
+        }),
+      )
+      .mockReturnValueOnce(regeneratePending.promise);
+
+    await renderPanel();
+    await flushPromises();
+
+    const regenerateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Regenerate"));
+
+    if (!(regenerateButton instanceof HTMLButtonElement)) {
+      throw new Error("Regenerate button not found");
+    }
+
+    await act(async () => {
+      regenerateButton.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+      regenerateButton.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/jobs/job-1/carelogic-fields?regenerate=true",
+    );
+
+    regeneratePending.resolve(
+      makeJsonResponse({
+        fields: { client_perspective: "Regenerated value" },
+        generated_at: "2026-03-22T01:00:00.000Z",
+        sessionType: "general",
+      }),
+    );
+    await flushPromises();
+  });
+
+  it("failed regeneration preserves existing fields and shows the error message", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        makeJsonResponse({
+          fields: { client_perspective: "Stored value" },
+          generated_at: "2026-03-22T00:00:00.000Z",
+          sessionType: "general",
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({ error: "Failed to load EHR fields" }, 500),
+      );
+
+    await renderPanel();
+    await flushPromises();
+
+    const regenerateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Regenerate"));
+
+    if (!(regenerateButton instanceof HTMLButtonElement)) {
+      throw new Error("Regenerate button not found");
+    }
+
+    await act(async () => {
+      regenerateButton.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+    });
+    await flushPromises();
+
+    expect(container.textContent).toContain("Stored value");
+    expect(container.textContent).toContain("Failed to load EHR fields");
+    expect(container.textContent).toContain("Regenerate");
   });
 
   it("shows error state on failure", async () => {
