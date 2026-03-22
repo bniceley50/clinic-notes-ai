@@ -14,6 +14,7 @@ export type AuditAction =
   | "transcript.created"
   | "transcript.sent_to_vendor"
   | "note.generated"
+  | "note.edited"
   | "note.viewed"
   | "note.exported"
   | "carelogic_fields_generated"
