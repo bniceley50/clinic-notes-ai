@@ -28,11 +28,27 @@ export type NoteRow = {
   updated_at: string;
 };
 
+export type ExtractionRow = {
+  id: string;
+  session_id: string;
+  org_id: string;
+  job_id: string;
+  transcript_id: string;
+  session_type: string;
+  fields: Record<string, string>;
+  generated_by: string;
+  generated_at: string;
+  updated_at: string;
+};
+
 const TRANSCRIPT_COLUMNS =
   "id, session_id, org_id, job_id, content, duration_seconds, word_count, created_at";
 
 const NOTE_COLUMNS =
   "id, session_id, org_id, job_id, content, note_type, status, created_by, created_at, updated_at";
+
+const EXTRACTION_COLUMNS =
+  "id, session_id, org_id, job_id, transcript_id, session_type, fields, generated_by, generated_at, updated_at";
 
 export async function upsertTranscriptForJob(input: {
   sessionId: string;
@@ -174,6 +190,64 @@ export async function getTranscriptForJob(
   }
 
   return { data: (data ?? null) as TranscriptRow | null, error: null };
+}
+
+export async function getExtractionForTranscript(
+  user: AppUser,
+  transcriptId: string,
+): Promise<{ data: ExtractionRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("carelogic_field_extractions")
+    .select(EXTRACTION_COLUMNS)
+    .eq("transcript_id", transcriptId)
+    .eq("org_id", user.orgId)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as ExtractionRow | null, error: null };
+}
+
+export async function upsertExtraction(
+  user: AppUser,
+  input: {
+    sessionId: string;
+    jobId: string;
+    transcriptId: string;
+    sessionType: string;
+    fields: Record<string, string>;
+  },
+): Promise<{ data: ExtractionRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("carelogic_field_extractions")
+    .upsert(
+      {
+        session_id: input.sessionId,
+        org_id: user.orgId,
+        job_id: input.jobId,
+        transcript_id: input.transcriptId,
+        session_type: input.sessionType,
+        fields: input.fields,
+        generated_by: user.userId,
+      },
+      {
+        onConflict: "transcript_id",
+      },
+    )
+    .select(EXTRACTION_COLUMNS)
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data as ExtractionRow, error: null };
 }
 
 export async function getLatestNoteForSession(

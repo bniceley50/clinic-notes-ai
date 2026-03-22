@@ -4,7 +4,9 @@ const {
   mockLoadCurrentUser,
   mockGetMyJob,
   mockGetMySession,
-  mockGetLatestTranscriptForSession,
+  mockGetTranscriptForJob,
+  mockGetExtractionForTranscript,
+  mockUpsertExtraction,
   mockCheckRateLimit,
   mockWriteAuditLog,
   mockAnthropicApiKey,
@@ -14,7 +16,9 @@ const {
   mockLoadCurrentUser: vi.fn(),
   mockGetMyJob: vi.fn(),
   mockGetMySession: vi.fn(),
-  mockGetLatestTranscriptForSession: vi.fn(),
+  mockGetTranscriptForJob: vi.fn(),
+  mockGetExtractionForTranscript: vi.fn(),
+  mockUpsertExtraction: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
   mockAnthropicApiKey: vi.fn(),
@@ -35,7 +39,9 @@ vi.mock("@/lib/sessions/queries", () => ({
 }));
 
 vi.mock("@/lib/clinical/queries", () => ({
-  getLatestTranscriptForSession: mockGetLatestTranscriptForSession,
+  getTranscriptForJob: mockGetTranscriptForJob,
+  getExtractionForTranscript: mockGetExtractionForTranscript,
+  upsertExtraction: mockUpsertExtraction,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -114,8 +120,36 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
       data: { id: "session-1", session_type: "general" },
       error: null,
     });
-    mockGetLatestTranscriptForSession.mockResolvedValue({
+    mockGetTranscriptForJob.mockResolvedValue({
       data: { id: "tx-1", content: "Client reports improved mood." },
+      error: null,
+    });
+    mockGetExtractionForTranscript.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    mockUpsertExtraction.mockResolvedValue({
+      data: {
+        id: "extract-1",
+        session_id: "session-1",
+        org_id: authenticatedResult.user.orgId,
+        job_id: "job-1",
+        transcript_id: "tx-1",
+        session_type: "general",
+        fields: {
+          client_perspective: "Client reported improved mood and reduced anxiety.",
+          current_status_interventions: "Clinician reviewed coping strategies.",
+          response_to_interventions: "Client was receptive and agreed to continue practice.",
+          since_last_visit: "No major changes reported.",
+          goals_addressed: "Anxiety reduction.",
+          interactive_complexity: "[Insufficient information in transcript]",
+          coordination_of_care: "[Insufficient information in transcript]",
+          mse_summary: "Client appeared calm, cooperative, and future oriented.",
+        },
+        generated_by: authenticatedResult.user.userId,
+        generated_at: "2026-03-22T00:00:00.000Z",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
       error: null,
     });
     mockAnthropicApiKey.mockReturnValue("test-anthropic-key");
@@ -139,7 +173,54 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
     vi.unstubAllGlobals();
   });
 
-  it("returns extracted fields for the authenticated job owner", async () => {
+  it("returns an existing stored extraction without calling Anthropic", async () => {
+    mockGetExtractionForTranscript.mockResolvedValue({
+      data: {
+        id: "extract-1",
+        session_id: "session-1",
+        org_id: authenticatedResult.user.orgId,
+        job_id: "job-1",
+        transcript_id: "tx-1",
+        session_type: "general",
+        fields: {
+          client_perspective: "Stored client perspective",
+        },
+        generated_by: authenticatedResult.user.userId,
+        generated_at: "2026-03-22T00:00:00.000Z",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
+      error: null,
+    });
+
+    const response = await GET(
+      makeRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({
+      fields: {
+        client_perspective: "Stored client perspective",
+      },
+      generated_at: "2026-03-22T00:00:00.000Z",
+      sessionType: "general",
+    });
+    expect(mockGetTranscriptForJob).toHaveBeenCalledWith(
+      authenticatedResult.user,
+      "session-1",
+      "job-1",
+    );
+    expect(mockGetExtractionForTranscript).toHaveBeenCalledWith(
+      authenticatedResult.user,
+      "tx-1",
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockUpsertExtraction).not.toHaveBeenCalled();
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
+  });
+
+  it("calls Anthropic and stores the extracted fields when no stored extraction exists", async () => {
     const response = await GET(
       makeRequest() as never,
       { params: Promise.resolve({ id: "job-1" }) },
@@ -158,10 +239,32 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
         coordination_of_care: "[Insufficient information in transcript]",
         mse_summary: "Client appeared calm, cooperative, and future oriented.",
       },
+      generated_at: "2026-03-22T00:00:00.000Z",
       sessionType: "general",
     });
     expect(mockGetMyJob).toHaveBeenCalledWith(authenticatedResult.user, "job-1");
+    expect(mockGetTranscriptForJob).toHaveBeenCalledWith(
+      authenticatedResult.user,
+      "session-1",
+      "job-1",
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockUpsertExtraction).toHaveBeenCalledWith(authenticatedResult.user, {
+      fields: {
+        client_perspective: "Client reported improved mood and reduced anxiety.",
+        current_status_interventions: "Clinician reviewed coping strategies.",
+        response_to_interventions: "Client was receptive and agreed to continue practice.",
+        since_last_visit: "No major changes reported.",
+        goals_addressed: "Anxiety reduction.",
+        interactive_complexity: "[Insufficient information in transcript]",
+        coordination_of_care: "[Insufficient information in transcript]",
+        mse_summary: "Client appeared calm, cooperative, and future oriented.",
+      },
+      jobId: "job-1",
+      sessionId: "session-1",
+      sessionType: "general",
+      transcriptId: "tx-1",
+    });
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: authenticatedResult.user.orgId,
       actorId: authenticatedResult.user.userId,
@@ -203,7 +306,7 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
     expect(response.status).toBe(404);
     expect(payload).toEqual({ error: "Job not found" });
     expect(JSON.stringify(payload)).not.toContain("Client reports improved mood.");
-    expect(mockGetLatestTranscriptForSession).not.toHaveBeenCalled();
+    expect(mockGetTranscriptForJob).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
