@@ -13,7 +13,12 @@ import {
   CARELOGIC_INTAKE_PROMPT,
   CARELOGIC_SESSION_PROMPT,
 } from "@/lib/prompts/carelogic-prompts";
-import { apiLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
+import {
+  apiLimit,
+  checkRateLimit,
+  ehrRegenerateLimit,
+  getIdentifier,
+} from "@/lib/rate-limit";
 import { getMySession } from "@/lib/sessions/queries";
 import { withLogging } from "@/lib/logger";
 
@@ -64,6 +69,10 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
 
   const { id } = await ctx.params;
   const regenerate = request.nextUrl.searchParams.get("regenerate") === "true";
+  if (regenerate) {
+    const regenLimited = await checkRateLimit(ehrRegenerateLimit, identifier);
+    if (regenLimited) return regenLimited;
+  }
   const jobResult = await getMyJob(result.user, id);
 
   if (jobResult.error || !jobResult.data) {
