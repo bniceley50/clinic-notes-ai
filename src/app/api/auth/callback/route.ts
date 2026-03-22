@@ -89,7 +89,7 @@ async function resolveUserProfile(user: User) {
 
   if (profile) {
     return {
-      practiceId: profile.org_id,
+      orgId: profile.org_id,
       role: profile.role as SessionRole,
       errorCode: null as ProvisioningErrorCode | null,
     };
@@ -105,7 +105,7 @@ async function resolveUserProfile(user: User) {
 
     if (!invite) {
       return {
-        practiceId: null,
+        orgId: null,
         role: null,
         errorCode: "no_invite" as const,
       };
@@ -122,7 +122,7 @@ async function resolveUserProfile(user: User) {
 
     if (profileError) {
       return {
-        practiceId: null,
+        orgId: null,
         role: null,
         errorCode: "bootstrap_failed" as const,
       };
@@ -134,7 +134,7 @@ async function resolveUserProfile(user: User) {
       .eq("id", invite.id);
 
     return {
-      practiceId: invite.org_id,
+      orgId: invite.org_id,
       role: invite.role as SessionRole,
       errorCode: null as ProvisioningErrorCode | null,
     };
@@ -148,7 +148,7 @@ async function resolveUserProfile(user: User) {
 
   if (orgError || !newOrg) {
     return {
-      practiceId: null,
+      orgId: null,
       role: null,
       errorCode: "bootstrap_failed" as const,
     };
@@ -163,14 +163,14 @@ async function resolveUserProfile(user: User) {
 
   if (profileError) {
     return {
-      practiceId: null,
+      orgId: null,
       role: null,
       errorCode: "bootstrap_failed" as const,
     };
   }
 
   return {
-    practiceId: newOrg.id,
+    orgId: newOrg.id,
     role: "provider" as SessionRole,
     errorCode: null as ProvisioningErrorCode | null,
   };
@@ -198,7 +198,7 @@ async function createAppRedirectResponse(input: {
   const cookie = await createSessionCookie({
     sub: input.user.id,
     email: input.user.email,
-    practiceId: resolved.practiceId!,
+    practiceId: resolved.orgId!,
     role: resolved.role!,
   });
 
@@ -306,7 +306,7 @@ export const POST = withLogging(async (request: NextRequest) => {
   const cookie = await createSessionCookie({
     sub: userData.user.id,
     email: userData.user.email,
-    practiceId: resolved.practiceId!,
+    practiceId: resolved.orgId!,
     role: resolved.role!,
   });
 

@@ -158,3 +158,19 @@ This file records architectural decisions and their rationale. Entries are appen
 - Clinicians can manually use the regenerate action to refresh the fields.
 
 - Automatic staleness detection is deferred until after beta.
+
+## 2026-03-21: practiceId Migration Boundary
+
+- The JWT cookie claim is still named `practiceId` for session continuity.
+
+- The translation layer is [src/lib/auth/claims.ts](/Users/brian/clinic-notes-ai/src/lib/auth/claims.ts).
+
+- Files that still use the raw claim name are intentionally limited to the auth contract layer:
+  `src/lib/auth/types.ts`, `src/lib/auth/session.ts`,
+  `src/app/api/auth/dev-login/route.ts`,
+  `src/app/api/auth/dev-bootstrap/route.ts`,
+  and their auth/session tests.
+
+- Full migration requires a coordinated cookie/JWT claim rename.
+
+- No new code should introduce `practiceId` outside the auth contract layer.
