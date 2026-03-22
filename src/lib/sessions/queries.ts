@@ -274,6 +274,18 @@ export async function deleteSessionCascade(
     }
   }
 
+  const { error: extractionsDeleteError } = await db
+    .from("carelogic_field_extractions")
+    .delete()
+    .eq("session_id", sessionId)
+    .eq("org_id", orgId);
+
+  if (extractionsDeleteError) {
+    throw new Error(
+      `Failed to delete EHR extractions: ${extractionsDeleteError.message}`,
+    );
+  }
+
   const { error: jobsDeleteError } = await db
     .from("jobs")
     .delete()

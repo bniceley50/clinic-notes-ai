@@ -180,30 +180,46 @@ Current behavior for transcript-only jobs:
 - Anthropic is not involved
 - No Anthropic audit event is written on transcript-only processing
 
+Current behavior for EHR field extraction:
+- Stored EHR fields are returned by default when they already exist for the transcript
+- Initial extraction calls Anthropic once, stores the result, and returns `generated_at`
+- Explicit regeneration (`?regenerate=true`) calls Anthropic again and overwrites the stored result
+- No server-side dedupe exists for overlapping regenerate requests beyond the client-side single-flight guard
+
+What the user sees:
+- Existing stored fields load immediately
+- During regeneration the panel shows `Extracting EHR-ready fields...`
+- If regeneration fails, the panel keeps the last successful fields visible and shows the error alongside them
+
 ### Whisper fails
 
 Current behavior:
-- No retry
-- Job is marked `failed`
-- Job `stage` becomes `failed`
-- `error_message` is populated
-- `/api/jobs/[id]/process` returns 500
+- Jobs are claimed atomically before work starts
+- Transient failures requeue up to a maximum of `3` attempts
+- `attempt_count` increments when the claim succeeds
+- Permanent failure occurs when `attempt_count >= 3`
+- Expired running leases are requeued by the runner
+- Terminal failures set `status=failed`, `stage=failed`, and populate `error_message`
+- `/api/jobs/[id]/process` still returns `500` for the failed processing request itself
 
 What the user sees:
-- Session job panel shows `Transcription failed`
+- On retry attempts, the job panel shows `Retrying transcription...`
+- Active retrying jobs show `Retry X of 3`
+- On terminal failure, the job panel shows `Transcription failed after 3 attempts`
 - The job card displays the `error_message`
-- No automatic retry occurs
+- The panel also shows guidance to upload the audio again or contact support if the problem continues
 
 ### Stuck job
 
 Current behavior:
 - No stuck-job detector exists
 - No admin UI exists
-- No auto-recovery exists
+- The runner requeues expired `running` leases before dispatching queued work
+- There is still no admin/operator tooling for stuck-job discovery
 
 What the user sees:
 - Job remains queued or running until an operator intervenes
-- Session page keeps polling
+- Session page keeps polling unless the job recovers or fails terminally
 
 Operator action:
 - Use the manual SQL in the Operator Procedures section
@@ -361,10 +377,26 @@ where metadata->>'session_id' = '<session-id>'
 order by created_at desc;
 ```
 
+### G. Check EHR extraction for a session
+
+Use SQL in Supabase SQL editor.
+
+```sql
+SELECT *
+FROM public.carelogic_field_extractions
+WHERE session_id = '<session-id>'
+ORDER BY generated_at DESC
+LIMIT 1;
+```
+
+Expected healthy result:
+- `0` rows if no EHR extraction has been generated yet
+- `1` row with `fields`, `generated_at`, `updated_at`, and `transcript_id` for the latest stored extraction
+
 ## 5. Known Limitations
 
 - No admin UI exists for session revocation.
-- No retry system exists. Jobs fail terminally.
+- Jobs retry up to `3` attempts, but there is still no operator UI for retry visibility or control beyond the session page status panel.
 - No stuck-job tooling exists.
 - No storage lifecycle/retention policy exists beyond explicit session deletion.
 - Bucket override support is inconsistent. `TRANSCRIPT_BUCKET` is partly honored; `AUDIO_BUCKET` is not consistently honored.
@@ -372,6 +404,7 @@ order by created_at desc;
 - `DEFAULT_PRACTICE_ID` is still required by config validation even though it has no meaningful active runtime callsite.
 - Rate-limit runtime failures are not gracefully handled; a Redis outage can produce 500s.
 - Session revocation is fail-open when Redis is unavailable.
+- EHR extraction staleness: stored extraction is keyed by transcript. Manual regeneration is available. Automatic staleness detection is deferred until after beta.
 
 ## 6. Storage
 
@@ -401,6 +434,7 @@ order by created_at desc;
 Current behavior:
 - No automatic retention or expiration
 - Artifacts are only deleted when a session is explicitly deleted
+- Stored EHR extraction rows live in `public.carelogic_field_extractions`
 
 Delete order on session delete:
 1. delete `notes` rows
@@ -408,9 +442,29 @@ Delete order on session delete:
 3. delete audio storage objects
 4. delete transcript storage objects
 5. delete draft storage objects
-6. delete `jobs` rows
-7. delete `session_consents`
-8. delete `sessions` row
+6. delete `carelogic_field_extractions` rows
+7. delete `jobs` rows
+8. delete `session_consents`
+9. delete `sessions` row
+
+### Stored EHR extractions
+
+- Table: `public.carelogic_field_extractions`
+- One row per transcript via `UNIQUE (transcript_id)`
+- Stores:
+  - `session_id`
+  - `org_id`
+  - `job_id`
+  - `transcript_id`
+  - `session_type`
+  - `fields` (`JSONB`)
+  - `generated_by`
+  - `generated_at`
+  - `updated_at`
+
+Cleanup behavior:
+- The table has `ON DELETE CASCADE` from `sessions`
+- `deleteSessionCascade()` also explicitly deletes `carelogic_field_extractions` rows before deleting `jobs`
 
 ### Bucket override caveat
 
@@ -465,6 +519,6 @@ Tell them:
 - contact the operator directly
 
 Current honest operator message:
-- This app does not have automatic retry or stuck-job recovery yet
-- If a transcription fails, the error shown in the job panel is the real failure state
+- This app retries transcription jobs up to 3 times and requeues expired running leases automatically
+- If a transcription fails after 3 attempts, the error shown in the job panel is the real terminal failure state
 - If optional note generation fails, the inline error message is the real failure state
