@@ -87,16 +87,10 @@ export default async function DashboardPage() {
           className="text-base font-bold uppercase tracking-wider"
           style={{ color: "#517AB7" }}
         >
-          Dashboard
+          Documentation Dashboard
         </h1>
         <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
-          {user.org.name} -{" "}
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          Your session transcript and EHR extraction workspace
         </p>
       </div>
 
@@ -137,7 +131,7 @@ export default async function DashboardPage() {
               className="text-xs font-bold uppercase tracking-wider"
               style={{ color: "#517AB7" }}
             >
-              Recent Sessions
+              Recent Documentation Workspaces
             </span>
             <Link
               href="/sessions"
@@ -165,7 +159,7 @@ export default async function DashboardPage() {
                     className="py-8 text-center"
                     style={{ color: "#777777" }}
                   >
-                    No sessions yet.{" "}
+                    No sessions yet. Create a session to start a transcript and structured documentation workflow.{" "}
                     <Link href="/sessions" style={{ color: "#517AB7" }}>
                       Create one
                     </Link>
