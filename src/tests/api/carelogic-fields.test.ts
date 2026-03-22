@@ -10,6 +10,7 @@ const {
   mockUpsertExtraction,
   mockCheckRateLimit,
   mockWriteAuditLog,
+  mockEhrRegenerateLimit,
   mockAnthropicApiKey,
   mockAiRealApisEnabled,
   mockFetch,
@@ -22,6 +23,7 @@ const {
   mockUpsertExtraction: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
+  mockEhrRegenerateLimit: { name: "ehr-regenerate-limit" },
   mockAnthropicApiKey: vi.fn(),
   mockAiRealApisEnabled: vi.fn(),
   mockFetch: vi.fn(),
@@ -47,6 +49,7 @@ vi.mock("@/lib/clinical/queries", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   apiLimit: null,
+  ehrRegenerateLimit: mockEhrRegenerateLimit,
   getIdentifier: vi.fn(() => "user:user-1"),
   checkRateLimit: mockCheckRateLimit,
 }));
@@ -365,6 +368,34 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
         session_type: "general",
       },
     });
+  });
+
+  it("returns 429 on regenerate when the dedicated EHR limiter fires", async () => {
+    const limitedResponse = new Response(
+      JSON.stringify({ error: "Too many requests" }),
+      { status: 429, headers: { "content-type": "application/json" } },
+    );
+    mockCheckRateLimit
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(limitedResponse);
+
+    const response = await GET(
+      makeRegenerateRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(payload).toEqual({ error: "Too many requests" });
+    expect(mockCheckRateLimit).toHaveBeenNthCalledWith(1, null, "user:user-1");
+    expect(mockCheckRateLimit).toHaveBeenNthCalledWith(
+      2,
+      mockEhrRegenerateLimit,
+      "user:user-1",
+    );
+    expect(mockGetMyJob).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
   });
 
   it("returns 401 for unauthenticated requests", async () => {
