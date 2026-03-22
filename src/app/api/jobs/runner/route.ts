@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
-import { listQueuedJobs } from "@/lib/jobs/queries";
+import {
+  listExpiredRunningLeasedJobs,
+  listQueuedJobs,
+  requeueStaleLeasedJob,
+} from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -63,6 +67,18 @@ export const GET = withLogging(async (request: NextRequest) => {
       { error: "Failed to load queued jobs" },
       { status: 500 },
     );
+  }
+
+  const expired = await listExpiredRunningLeasedJobs();
+  if (expired.error) {
+    return NextResponse.json(
+      { error: "Failed to load expired running jobs" },
+      { status: 500 },
+    );
+  }
+
+  for (const job of expired.data) {
+    await requeueStaleLeasedJob(job.id);
   }
 
   const baseUrl =

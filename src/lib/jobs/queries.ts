@@ -230,6 +230,26 @@ export async function listQueuedJobs(): Promise<{
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
+export async function listExpiredRunningLeasedJobs(): Promise<{
+  data: JobRow[];
+  error: string | null;
+}> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .select(JOB_COLUMNS)
+    .eq("status", "running")
+    .lte("lease_expires_at", new Date().toISOString())
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data ?? []) as JobRow[], error: null };
+}
+
 export async function claimJobForProcessing(
   jobId: string,
   leaseDurationSeconds: number,
@@ -285,6 +305,34 @@ export async function updateClaimedJobWorkerFields(
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", jobId)
     .eq("run_token", runToken)
+    .select(JOB_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: (data ?? null) as JobRow | null, error: null };
+}
+
+export async function requeueStaleLeasedJob(
+  jobId: string,
+): Promise<{ data: JobRow | null; error: string | null }> {
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from("jobs")
+    .update({
+      status: "queued",
+      stage: "queued",
+      claimed_at: null,
+      lease_expires_at: null,
+      run_token: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId)
+    .eq("status", "running")
+    .lte("lease_expires_at", new Date().toISOString())
     .select(JOB_COLUMNS)
     .maybeSingle();
 

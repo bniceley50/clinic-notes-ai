@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockGetJobById,
-  mockUpdateJobWorkerFields,
+  mockClaimJobForProcessing,
+  mockUpdateClaimedJobWorkerFields,
   mockDownloadAudioForJob,
   mockUploadTranscript,
   mockTranscribeAudioChunked,
@@ -20,7 +21,8 @@ const {
   mockCreateServiceClient,
 } = vi.hoisted(() => ({
   mockGetJobById: vi.fn(),
-  mockUpdateJobWorkerFields: vi.fn(),
+  mockClaimJobForProcessing: vi.fn(),
+  mockUpdateClaimedJobWorkerFields: vi.fn(),
   mockDownloadAudioForJob: vi.fn(),
   mockUploadTranscript: vi.fn(),
   mockTranscribeAudioChunked: vi.fn(),
@@ -43,295 +45,317 @@ const {
     eq: mockEqJobId,
   })),
   mockFrom: vi.fn((table?: string) => {
-    if (table === 'transcripts') {
-      return { select: mockSelect }
+    if (table === "transcripts") {
+      return { select: mockSelect };
     }
-    return { insert: mockInsert }
+    return { insert: mockInsert };
   }),
   mockCreateServiceClient: vi.fn(() => ({
     from: mockFrom,
   })),
-}))
+}));
 
-vi.mock('../../lib/jobs/queries', () => ({
+vi.mock("../../lib/jobs/queries", () => ({
   getJobById: mockGetJobById,
-  updateJobWorkerFields: mockUpdateJobWorkerFields,
-}))
+  claimJobForProcessing: mockClaimJobForProcessing,
+  updateClaimedJobWorkerFields: mockUpdateClaimedJobWorkerFields,
+}));
 
-vi.mock('../../lib/storage/audio-download', () => ({
+vi.mock("../../lib/storage/audio-download", () => ({
   downloadAudioForJob: mockDownloadAudioForJob,
-}))
+}));
 
-vi.mock('../../lib/storage/transcript', () => ({
+vi.mock("../../lib/storage/transcript", () => ({
   uploadTranscript: mockUploadTranscript,
-}))
+}));
 
-vi.mock('../../lib/ai/whisper', () => ({
+vi.mock("../../lib/ai/whisper", () => ({
   transcribeAudioChunked: mockTranscribeAudioChunked,
-}))
+}));
 
-vi.mock('../../lib/ai/claude', () => ({
+vi.mock("../../lib/ai/claude", () => ({
   generateNote: mockGenerateNote,
-}))
+}));
 
-vi.mock('../../lib/clinical/queries', () => ({
+vi.mock("../../lib/clinical/queries", () => ({
   upsertTranscriptForJob: mockUpsertTranscriptForJob,
   upsertNoteForJob: mockUpsertNoteForJob,
-}))
+}));
 
-vi.mock('../../lib/supabase/server', () => ({
+vi.mock("../../lib/supabase/server", () => ({
   createServiceClient: mockCreateServiceClient,
-}))
+}));
 
-vi.mock('../../lib/audit', () => ({
+vi.mock("../../lib/audit", () => ({
   writeAuditLog: mockWriteAuditLog,
-}))
+}));
 
-import { generateNoteForJob, processJob } from '../../lib/jobs/processor'
+import { generateNoteForJob, processJob } from "../../lib/jobs/processor";
 
 const baseJob = {
-  id: 'job-1',
-  session_id: 'session-1',
-  org_id: 'org-1',
-  created_by: 'user-1',
-  status: 'queued',
+  id: "job-1",
+  session_id: "session-1",
+  org_id: "org-1",
+  created_by: "user-1",
+  status: "queued",
   progress: 0,
-  stage: 'queued',
-  note_type: 'soap',
+  stage: "queued",
+  note_type: "soap",
   attempt_count: 0,
   error_message: null,
-  audio_storage_path: 'audio/org-1/session-1/job-1/recording.webm',
+  audio_storage_path: "audio/org-1/session-1/job-1/recording.webm",
   transcript_storage_path: null,
   draft_storage_path: null,
-  created_at: '2026-03-09T10:00:00.000Z',
-  updated_at: '2026-03-09T10:00:00.000Z',
+  claimed_at: null,
+  lease_expires_at: null,
+  run_token: null,
+  created_at: "2026-03-09T10:00:00.000Z",
+  updated_at: "2026-03-09T10:00:00.000Z",
+};
+
+function makeClaimedJob(overrides: Partial<typeof baseJob> = {}) {
+  return {
+    ...baseJob,
+    status: "running",
+    progress: 10,
+    stage: "transcribing",
+    attempt_count: 1,
+    claimed_at: "2026-03-22T00:00:00.000Z",
+    lease_expires_at: "2026-03-22T00:05:00.000Z",
+    run_token: "run-token-1",
+    ...overrides,
+  };
 }
 
-describe('job state machine', () => {
+describe("job state machine", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
 
     mockFrom.mockImplementation((table?: string) => {
-      if (table === 'transcripts') {
-        return { select: mockSelect }
+      if (table === "transcripts") {
+        return { select: mockSelect };
       }
-      return { insert: mockInsert }
-    })
+      return { insert: mockInsert };
+    });
 
     mockCreateServiceClient.mockReturnValue({
       from: mockFrom,
-    })
+    });
 
-    mockInsert.mockResolvedValue({ error: null })
+    mockInsert.mockResolvedValue({ error: null });
 
     mockUploadTranscript.mockResolvedValue({
-      storagePath: 'transcripts/org-1/session-1/job-1/transcript.txt',
+      storagePath: "transcripts/org-1/session-1/job-1/transcript.txt",
       error: null,
-    })
+    });
 
     mockUpsertTranscriptForJob.mockResolvedValue({
-      data: { id: 'transcript-1' },
+      data: { id: "transcript-1" },
       error: null,
-    })
+    });
 
     mockUpsertNoteForJob.mockResolvedValue({
-      data: { id: 'note-1' },
+      data: { id: "note-1" },
       error: null,
-    })
+    });
 
     mockMaybeSingle.mockResolvedValue({
-      data: { content: 'Patient discussed treatment goals.' },
+      data: { content: "Patient discussed treatment goals." },
       error: null,
-    })
+    });
 
     mockDownloadAudioForJob.mockResolvedValue({
-      data: Buffer.from('audio-bytes'),
+      data: Buffer.from("audio-bytes"),
       error: null,
-    })
+    });
 
-    mockTranscribeAudioChunked.mockResolvedValue({
-      text: 'Patient discussed treatment goals.',
-      error: null,
-    })
+    mockTranscribeAudioChunked.mockImplementation(async (_data, _filename, onProgress) => {
+      await onProgress(1, 2);
+      return {
+        text: "Patient discussed treatment goals.",
+        error: null,
+      };
+    });
 
     mockGenerateNote.mockResolvedValue({
-      content: 'Generated SOAP note',
+      content: "Generated SOAP note",
       error: null,
-    })
+    });
 
-    mockWriteAuditLog.mockResolvedValue(undefined)
-  })
+    mockWriteAuditLog.mockResolvedValue(undefined);
 
-  it('a queued job with audio completes after transcription without creating a note row', async () => {
-    mockGetJobById.mockResolvedValue(baseJob)
-    mockUpdateJobWorkerFields
-      .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
+    mockUpdateClaimedJobWorkerFields.mockResolvedValue({
+      data: { id: "job-1" },
+      error: null,
+    });
+  });
 
-    const result = await processJob('job-1')
+  it("a claimed job completes after transcription and threads run_token through fenced writes", async () => {
+    mockClaimJobForProcessing.mockResolvedValue({
+      data: makeClaimedJob(),
+      error: null,
+    });
 
-    expect(result).toEqual({ success: true, error: null })
-    expect(mockDownloadAudioForJob).toHaveBeenCalledWith(baseJob.audio_storage_path)
+    const result = await processJob("job-1");
+
+    expect(result).toEqual({ success: true, error: null });
+    expect(mockClaimJobForProcessing).toHaveBeenCalledWith("job-1", 300);
+    expect(mockDownloadAudioForJob).toHaveBeenCalledWith(baseJob.audio_storage_path);
     expect(mockTranscribeAudioChunked).toHaveBeenCalledWith(
-      Buffer.from('audio-bytes'),
-      'recording.webm',
+      Buffer.from("audio-bytes"),
+      "recording.webm",
       expect.any(Function),
-    )
+    );
     expect(mockUpsertTranscriptForJob).toHaveBeenCalledWith({
-      sessionId: 'session-1',
-      orgId: 'org-1',
-      jobId: 'job-1',
-      content: 'Patient discussed treatment goals.',
+      sessionId: "session-1",
+      orgId: "org-1",
+      jobId: "job-1",
+      content: "Patient discussed treatment goals.",
       durationSeconds: 0,
       wordCount: 4,
-    })
-    expect(mockGenerateNote).not.toHaveBeenCalled()
-    expect(mockUpsertNoteForJob).not.toHaveBeenCalled()
-    expect(mockInsert).not.toHaveBeenCalled()
+    });
+    expect(mockGenerateNote).not.toHaveBeenCalled();
+    expect(mockUpsertNoteForJob).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
-      orgId: 'org-1',
-      actorId: 'user-1',
-      sessionId: 'session-1',
-      jobId: 'job-1',
-      action: 'audio.sent_to_vendor',
-      vendor: 'openai',
-    })
-    expect(mockWriteAuditLog).not.toHaveBeenCalledWith({
-      orgId: 'org-1',
-      actorId: 'user-1',
-      sessionId: 'session-1',
-      jobId: 'job-1',
-      action: 'transcript.sent_to_vendor',
-      vendor: 'anthropic',
-    })
-    expect(mockUpdateJobWorkerFields).toHaveBeenNthCalledWith(1, 'job-1', {
-      status: 'running',
-      stage: 'transcribing',
-      progress: 10,
-      error_message: null,
-    })
-    expect(mockUpdateJobWorkerFields).toHaveBeenLastCalledWith('job-1', {
-      status: 'complete',
-      stage: 'complete',
-      progress: 100,
-      transcript_storage_path: 'transcripts/org-1/session-1/job-1/transcript.txt',
-    })
-  })
+      orgId: "org-1",
+      actorId: "user-1",
+      sessionId: "session-1",
+      jobId: "job-1",
+      action: "audio.sent_to_vendor",
+      vendor: "openai",
+    });
+    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenNthCalledWith(
+      1,
+      "job-1",
+      "run-token-1",
+      {
+        stage: "transcribing",
+        progress: 29,
+      },
+    );
+    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenLastCalledWith(
+      "job-1",
+      "run-token-1",
+      {
+        status: "complete",
+        stage: "complete",
+        progress: 100,
+        transcript_storage_path: "transcripts/org-1/session-1/job-1/transcript.txt",
+        claimed_at: null,
+        lease_expires_at: null,
+        run_token: null,
+      },
+    );
+  });
 
-  it('generateNoteForJob remains callable independently after transcription', async () => {
-    mockGetJobById.mockResolvedValue({
-      ...baseJob,
-      status: 'complete',
-      transcript_storage_path: 'transcripts/org-1/session-1/job-1/transcript.txt',
-    })
+  it("returns early when the job claim fails without side effects", async () => {
+    mockClaimJobForProcessing.mockResolvedValue({
+      data: null,
+      error: null,
+    });
 
-    const result = await generateNoteForJob('job-1')
+    const result = await processJob("job-1");
 
-    expect(result).toEqual({ success: true, error: null })
-    expect(mockSelect).toHaveBeenCalledWith('content')
-    expect(mockGenerateNote).toHaveBeenCalledWith({
-      transcript: 'Patient discussed treatment goals.',
-      noteType: 'soap',
-    })
-    expect(mockUpsertNoteForJob).toHaveBeenCalledWith({
-      sessionId: 'session-1',
-      orgId: 'org-1',
-      jobId: 'job-1',
-      createdBy: 'user-1',
-      noteType: 'soap',
-      content: 'Generated SOAP note',
-    })
-  })
+    expect(result).toEqual({ success: false, error: "already claimed or not queued" });
+    expect(mockDownloadAudioForJob).not.toHaveBeenCalled();
+    expect(mockTranscribeAudioChunked).not.toHaveBeenCalled();
+    expect(mockUpdateClaimedJobWorkerFields).not.toHaveBeenCalled();
+  });
 
-  it('a job without audio_storage_path returns error "No audio uploaded" and does not transition to running', async () => {
-    mockGetJobById.mockResolvedValue({
-      ...baseJob,
-      audio_storage_path: null,
-    })
-
-    const result = await processJob('job-1')
-
-    expect(result).toEqual({ success: false, error: 'No audio uploaded' })
-    expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
-    expect(mockTranscribeAudioChunked).not.toHaveBeenCalled()
-  })
-
-  it('a job in complete status cannot be re-processed', async () => {
-    mockGetJobById.mockResolvedValue({
-      ...baseJob,
-      status: 'complete',
-    })
-
-    const result = await processJob('job-1')
-
-    expect(result).toEqual({ success: false, error: 'Job not in queued state' })
-    expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
-  })
-
-  it('a job in failed status cannot be re-processed', async () => {
-    mockGetJobById.mockResolvedValue({
-      ...baseJob,
-      status: 'failed',
-    })
-
-    const result = await processJob('job-1')
-
-    expect(result).toEqual({ success: false, error: 'Job not in queued state' })
-    expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
-  })
-
-  it('a job in running status cannot be re-processed', async () => {
-    mockGetJobById.mockResolvedValue({
-      ...baseJob,
-      status: 'running',
-    })
-
-    const result = await processJob('job-1')
-
-    expect(result).toEqual({ success: false, error: 'Job not in queued state' })
-    expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
-  })
-
-  it('failJob behavior sets status=failed, stage=failed, and error_message', async () => {
-    mockGetJobById.mockResolvedValue(baseJob)
-    mockUpdateJobWorkerFields
-      .mockResolvedValueOnce({ data: { id: 'job-1' }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null })
-
+  it("transient failures requeue the claimed job and clear lease metadata", async () => {
+    mockClaimJobForProcessing.mockResolvedValue({
+      data: makeClaimedJob({ attempt_count: 1 }),
+      error: null,
+    });
     mockDownloadAudioForJob.mockResolvedValue({
       data: null,
-      error: 'Failed to download audio',
-    })
+      error: "Failed to download audio",
+    });
 
-    const result = await processJob('job-1')
+    const result = await processJob("job-1");
 
-    expect(result).toEqual({ success: false, error: 'Failed to download audio' })
-    expect(mockUpdateJobWorkerFields).toHaveBeenNthCalledWith(2, 'job-1', {
-      status: 'failed',
-      stage: 'failed',
-      error_message: 'Failed to download audio',
-    })
-  })
+    expect(result).toEqual({ success: false, error: "Failed to download audio" });
+    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledWith(
+      "job-1",
+      "run-token-1",
+      {
+        status: "queued",
+        stage: "queued",
+        progress: 0,
+        error_message: "Failed to download audio",
+        claimed_at: null,
+        lease_expires_at: null,
+        run_token: null,
+      },
+    );
+  });
 
-  it('updateJobWorkerFields failure during start causes failJob behavior to run', async () => {
-    mockGetJobById.mockResolvedValue(baseJob)
-    mockUpdateJobWorkerFields
-      .mockResolvedValueOnce({ data: null, error: 'Failed to start job' })
-      .mockResolvedValueOnce({ data: null, error: null })
+  it("terminal failures mark the job failed and clear lease metadata", async () => {
+    mockClaimJobForProcessing.mockResolvedValue({
+      data: makeClaimedJob({ attempt_count: 3 }),
+      error: null,
+    });
+    mockDownloadAudioForJob.mockResolvedValue({
+      data: null,
+      error: "Failed to download audio",
+    });
 
-    const result = await processJob('job-1')
+    const result = await processJob("job-1");
 
-    expect(result).toEqual({ success: false, error: 'Failed to start job' })
-    expect(mockUpdateJobWorkerFields).toHaveBeenNthCalledWith(1, 'job-1', {
-      status: 'running',
-      stage: 'transcribing',
-      progress: 10,
-      error_message: null,
-    })
-    expect(mockUpdateJobWorkerFields).toHaveBeenNthCalledWith(2, 'job-1', {
-      status: 'failed',
-      stage: 'failed',
-      error_message: 'Failed to start job',
-    })
-  })
-})
+    expect(result).toEqual({ success: false, error: "Failed to download audio" });
+    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledWith(
+      "job-1",
+      "run-token-1",
+      {
+        status: "failed",
+        stage: "failed",
+        error_message: "Failed to download audio",
+        claimed_at: null,
+        lease_expires_at: null,
+        run_token: null,
+      },
+    );
+  });
+
+  it("returns claim lost when a stale run_token prevents a worker write", async () => {
+    mockClaimJobForProcessing.mockResolvedValue({
+      data: makeClaimedJob(),
+      error: null,
+    });
+    mockUpdateClaimedJobWorkerFields.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+
+    const result = await processJob("job-1");
+
+    expect(result).toEqual({ success: false, error: "Job claim lost" });
+    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledTimes(1);
+  });
+
+  it("generateNoteForJob remains callable independently after transcription", async () => {
+    mockGetJobById.mockResolvedValue({
+      ...baseJob,
+      status: "complete",
+      transcript_storage_path: "transcripts/org-1/session-1/job-1/transcript.txt",
+    });
+
+    const result = await generateNoteForJob("job-1");
+
+    expect(result).toEqual({ success: true, error: null });
+    expect(mockSelect).toHaveBeenCalledWith("content");
+    expect(mockGenerateNote).toHaveBeenCalledWith({
+      transcript: "Patient discussed treatment goals.",
+      noteType: "soap",
+    });
+    expect(mockUpsertNoteForJob).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      orgId: "org-1",
+      jobId: "job-1",
+      createdBy: "user-1",
+      noteType: "soap",
+      content: "Generated SOAP note",
+    });
+  });
+});
