@@ -249,16 +249,6 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
       throw new Error(transcriptRow.error ?? "Failed to write transcript row");
     }
 
-    void writeAuditLog({
-      orgId: current.org_id,
-      actorId: current.created_by,
-      sessionId: current.session_id,
-      jobId,
-      action: "transcript.sent_to_vendor",
-      vendor: "anthropic",
-      metadata: { stub: true },
-    });
-
     const completed = await updateJobWorkerFields(jobId, {
       status: "complete",
       stage: "complete",

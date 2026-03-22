@@ -196,7 +196,7 @@ describe('job state machine', () => {
       action: 'audio.sent_to_vendor',
       vendor: 'openai',
     })
-    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+    expect(mockWriteAuditLog).not.toHaveBeenCalledWith({
       orgId: 'org-1',
       actorId: 'user-1',
       sessionId: 'session-1',

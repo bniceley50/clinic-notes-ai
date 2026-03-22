@@ -109,4 +109,49 @@ describe("transcript-first note generation helper", () => {
       content: "Generated optional SOAP note",
     });
   });
+
+  it("writes the Anthropic vendor audit event when optional note generation runs", async () => {
+    mockGetJobById.mockResolvedValue({
+      id: "job-99",
+      session_id: "session-99",
+      org_id: "org-99",
+      created_by: "user-99",
+      status: "complete",
+      progress: 100,
+      stage: "complete",
+      note_type: "soap",
+      attempt_count: 1,
+      error_message: null,
+      audio_storage_path: "audio/org-99/session-99/job-99/recording.webm",
+      transcript_storage_path: "transcripts/org-99/session-99/job-99/transcript.txt",
+      draft_storage_path: null,
+      created_at: "2026-03-14T10:00:00.000Z",
+      updated_at: "2026-03-14T10:00:00.000Z",
+    });
+    mockMaybeSingle.mockResolvedValue({
+      data: { content: "Transcript for optional note generation." },
+      error: null,
+    });
+    mockGenerateNote.mockResolvedValue({
+      content: "Generated optional SOAP note",
+      error: null,
+    });
+    mockUpsertNoteForJob.mockResolvedValue({
+      data: { id: "note-99" },
+      error: null,
+    });
+    mockWriteAuditLog.mockResolvedValue(undefined);
+
+    const result = await generateNoteForJob("job-99");
+
+    expect(result).toEqual({ success: true, error: null });
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: "org-99",
+      actorId: "user-99",
+      sessionId: "session-99",
+      jobId: "job-99",
+      action: "transcript.sent_to_vendor",
+      vendor: "anthropic",
+    });
+  });
 });
