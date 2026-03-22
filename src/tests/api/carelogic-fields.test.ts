@@ -439,4 +439,23 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
       error: "Anthropic returned invalid JSON for EHR fields",
     });
   });
+
+  it('returns 500 when upsertExtraction fails with "Failed to store EHR fields"', async () => {
+    mockUpsertExtraction.mockResolvedValue({
+      data: null,
+      error: "insert failed",
+    });
+
+    const response = await GET(
+      makeRequest() as never,
+      { params: Promise.resolve({ id: "job-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toEqual({
+      error: "Failed to store EHR fields",
+    });
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
+  });
 });

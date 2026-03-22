@@ -147,3 +147,14 @@ This file records architectural decisions and their rationale. Entries are appen
 - dev-login page uses NEXT_PUBLIC_ALLOW_DEV_LOGIN to 
   gate access — must be NEXT_PUBLIC_ prefix for client 
   component visibility
+
+## 2026-03-21: EHR Extraction Staleness
+
+- EHR extraction is keyed by `transcript_id` and stored as a durable artifact.
+
+- If transcript content is updated without creating a new transcript row,
+  the stored EHR fields may be stale.
+
+- Clinicians can manually use the regenerate action to refresh the fields.
+
+- Automatic staleness detection is deferred until after beta.
