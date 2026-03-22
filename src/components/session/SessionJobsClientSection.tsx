@@ -57,9 +57,12 @@ export function SessionJobsClientSection({
           className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
           style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
         >
-          Transcription
+          Session Capture
         </div>
         <div className="p-3">
+          <p className="mb-3 text-xs" style={{ color: "#777777" }}>
+            Record or upload session audio to create a reviewable transcript.
+          </p>
           <CreateJobForm
             sessionId={sessionId}
             hasActiveJob={hasActiveJob(jobs)}

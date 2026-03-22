@@ -269,7 +269,7 @@ function FieldRow({
         }}
       />
       <p style={{ fontSize: 10, color: "#999999", marginTop: 4, marginBottom: 0 }}>
-        AI-generated - review and edit before pasting into your EHR
+        AI-generated from the session transcript. Review and edit before entering into the EHR.
       </p>
     </div>
   );
@@ -321,7 +321,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
       if (!response.ok || !payload?.fields) {
         setState({
           loading: false,
-          error: payload?.error ?? "Failed to load EHR fields",
+          error: payload?.error ?? "Unable to load structured fields from this transcript.",
           fields: null,
           generatedAt: null,
         });
@@ -337,7 +337,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     } catch {
       setState({
         loading: false,
-        error: "Failed to load EHR fields",
+        error: "Unable to load structured fields from this transcript.",
         fields: null,
         generatedAt: null,
       });
@@ -367,7 +367,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
       if (!response.ok || !payload?.fields) {
         setState((current) => ({
           ...current,
-          error: payload?.error ?? "Failed to load EHR fields",
+          error: payload?.error ?? "Unable to load structured fields from this transcript.",
         }));
         return;
       }
@@ -381,7 +381,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     } catch {
       setState((current) => ({
         ...current,
-        error: "Failed to load EHR fields",
+        error: "Unable to load structured fields from this transcript.",
       }));
     } finally {
       regeneratingRef.current = false;
@@ -421,7 +421,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     return (
       <div className="ql-panel" data-testid="carelogic-forms-panel-error">
         <p className="ql-alert ql-alert-error" role="alert">
-          {state.error ?? "Failed to load EHR fields"}
+          {state.error ?? "Unable to load structured fields from this transcript."}
         </p>
         <button
           type="button"

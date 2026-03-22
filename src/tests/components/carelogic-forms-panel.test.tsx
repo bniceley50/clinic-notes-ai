@@ -205,7 +205,10 @@ describe("CareLogicFormsPanel", () => {
         }),
       )
       .mockResolvedValueOnce(
-        makeJsonResponse({ error: "Failed to load EHR fields" }, 500),
+        makeJsonResponse(
+          { error: "Unable to load structured fields from this transcript." },
+          500,
+        ),
       );
 
     await renderPanel();
@@ -227,19 +230,26 @@ describe("CareLogicFormsPanel", () => {
     await flushPromises();
 
     expect(container.textContent).toContain("Stored value");
-    expect(container.textContent).toContain("Failed to load EHR fields");
+    expect(container.textContent).toContain(
+      "Unable to load structured fields from this transcript.",
+    );
     expect(container.textContent).toContain("Regenerate");
   });
 
   it("shows error state on failure", async () => {
     fetchMock.mockResolvedValueOnce(
-      makeJsonResponse({ error: "Failed to load EHR fields" }, 500),
+      makeJsonResponse(
+        { error: "Unable to load structured fields from this transcript." },
+        500,
+      ),
     );
 
     await renderPanel();
     await flushPromises();
 
-    expect(container.textContent).toContain("Failed to load EHR fields");
+    expect(container.textContent).toContain(
+      "Unable to load structured fields from this transcript.",
+    );
     expect(container.textContent).toContain("Retry");
   });
 });
