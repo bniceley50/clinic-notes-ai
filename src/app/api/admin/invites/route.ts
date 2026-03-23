@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { appUrl } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
@@ -54,7 +55,9 @@ export const POST = withLogging(async (request: NextRequest) => {
     return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
   }
 
-  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${appUrl()}/set-password`,
+  });
 
   if (inviteError) {
     return NextResponse.json({ error: "Failed to send invite email" }, { status: 500 });
