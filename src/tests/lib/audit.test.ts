@@ -62,6 +62,13 @@ describe('writeAuditLog', () => {
         jobId: 'job-1',
       }),
     ).resolves.toBeUndefined()
+
+    expect(mockConsoleError).toHaveBeenCalledWith(
+      '[audit] write failed for action:',
+      'job.created',
+      'error:',
+      'insert failed',
+    )
   })
 
   it('returns void and does not throw when Supabase throws an exception', async () => {

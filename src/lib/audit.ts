@@ -92,7 +92,7 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
   const db = createServiceClient();
 
   try {
-    await db.from("audit_log").insert({
+    const { error } = await db.from("audit_log").insert({
       org_id: params.orgId,
       actor_id: params.actorId,
       action: params.action,
@@ -110,6 +110,15 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
         success: params.success ?? true,
       },
     });
+
+    if (error) {
+      console.error(
+        "[audit] write failed for action:",
+        params.action,
+        "error:",
+        error.message,
+      );
+    }
   } catch {
     console.error("[audit] write failed for action:", params.action);
   }
