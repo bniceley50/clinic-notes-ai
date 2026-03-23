@@ -6,6 +6,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_token: "Your sign-in link has expired. Please request a new one.",
   missing_token: "Invalid sign-in link. Please request a new one.",
   auth_callback_failed: "Sign-in failed. Please try again.",
+  password_set: "Password set successfully. Sign in below.",
 };
 
 export default async function LoginPage({
