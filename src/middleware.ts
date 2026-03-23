@@ -4,7 +4,7 @@ import { clearSessionCookie, readSessionFromCookieHeader } from "@/lib/auth/sess
 import { toSessionUser } from "@/lib/auth/claims";
 import { isSessionRevoked } from "@/lib/auth/revocation";
 
-const PUBLIC_PATHS = ["/login", "/dev-login", "/api/auth", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/set-password", "/dev-login", "/api/auth", "/api/health"];
 
 const STATIC_ASSET_PATTERN =
   /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot|map)$/;
