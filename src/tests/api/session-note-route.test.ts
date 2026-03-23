@@ -112,7 +112,7 @@ describe("PATCH /api/sessions/[sessionId]/notes/[noteId]", () => {
     });
   });
 
-  it("updates note content and writes note.edited audit metadata", async () => {
+  it("updates note content through the app route without touching immutable fields", async () => {
     const response = await PATCH(
       makeRequest({ content: "Updated note content" }) as never,
       {
