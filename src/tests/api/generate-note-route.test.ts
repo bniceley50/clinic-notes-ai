@@ -12,6 +12,7 @@ const {
   mockAiStubApisEnabled,
   mockAnthropicApiKey,
   mockCreateServiceClient,
+  mockWriteAuditLog,
   mockMaybeSingle,
   mockNoteSingle,
   mockFetch,
@@ -28,6 +29,7 @@ const {
     mockAiStubApisEnabled: vi.fn(),
     mockAnthropicApiKey: vi.fn(),
     mockCreateServiceClient: vi.fn(),
+    mockWriteAuditLog: vi.fn(),
     mockMaybeSingle: vi.fn(),
     mockNoteSingle: vi.fn(),
     mockFetch: vi.fn(),
@@ -70,6 +72,10 @@ vi.mock("@/lib/config", async () => {
 
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: mockCreateServiceClient,
+}));
+
+vi.mock("@/lib/audit", () => ({
+  writeAuditLog: mockWriteAuditLog,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -250,6 +256,17 @@ describe("POST /api/generate-note", () => {
 
     expect(response.status).toBe(200);
     expect(payload.note_id).toBe("note-1");
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: "org-1",
+      actorId: "user-1",
+      sessionId: "session-1",
+      action: "note.generated",
+      metadata: {
+        note_type: "soap",
+        stub_mode: false,
+        note_id: "note-1",
+      },
+    });
 
     const fetchInit = mockFetch.mock.calls[0]?.[1] as RequestInit | undefined;
     const requestBody = JSON.parse(String(fetchInit?.body));

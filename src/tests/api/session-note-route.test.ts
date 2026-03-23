@@ -19,6 +19,10 @@ vi.mock("@/lib/auth/loader", () => ({
   loadCurrentUser: mockLoadCurrentUser,
 }));
 
+vi.mock("@/lib/audit", () => ({
+  writeAuditLog: mockWriteAuditLog,
+}));
+
 vi.mock("@/lib/clinical/queries", () => ({
   getMyNote: mockGetMyNote,
   updateMyNoteContent: mockUpdateMyNoteContent,
@@ -28,10 +32,6 @@ vi.mock("@/lib/rate-limit", () => ({
   apiLimit: null,
   getIdentifier: vi.fn(() => "user:user-1"),
   checkRateLimit: mockCheckRateLimit,
-}));
-
-vi.mock("@/lib/audit", () => ({
-  writeAuditLog: mockWriteAuditLog,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -79,6 +79,7 @@ describe("PATCH /api/sessions/[sessionId]/notes/[noteId]", () => {
     vi.clearAllMocks();
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult);
     mockCheckRateLimit.mockResolvedValue(null);
+    mockWriteAuditLog.mockResolvedValue(undefined);
     mockGetMyNote.mockResolvedValue({
       data: {
         id: "note-1",
@@ -132,6 +133,15 @@ describe("PATCH /api/sessions/[sessionId]/notes/[noteId]", () => {
       "note-1",
       "Updated note content",
     );
+    expect(mockWriteAuditLog).toHaveBeenCalledWith({
+      orgId: "org-1",
+      actorId: "user-1",
+      sessionId: "session-1",
+      action: "note.edited",
+      metadata: {
+        note_id: "note-1",
+      },
+    });
     expect(payload).toEqual({
       note: {
         id: "note-1",
@@ -144,15 +154,6 @@ describe("PATCH /api/sessions/[sessionId]/notes/[noteId]", () => {
         created_by: "user-1",
         created_at: "2026-03-21T10:00:00.000Z",
         updated_at: "2026-03-22T10:00:00.000Z",
-      },
-    });
-    expect(mockWriteAuditLog).toHaveBeenCalledWith({
-      orgId: "org-1",
-      actorId: "user-1",
-      sessionId: "session-1",
-      action: "note.edited",
-      metadata: {
-        note_id: "note-1",
       },
     });
   });

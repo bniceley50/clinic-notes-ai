@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { writeAuditLog } from "@/lib/audit";
 import {
   getLatestTranscriptForSession,
   getTranscriptForJob,
@@ -363,6 +364,17 @@ export const POST = withLogging(async (request: NextRequest) => {
     }
 
     const note = data as NoteInsertRow;
+    void writeAuditLog({
+      orgId: result.user.orgId,
+      actorId: result.user.userId,
+      sessionId: body.session_id,
+      action: "note.generated",
+      metadata: {
+        note_type: note.note_type,
+        stub_mode: aiStubApisEnabled(),
+        note_id: note.id,
+      },
+    });
 
     return NextResponse.json({
       note_id: note.id,

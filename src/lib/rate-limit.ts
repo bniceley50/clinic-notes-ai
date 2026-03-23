@@ -29,6 +29,16 @@ export const authLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "15 m"), analytics: true, prefix: "ratelimit:auth" })
   : null;
 
+// EHR field regeneration - 5 requests per hour per user
+export const ehrRegenerateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "1 h"),
+      analytics: true,
+      prefix: "ratelimit:ehr-regenerate",
+    })
+  : null;
+
 // Consent endpoint - 10 requests per hour per user
 export const consentLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 h"), analytics: true, prefix: "consent" })

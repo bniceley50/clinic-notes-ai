@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -12,80 +12,104 @@ export function LoginPageClient({
   callbackErrorMessage: string | null;
 }) {
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
+  const [resetSent, setResetSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function getSupabaseClient() {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setError("Supabase is not configured. Check your environment variables.");
+      return null;
+    }
+
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setResetSent(false);
     setLoading(true);
 
     try {
-      if (!supabaseUrl || !supabaseAnonKey) {
-        setError("Supabase is not configured. Check your environment variables.");
+      const supabase = getSupabaseClient();
+      if (!supabase) {
         return;
       }
 
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { persistSession: false },
-      });
-
-      const { error: authError } = await supabase.auth.signInWithOtp({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
+        password,
       });
 
-      if (authError) {
-        setError(authError.message);
+      if (authError || !data.session?.access_token) {
+        setError("Invalid email or password");
         return;
       }
 
-      setSent(true);
+      const sessionResponse = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: data.session.access_token }),
+      });
+
+      if (!sessionResponse.ok) {
+        let message = "Sign-in failed. Please try again.";
+        try {
+          const body = (await sessionResponse.json()) as { error?: string };
+          if (body.error === "no_invite") {
+            message = "Your email hasn't been invited yet. Contact your administrator.";
+          } else if (body.error === "bootstrap_failed") {
+            message = "Account setup failed. Please try again or contact support.";
+          }
+        } catch {
+          // Fall back to the default message when the error body cannot be parsed.
+        }
+        setError(message);
+        return;
+      }
+
+      window.location.replace("/sessions");
+    } catch {
+      setError("Sign-in failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (sent) {
-    return (
-      <main
-        className="flex min-h-screen flex-col items-center justify-center"
-        style={{ backgroundColor: "#F9F9F9" }}
-      >
-        <div
-          className="fixed top-0 left-0 right-0 flex items-center px-4"
-          style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
-        >
-          <span className="text-xs font-semibold tracking-wide">Clinic Notes AI</span>
-        </div>
+  const handleForgotPassword = async () => {
+    setError(null);
+    setResetSent(false);
 
-        <div className="card-ql w-full max-w-sm p-8 mt-8 space-y-4">
-          <div
-            className="text-xs font-bold uppercase tracking-wider mb-2"
-            style={{ color: "#517AB7" }}
-          >
-            Check your email
-          </div>
-          <p className="text-sm" style={{ color: "#333333" }}>
-            We sent a secure sign-in link to <strong>{email}</strong>.
-            Open the link to continue to your session workspace.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSent(false);
-              setEmail("");
-            }}
-            className="text-sm"
-            style={{ color: "#517AB7" }}
-          >
-            ← Use a different email
-          </button>
-        </div>
-      </main>
-    );
-  }
+    if (!email) {
+      setError("Enter your email address first.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return;
+      }
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+
+      if (resetError) {
+        setError("Failed to send password reset email. Please try again.");
+        return;
+      }
+
+      setResetSent(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main
@@ -158,23 +182,58 @@ export function LoginPageClient({
             />
           </div>
 
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-xs font-semibold mb-1 uppercase tracking-wider"
+              style={{ color: "#517AB7" }}
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="input-ql"
+            />
+          </div>
+
           {error && (
             <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
               {error}
             </p>
           )}
 
+          {resetSent && !error && (
+            <p className="text-sm font-medium" style={{ color: "#517AB7" }}>
+              Check your email for a password reset link.
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={loading || !email}
+            disabled={loading || !email || !password}
             className="btn-ql w-full justify-center"
           >
-            {loading ? "Sending…" : "Email me a sign-in link"}
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={loading || !email}
+            className="w-full text-sm"
+            style={{ color: "#517AB7" }}
+          >
+            Forgot password?
           </button>
         </form>
 
         <p className="text-[11px] text-center" style={{ color: "#777777" }}>
-          We will send a secure sign-in link to your email address.
+          Sign in with your email and password to access your session workspace.
         </p>
       </div>
     </main>
