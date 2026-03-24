@@ -29,6 +29,9 @@ const {
   mockFetch: vi.fn(),
 }));
 
+const mockAiClaudeTimeoutMs = vi.hoisted(() => vi.fn(() => 1000));
+const mockAnthropicModel = vi.hoisted(() => vi.fn(() => "claude-sonnet-4-20250514"));
+
 vi.mock("@/lib/auth/loader", () => ({
   loadCurrentUser: mockLoadCurrentUser,
 }));
@@ -64,6 +67,8 @@ vi.mock("@/lib/config", async () => {
     ...actual,
     anthropicApiKey: mockAnthropicApiKey,
     aiRealApisEnabled: mockAiRealApisEnabled,
+    aiClaudeTimeoutMs: mockAiClaudeTimeoutMs,
+    anthropicModel: mockAnthropicModel,
   };
 });
 

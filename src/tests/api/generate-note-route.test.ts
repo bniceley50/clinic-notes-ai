@@ -59,6 +59,8 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: mockCheckRateLimit,
 }));
 
+const mockAnthropicModel = vi.hoisted(() => vi.fn(() => "claude-sonnet-4-20250514"));
+
 vi.mock("@/lib/config", async () => {
   const actual = await vi.importActual<typeof import("@/lib/config")>("@/lib/config");
   return {
@@ -67,6 +69,7 @@ vi.mock("@/lib/config", async () => {
     aiRealApisEnabled: mockAiRealApisEnabled,
     aiStubApisEnabled: mockAiStubApisEnabled,
     anthropicApiKey: mockAnthropicApiKey,
+    anthropicModel: mockAnthropicModel,
   };
 });
 

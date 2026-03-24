@@ -80,27 +80,16 @@ export const GET = withLogging(async (request: NextRequest) => {
   for (const job of expired.data) {
     await requeueStaleLeasedJob(job.id);
   }
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000");
-  const automationBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const runnerToken = jobsRunnerToken();
 
   for (const job of queued.data) {
-    const processUrl = new URL(`/api/jobs/${job.id}/process`, baseUrl).toString();
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN ?? ""}`,
-    };
-
-    if (automationBypassSecret) {
-      headers["x-vercel-protection-bypass"] = automationBypassSecret;
-    }
+    const processUrl = new URL(`/api/jobs/${job.id}/process`, request.url).toString();
 
     void fetch(processUrl, {
       method: "POST",
-      headers,
+      headers: {
+        Authorization: `Bearer ${runnerToken ?? ""}`,
+      },
     });
   }
 

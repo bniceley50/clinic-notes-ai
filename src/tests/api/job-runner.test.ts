@@ -46,8 +46,6 @@ function makeRequest(): Request {
 }
 
 describe("GET /api/jobs/runner", () => {
-  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const originalRunnerToken = process.env.JOBS_RUNNER_TOKEN;
   const originalCronSecret = process.env.CRON_SECRET;
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -56,8 +54,6 @@ describe("GET /api/jobs/runner", () => {
     fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    process.env.NEXT_PUBLIC_APP_URL = "https://clinicnotes.ai";
-    process.env.JOBS_RUNNER_TOKEN = "runner-token";
     process.env.CRON_SECRET = "cron-secret";
 
     mockJobsRunnerToken.mockReturnValue("runner-token");
@@ -78,8 +74,6 @@ describe("GET /api/jobs/runner", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
-    process.env.JOBS_RUNNER_TOKEN = originalRunnerToken;
     process.env.CRON_SECRET = originalCronSecret;
   });
 
@@ -100,7 +94,7 @@ describe("GET /api/jobs/runner", () => {
     expect(mockListExpiredRunningJobs).toHaveBeenCalled();
     expect(mockRequeueStaleLeasedJob).toHaveBeenCalledWith("expired-job-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://clinicnotes.ai/api/jobs/queued-job-1/process",
+      "http://localhost:3000/api/jobs/queued-job-1/process",
       expect.objectContaining({
         method: "POST",
       }),

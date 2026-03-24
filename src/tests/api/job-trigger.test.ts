@@ -12,6 +12,8 @@ const {
   mockWriteAuditLog: vi.fn(),
 }));
 
+const mockJobsRunnerToken = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/auth/loader", () => ({
   loadCurrentUser: mockLoadCurrentUser,
 }));
@@ -28,6 +30,10 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/audit", () => ({
   writeAuditLog: mockWriteAuditLog,
+}));
+
+vi.mock("@/lib/config", () => ({
+  jobsRunnerToken: mockJobsRunnerToken,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -69,8 +75,6 @@ function makeRequest(): Request {
 }
 
 describe("POST /api/jobs/[id]/trigger", () => {
-  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const originalRunnerToken = process.env.JOBS_RUNNER_TOKEN;
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -78,9 +82,7 @@ describe("POST /api/jobs/[id]/trigger", () => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    process.env.NEXT_PUBLIC_APP_URL = "https://clinicnotes.ai";
-    process.env.JOBS_RUNNER_TOKEN = "runner-token";
-
+    mockJobsRunnerToken.mockReturnValue("runner-token");
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult);
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMyJob.mockResolvedValue({
@@ -95,8 +97,6 @@ describe("POST /api/jobs/[id]/trigger", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
-    process.env.JOBS_RUNNER_TOKEN = originalRunnerToken;
   });
 
   it("returns 500 and does not audit when the process call fails", async () => {
@@ -136,6 +136,20 @@ describe("POST /api/jobs/[id]/trigger", () => {
     expect(mockWriteAuditLog).not.toHaveBeenCalled();
   });
 
+  it("returns 503 when the runner token is unavailable", async () => {
+    mockJobsRunnerToken.mockReturnValue(undefined);
+
+    const response = await POST(makeRequest() as never, {
+      params: Promise.resolve({ id: "job-1" }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload).toEqual({ error: "Runner endpoint not configured" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
+  });
+
   it("returns 202 and audits only after processing start is confirmed", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ job_id: "job-1", status: "processing" }), {
@@ -157,7 +171,7 @@ describe("POST /api/jobs/[id]/trigger", () => {
       status: "processing",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://clinicnotes.ai/api/jobs/job-1/process",
+      "http://localhost:3000/api/jobs/job-1/process",
       {
         method: "POST",
         headers: {
