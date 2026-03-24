@@ -13,6 +13,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { buildStubNote } from "@/lib/jobs/stubs";
 import type { JobNoteType } from "@/lib/jobs/queries";
 import {
+  sanitizeAiError,
+  type AnthropicResponse,
+  type AnthropicTextBlock,
+} from "@/lib/ai/types";
+import {
   aiClaudeTimeoutMs,
   aiRealApisEnabled,
   aiStubApisEnabled,
@@ -55,22 +60,6 @@ type NoteInsertRow = {
   content: string;
   note_type: string;
   created_at: string;
-};
-
-type AnthropicTextBlock = {
-  type: "text";
-  text: string;
-};
-
-type AnthropicOtherBlock = {
-  type: string;
-};
-
-type AnthropicResponse = {
-  content?: Array<AnthropicTextBlock | AnthropicOtherBlock>;
-  error?: {
-    message?: string;
-  };
 };
 
 type RouteError = {
@@ -385,8 +374,7 @@ export const POST = withLogging(async (request: NextRequest) => {
       stub_mode: aiStubApisEnabled(),
     });
   } catch (error) {
-    const detail =
-      error instanceof Error ? error.message : "Unexpected generation failure";
+    const detail = sanitizeAiError(error);
 
     console.error(
       JSON.stringify({

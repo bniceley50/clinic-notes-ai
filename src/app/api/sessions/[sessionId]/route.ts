@@ -108,6 +108,17 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
     return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
+  void writeAuditLog({
+    orgId: result.user.orgId,
+    actorId: result.user.userId,
+    sessionId,
+    action: "session.updated",
+    requestId: request.headers.get("x-vercel-id") ?? undefined,
+    metadata: {
+      updated_fields: Object.keys(update),
+    },
+  });
+
   return jsonNoStore({ session: data });
 });
 

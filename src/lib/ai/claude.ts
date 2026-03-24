@@ -8,18 +8,11 @@ import {
   anthropicModel,
 } from "@/lib/config";
 import { NOTE_TYPE_PROMPTS } from "@/lib/prompts/note-prompts";
-
-type AnthropicTextBlock = {
-  type: "text";
-  text: string;
-};
-
-type AnthropicResponse = {
-  content?: Array<AnthropicTextBlock | { type: string }>;
-  error?: {
-    message?: string;
-  };
-};
+import {
+  sanitizeAiError,
+  type AnthropicResponse,
+  type AnthropicTextBlock,
+} from "@/lib/ai/types";
 
 export async function generateNote(input: {
   transcript: string;
@@ -80,7 +73,11 @@ export async function generateNote(input: {
       if (!response.ok || !payload) {
         return {
           content: null,
-          error: payload?.error?.message ?? `Claude request failed (${response.status})`,
+          error: sanitizeAiError(
+            new Error(
+              payload?.error?.message ?? `Claude request failed (${response.status})`,
+            ),
+          ),
         };
       }
 
@@ -99,7 +96,7 @@ export async function generateNote(input: {
   } catch (error) {
     return {
       content: null,
-      error: error instanceof Error ? error.message : "Claude note generation failed",
+      error: sanitizeAiError(error),
     };
   }
 }

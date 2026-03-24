@@ -7,6 +7,11 @@ import {
 } from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
 import {
+  sanitizeAiError,
+  type AnthropicResponse,
+  type AnthropicTextBlock,
+} from "@/lib/ai/types";
+import {
   anthropicApiKey,
   aiRealApisEnabled,
   aiClaudeTimeoutMs,
@@ -28,18 +33,6 @@ import { getMySession } from "@/lib/sessions/queries";
 import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
-
-type AnthropicTextBlock = {
-  type: "text";
-  text: string;
-};
-
-type AnthropicResponse = {
-  content?: Array<AnthropicTextBlock | { type: string }>;
-  error?: {
-    message?: string;
-  };
-};
 
 function parseJsonPayload(text: string): Record<string, string> {
   const cleaned = text
@@ -176,11 +169,15 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       const payload = (await response.json().catch(() => null)) as AnthropicResponse | null;
 
       if (!response.ok || !payload) {
+        const detail = sanitizeAiError(
+          new Error(
+            payload?.error?.message ??
+              `Claude request failed (${response.status})`,
+          ),
+        );
         return jsonNoStore(
           {
-            error:
-              payload?.error?.message ??
-              `Claude request failed (${response.status})`,
+            error: detail,
           },
           { status: 502 },
         );
@@ -246,10 +243,7 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       clearTimeout(timeout);
     }
   } catch (error) {
-    const detail =
-      error instanceof Error
-        ? error.message
-        : "Failed to generate EHR fields";
+    const detail = sanitizeAiError(error);
 
     console.error(
       JSON.stringify({
