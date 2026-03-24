@@ -5,13 +5,13 @@ const {
   mockGetMyJob,
   mockCheckRateLimit,
   mockWriteAuditLog,
-  mockJobsRunnerToken,
+  mockTriggerJobsRunnerToken,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
   mockGetMyJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
-  mockJobsRunnerToken: vi.fn(),
+  mockTriggerJobsRunnerToken: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/loader", () => ({
@@ -33,7 +33,7 @@ vi.mock("@/lib/audit", () => ({
 }));
 
 vi.mock("@/lib/config", () => ({
-  jobsRunnerToken: mockJobsRunnerToken,
+  jobsRunnerToken: mockTriggerJobsRunnerToken,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -82,7 +82,7 @@ describe("POST /api/jobs/[id]/trigger", () => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    mockJobsRunnerToken.mockReturnValue("runner-token");
+    mockTriggerJobsRunnerToken.mockReturnValue("runner-token");
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult);
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMyJob.mockResolvedValue({
@@ -137,7 +137,7 @@ describe("POST /api/jobs/[id]/trigger", () => {
   });
 
   it("returns 503 when the runner token is unavailable", async () => {
-    mockJobsRunnerToken.mockReturnValue(undefined);
+    mockTriggerJobsRunnerToken.mockReturnValue(undefined);
 
     const response = await POST(makeRequest() as never, {
       params: Promise.resolve({ id: "job-1" }),

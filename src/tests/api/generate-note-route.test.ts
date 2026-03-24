@@ -7,11 +7,11 @@ const {
   mockGetLatestTranscriptForSession,
   mockGetTranscriptForJob,
   mockCheckRateLimit,
-  mockAiClaudeTimeoutMs,
+  mockGenerateNoteAiClaudeTimeoutMs,
   mockAiRealApisEnabled,
   mockAiStubApisEnabled,
   mockAnthropicApiKey,
-  mockAnthropicModel,
+  mockGenerateNoteAnthropicModel,
   mockCreateServiceClient,
   mockWriteAuditLog,
   mockMaybeSingle,
@@ -25,11 +25,11 @@ const {
     mockGetLatestTranscriptForSession: vi.fn(),
     mockGetTranscriptForJob: vi.fn(),
     mockCheckRateLimit: vi.fn(),
-    mockAiClaudeTimeoutMs: vi.fn(() => 1000),
+    mockGenerateNoteAiClaudeTimeoutMs: vi.fn(() => 1000),
     mockAiRealApisEnabled: vi.fn(),
     mockAiStubApisEnabled: vi.fn(),
     mockAnthropicApiKey: vi.fn(),
-    mockAnthropicModel: vi.fn(() => "claude-sonnet-4-20250514"),
+    mockGenerateNoteAnthropicModel: vi.fn(() => "claude-sonnet-4-20250514"),
     mockCreateServiceClient: vi.fn(),
     mockWriteAuditLog: vi.fn(),
     mockMaybeSingle: vi.fn(),
@@ -65,11 +65,11 @@ vi.mock("@/lib/config", async () => {
   const actual = await vi.importActual<typeof import("@/lib/config")>("@/lib/config");
   return {
     ...actual,
-    aiClaudeTimeoutMs: mockAiClaudeTimeoutMs,
+    aiClaudeTimeoutMs: mockGenerateNoteAiClaudeTimeoutMs,
     aiRealApisEnabled: mockAiRealApisEnabled,
     aiStubApisEnabled: mockAiStubApisEnabled,
     anthropicApiKey: mockAnthropicApiKey,
-    anthropicModel: mockAnthropicModel,
+    anthropicModel: mockGenerateNoteAnthropicModel,
   };
 });
 
