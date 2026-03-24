@@ -1,5 +1,12 @@
 import "server-only";
 
+import {
+  aiRealApisEnabled,
+  aiStubApisEnabled,
+  aiWhisperTimeoutMs,
+  openaiApiKey,
+} from "@/lib/config";
+
 type WhisperSuccess = {
   text: string;
 };
@@ -8,7 +15,7 @@ export async function transcribeAudio(
   audioBlob: Blob,
   filename: string,
 ): Promise<{ text: string | null; error: string | null }> {
-  if (process.env.AI_ENABLE_STUB_APIS === "1") {
+  if (aiStubApisEnabled()) {
     return {
       text:
         "[00:00:12] Provider: How are you feeling today?\n[00:00:18] Client: Better than last week.",
@@ -16,11 +23,14 @@ export async function transcribeAudio(
     };
   }
 
-  if (process.env.AI_ENABLE_REAL_APIS !== "1") {
+  if (!aiRealApisEnabled()) {
     return { text: null, error: "Real AI APIs are disabled" };
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  let apiKey: string;
+  try {
+    apiKey = openaiApiKey();
+  } catch {
     return { text: null, error: "OPENAI_API_KEY is missing" };
   }
 
@@ -28,33 +38,40 @@ export async function transcribeAudio(
     const formData = new FormData();
     formData.append("model", "whisper-1");
     formData.append("file", audioBlob, filename);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), aiWhisperTimeoutMs());
 
-    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: formData,
-    });
+    try {
+      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
 
-    const payload = (await response.json().catch(() => null)) as
-      | WhisperSuccess
-      | { error?: { message?: string } }
-      | null;
+      const payload = (await response.json().catch(() => null)) as
+        | WhisperSuccess
+        | { error?: { message?: string } }
+        | null;
 
-    if (!response.ok || !payload || !("text" in payload)) {
-      return {
-        text: null,
-        error:
-          (payload &&
-            "error" in payload &&
-            payload.error &&
-            payload.error.message) ||
-          `Whisper request failed (${response.status})`,
-      };
+      if (!response.ok || !payload || !("text" in payload)) {
+        return {
+          text: null,
+          error:
+            (payload &&
+              "error" in payload &&
+              payload.error &&
+              payload.error.message) ||
+            `Whisper request failed (${response.status})`,
+        };
+      }
+
+      return { text: payload.text, error: null };
+    } finally {
+      clearTimeout(timeout);
     }
-
-    return { text: payload.text, error: null };
   } catch (error) {
     return {
       text: null,

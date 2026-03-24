@@ -6,7 +6,12 @@ import {
   upsertExtraction,
 } from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
-import { anthropicApiKey, aiRealApisEnabled } from "@/lib/config";
+import {
+  anthropicApiKey,
+  aiRealApisEnabled,
+  aiClaudeTimeoutMs,
+  anthropicModel,
+} from "@/lib/config";
 import { jsonNoStore } from "@/lib/http/response";
 import { getMyJob } from "@/lib/jobs/queries";
 import {
@@ -143,97 +148,103 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
       sessionResult.data.session_type === "intake"
         ? CARELOGIC_INTAKE_PROMPT
         : CARELOGIC_SESSION_PROMPT;
-    const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), aiClaudeTimeoutMs());
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4000,
-        system: prompt,
-        messages: [
-          {
-            role: "user",
-            content: transcriptResult.data.content,
-          },
-        ],
-      }),
-    });
-
-    const payload = (await response.json().catch(() => null)) as AnthropicResponse | null;
-
-    if (!response.ok || !payload) {
-      return jsonNoStore(
-        {
-          error:
-            payload?.error?.message ??
-            `Claude request failed (${response.status})`,
-        },
-        { status: 502 },
-      );
-    }
-
-    const firstTextBlock = payload.content?.find(
-      (block): block is AnthropicTextBlock => block.type === "text",
-    );
-
-    if (!firstTextBlock?.text) {
-      return jsonNoStore(
-        { error: "Claude returned no text content" },
-        { status: 502 },
-      );
-    }
-
-    let fields: Record<string, string>;
     try {
-      fields = parseJsonPayload(firstTextBlock.text);
-    } catch {
-      return jsonNoStore(
-        { error: "Anthropic returned invalid JSON for EHR fields" },
-        { status: 502 },
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: anthropicModel(),
+          max_tokens: 4000,
+          system: prompt,
+          messages: [
+            {
+              role: "user",
+              content: transcriptResult.data.content,
+            },
+          ],
+        }),
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json().catch(() => null)) as AnthropicResponse | null;
+
+      if (!response.ok || !payload) {
+        return jsonNoStore(
+          {
+            error:
+              payload?.error?.message ??
+              `Claude request failed (${response.status})`,
+          },
+          { status: 502 },
+        );
+      }
+
+      const firstTextBlock = payload.content?.find(
+        (block): block is AnthropicTextBlock => block.type === "text",
       );
+
+      if (!firstTextBlock?.text) {
+        return jsonNoStore(
+          { error: "Claude returned no text content" },
+          { status: 502 },
+        );
+      }
+
+      let fields: Record<string, string>;
+      try {
+        fields = parseJsonPayload(firstTextBlock.text);
+      } catch {
+        return jsonNoStore(
+          { error: "Anthropic returned invalid JSON for EHR fields" },
+          { status: 502 },
+        );
+      }
+
+      const storedExtraction = await upsertExtraction(result.user, {
+        sessionId: jobResult.data.session_id,
+        jobId: jobResult.data.id,
+        transcriptId: transcriptResult.data.id,
+        sessionType: sessionResult.data.session_type,
+        fields,
+      });
+
+      if (storedExtraction.error || !storedExtraction.data) {
+        return jsonNoStore(
+          { error: "Failed to store EHR fields" },
+          { status: 500 },
+        );
+      }
+
+      void writeAuditLog({
+        orgId: result.user.orgId,
+        actorId: result.user.userId,
+        sessionId: jobResult.data.session_id,
+        jobId: jobResult.data.id,
+        action: regenerate
+          ? "carelogic_fields_regenerated"
+          : "carelogic_fields_generated",
+        vendor: "anthropic",
+        requestId: request.headers.get("x-vercel-id") ?? undefined,
+        metadata: {
+          session_type: sessionResult.data.session_type,
+        },
+      });
+
+      return jsonNoStore({
+        fields: storedExtraction.data.fields,
+        generated_at: storedExtraction.data.generated_at,
+        sessionType: sessionResult.data.session_type,
+      });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const storedExtraction = await upsertExtraction(result.user, {
-      sessionId: jobResult.data.session_id,
-      jobId: jobResult.data.id,
-      transcriptId: transcriptResult.data.id,
-      sessionType: sessionResult.data.session_type,
-      fields,
-    });
-
-    if (storedExtraction.error || !storedExtraction.data) {
-      return jsonNoStore(
-        { error: "Failed to store EHR fields" },
-        { status: 500 },
-      );
-    }
-
-    void writeAuditLog({
-      orgId: result.user.orgId,
-      actorId: result.user.userId,
-      sessionId: jobResult.data.session_id,
-      jobId: jobResult.data.id,
-      action: regenerate
-        ? "carelogic_fields_regenerated"
-        : "carelogic_fields_generated",
-      vendor: "anthropic",
-      requestId: request.headers.get("x-vercel-id") ?? undefined,
-      metadata: {
-        session_type: sessionResult.data.session_type,
-      },
-    });
-
-    return jsonNoStore({
-      fields: storedExtraction.data.fields,
-      generated_at: storedExtraction.data.generated_at,
-      sessionType: sessionResult.data.session_type,
-    });
   } catch (error) {
     const detail =
       error instanceof Error

@@ -130,6 +130,10 @@ export function aiClaudeTimeoutMs(): number {
   return optionalPositiveInt("AI_CLAUDE_TIMEOUT_MS", 90_000);
 }
 
+export function anthropicModel(): string {
+  return process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
+}
+
 // ── Security ─────────────────────────────────────────────────
 
 export function jobsRunnerToken(): string | undefined {

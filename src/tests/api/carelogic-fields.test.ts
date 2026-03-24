@@ -13,6 +13,8 @@ const {
   mockEhrRegenerateLimit,
   mockAnthropicApiKey,
   mockAiRealApisEnabled,
+  mockAiClaudeTimeoutMs,
+  mockAnthropicModel,
   mockFetch,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
@@ -26,6 +28,8 @@ const {
   mockEhrRegenerateLimit: { name: "ehr-regenerate-limit" },
   mockAnthropicApiKey: vi.fn(),
   mockAiRealApisEnabled: vi.fn(),
+  mockAiClaudeTimeoutMs: vi.fn(() => 1000),
+  mockAnthropicModel: vi.fn(() => "claude-sonnet-4-20250514"),
   mockFetch: vi.fn(),
 }));
 
@@ -64,6 +68,8 @@ vi.mock("@/lib/config", async () => {
     ...actual,
     anthropicApiKey: mockAnthropicApiKey,
     aiRealApisEnabled: mockAiRealApisEnabled,
+    aiClaudeTimeoutMs: mockAiClaudeTimeoutMs,
+    anthropicModel: mockAnthropicModel,
   };
 });
 

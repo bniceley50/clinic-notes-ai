@@ -38,6 +38,9 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     status: "failed",
     stage: "failed",
     error_message: "Cancelled by user",
+    claimed_at: null,
+    lease_expires_at: null,
+    run_token: null,
   });
 
   if (error || !data) {
