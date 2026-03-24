@@ -134,6 +134,8 @@ export function anthropicModel(): string {
   return process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 }
 
+export const MAX_TRANSCRIPT_CHARS = 200_000;
+
 // ── Security ─────────────────────────────────────────────────
 
 export function jobsRunnerToken(): string | undefined {
