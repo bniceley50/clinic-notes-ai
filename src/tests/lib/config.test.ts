@@ -60,3 +60,21 @@ describe("validateRedisRateLimitConfig", () => {
     );
   });
 });
+
+describe("anthropicModel", () => {
+  it("returns the default model when ANTHROPIC_MODEL is unset", async () => {
+    delete process.env.ANTHROPIC_MODEL;
+
+    const { anthropicModel } = await loadConfigModule();
+
+    expect(anthropicModel()).toBe("claude-sonnet-4-20250514");
+  });
+
+  it("returns the configured model when ANTHROPIC_MODEL is set", async () => {
+    process.env.ANTHROPIC_MODEL = "claude-test-model";
+
+    const { anthropicModel } = await loadConfigModule();
+
+    expect(anthropicModel()).toBe("claude-test-model");
+  });
+});

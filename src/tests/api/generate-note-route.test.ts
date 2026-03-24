@@ -11,6 +11,7 @@ const {
   mockAiRealApisEnabled,
   mockAiStubApisEnabled,
   mockAnthropicApiKey,
+  mockAnthropicModel,
   mockCreateServiceClient,
   mockWriteAuditLog,
   mockMaybeSingle,
@@ -28,6 +29,7 @@ const {
     mockAiRealApisEnabled: vi.fn(),
     mockAiStubApisEnabled: vi.fn(),
     mockAnthropicApiKey: vi.fn(),
+    mockAnthropicModel: vi.fn(() => "claude-sonnet-4-20250514"),
     mockCreateServiceClient: vi.fn(),
     mockWriteAuditLog: vi.fn(),
     mockMaybeSingle: vi.fn(),
@@ -67,6 +69,7 @@ vi.mock("@/lib/config", async () => {
     aiRealApisEnabled: mockAiRealApisEnabled,
     aiStubApisEnabled: mockAiStubApisEnabled,
     anthropicApiKey: mockAnthropicApiKey,
+    anthropicModel: mockAnthropicModel,
   };
 });
 

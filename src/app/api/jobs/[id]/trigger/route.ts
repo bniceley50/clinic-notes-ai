@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
 import { writeAuditLog } from "@/lib/audit";
+import { jobsRunnerToken } from "@/lib/config";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -27,8 +28,15 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const processUrl = `${baseUrl}/api/jobs/${jobId}/process`;
+  const runnerToken = jobsRunnerToken();
+  if (!runnerToken) {
+    return NextResponse.json(
+      { error: "Runner endpoint not configured" },
+      { status: 503 },
+    );
+  }
+
+  const processUrl = new URL(`/api/jobs/${jobId}/process`, request.url).toString();
 
   let processResponse: Response;
 
@@ -36,7 +44,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     processResponse = await fetch(processUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.JOBS_RUNNER_TOKEN}`,
+        Authorization: `Bearer ${runnerToken}`,
       },
     });
   } catch {

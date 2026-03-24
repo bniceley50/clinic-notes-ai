@@ -153,6 +153,9 @@ describe('POST /api/jobs/[id]/cancel', () => {
       status: 'failed',
       stage: 'failed',
       error_message: 'Cancelled by user',
+      claimed_at: null,
+      lease_expires_at: null,
+      run_token: null,
     })
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: 'org-1',
