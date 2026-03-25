@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Footer } from "@/components/layout/Footer";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -112,130 +113,131 @@ export function LoginPageClient({
   };
 
   return (
-    <main
-      className="flex min-h-screen flex-col items-center justify-center"
-      style={{ backgroundColor: "#F9F9F9" }}
-    >
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#F9F9F9" }}>
       <div
-        className="fixed top-0 left-0 right-0 flex items-center px-4"
+        className="fixed top-0 left-0 right-0 flex items-center px-4 z-10"
         style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
       >
         <span className="text-xs font-semibold tracking-wide">Clinic Notes AI</span>
       </div>
 
-      <div className="card-ql w-full max-w-sm p-8 mt-8 space-y-6">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold"
-            style={{ backgroundColor: "#3B276A" }}
-          >
-            CN
-          </div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "#3B276A" }}>
-              Structured documentation for behavioral health
-            </p>
-            <p className="text-xs" style={{ color: "#777777" }}>
-              Review transcripts, extract EHR-ready fields, and optionally draft notes for clinician review.
-            </p>
-          </div>
-        </div>
-
-        <div
-          className="border-t text-xs font-bold uppercase tracking-wider pt-4"
-          style={{ borderColor: "#E7E9EC", color: "#517AB7" }}
-        >
-          Sign In
-        </div>
-
-        {callbackErrorMessage && !error && (
-          <div
-            role="alert"
-            className="rounded border px-3 py-2 text-sm font-medium"
-            style={{
-              borderColor: "#E7B8AF",
-              backgroundColor: "#FFF1ED",
-              color: "#8A1F11",
-            }}
-          >
-            {callbackErrorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-              style={{ color: "#517AB7" }}
+      <main className="flex flex-1 flex-col items-center justify-center">
+        <div className="card-ql w-full max-w-sm p-8 mt-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold"
+              style={{ backgroundColor: "#3B276A" }}
             >
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@clinic.com"
-              className="input-ql"
-            />
+              CN
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: "#3B276A" }}>
+                Structured documentation for behavioral health
+              </p>
+              <p className="text-xs" style={{ color: "#777777" }}>
+                Review transcripts, extract EHR-ready fields, and optionally draft notes for clinician review.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-              style={{ color: "#517AB7" }}
+          <div
+            className="border-t text-xs font-bold uppercase tracking-wider pt-4"
+            style={{ borderColor: "#E7E9EC", color: "#517AB7" }}
+          >
+            Sign In
+          </div>
+
+          {callbackErrorMessage && !error && (
+            <div
+              role="alert"
+              className="rounded border px-3 py-2 text-sm font-medium"
+              style={{
+                borderColor: "#E7B8AF",
+                backgroundColor: "#FFF1ED",
+                color: "#8A1F11",
+              }}
             >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="input-ql"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
-              {error}
-            </p>
+              {callbackErrorMessage}
+            </div>
           )}
 
-          {resetSent && !error && (
-            <p className="text-sm font-medium" style={{ color: "#517AB7" }}>
-              Check your email for a password reset link.
-            </p>
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
+                style={{ color: "#517AB7" }}
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@clinic.com"
+                className="input-ql"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading || !email || !password}
-            className="btn-ql w-full justify-center"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
+                style={{ color: "#517AB7" }}
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="input-ql"
+              />
+            </div>
 
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            disabled={loading || !email}
-            className="w-full text-sm"
-            style={{ color: "#517AB7" }}
-          >
-            Forgot password?
-          </button>
-        </form>
+            {error && (
+              <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
+                {error}
+              </p>
+            )}
 
-        <p className="text-[11px] text-center" style={{ color: "#777777" }}>
-          Sign in with your email and password to access your session workspace.
-        </p>
-      </div>
-    </main>
+            {resetSent && !error && (
+              <p className="text-sm font-medium" style={{ color: "#517AB7" }}>
+                Check your email for a password reset link.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !email || !password}
+              className="btn-ql w-full justify-center"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={loading || !email}
+              className="w-full text-sm"
+              style={{ color: "#517AB7" }}
+            >
+              Forgot password?
+            </button>
+          </form>
+
+          <p className="text-[11px] text-center" style={{ color: "#777777" }}>
+            Sign in with your email and password to access your session workspace.
+          </p>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
