@@ -63,48 +63,6 @@ export const GET = withLogging(async (request: NextRequest) => {
   const limited = await checkRateLimit(apiLimit, identifier);
   if (limited) return limited;
 
-  const queued = await listQueuedJobs();
-  if (queued.error) {
-    return NextResponse.json(
-      { error: "Failed to load queued jobs" },
-      { status: 500 },
-    );
-  }
-
-  const expired = await listExpiredRunningLeasedJobs();
-  if (expired.error) {
-    return NextResponse.json(
-      { error: "Failed to load expired running jobs" },
-      { status: 500 },
-    );
-  }
-
-  for (const job of expired.data) {
-    await requeueStaleLeasedJob(job.id);
-  }
-  const runnerToken = jobsRunnerToken();
-
-  for (const job of queued.data) {
-    const processUrl = new URL(`/api/jobs/${job.id}/process`, request.url).toString();
-
-    void fetch(processUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${runnerToken ?? ""}`,
-      },
-    });
-  }
-
-  // Artifact cleanup phase — runs after job maintenance, non-blocking.
-  // Failures are logged but do not fail the runner response.
-  void cleanupSoftDeletedArtifacts().then(({ cleaned, error }) => {
-    if (error) {
-      console.error("[runner] artifact cleanup error:", error);
-    } else if (cleaned > 0) {
-      console.log(`[runner] cleaned ${cleaned} soft-deleted job artifact set(s)`);
-    }
-  });
-
   // Runner heartbeat — tells Sentry the cron executed successfully.
   // Auto-creates the monitor on first check-in via monitorConfig.
   const checkInId = Sentry.captureCheckIn(
@@ -123,13 +81,67 @@ export const GET = withLogging(async (request: NextRequest) => {
     },
   );
 
-  Sentry.captureCheckIn({
-    checkInId,
-    monitorSlug: "jobs-runner",
-    status: "ok",
-  });
+  const finishCheckIn = async (status: "ok" | "error") => {
+    Sentry.captureCheckIn({
+      checkInId,
+      monitorSlug: "jobs-runner",
+      status,
+    });
+    await Sentry.flush(2000);
+  };
 
-  return NextResponse.json({
-    processed: queued.data.length,
-  });
+  try {
+    const queued = await listQueuedJobs();
+    if (queued.error) {
+      await finishCheckIn("error");
+      return NextResponse.json(
+        { error: "Failed to load queued jobs" },
+        { status: 500 },
+      );
+    }
+
+    const expired = await listExpiredRunningLeasedJobs();
+    if (expired.error) {
+      await finishCheckIn("error");
+      return NextResponse.json(
+        { error: "Failed to load expired running jobs" },
+        { status: 500 },
+      );
+    }
+
+    for (const job of expired.data) {
+      await requeueStaleLeasedJob(job.id);
+    }
+    const runnerToken = jobsRunnerToken();
+
+    for (const job of queued.data) {
+      const processUrl = new URL(`/api/jobs/${job.id}/process`, request.url).toString();
+
+      void fetch(processUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${runnerToken ?? ""}`,
+        },
+      });
+    }
+
+    // Artifact cleanup phase — runs after job maintenance, non-blocking.
+    // Failures are logged but do not fail the runner response.
+    void cleanupSoftDeletedArtifacts().then(({ cleaned, error }) => {
+      if (error) {
+        console.error("[runner] artifact cleanup error:", error);
+      } else if (cleaned > 0) {
+        console.log(`[runner] cleaned ${cleaned} soft-deleted job artifact set(s)`);
+      }
+    });
+
+    await finishCheckIn("ok");
+
+    return NextResponse.json({
+      processed: queued.data.length,
+    });
+  } catch (error) {
+    await finishCheckIn("error");
+    throw error;
+  }
 });
