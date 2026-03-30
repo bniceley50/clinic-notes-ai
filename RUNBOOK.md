@@ -1,6 +1,6 @@
 # RUNBOOK
 
-This document describes the current operational behavior of Clinic Notes AI as of `origin/main` on March 21, 2026.
+This document describes the current operational behavior of Clinic Notes AI as of `origin/main` on March 30, 2026.
 
 This is not an aspirational document. If the app has no procedure, no retry, or no tooling for something, this RUNBOOK says so explicitly.
 
@@ -71,7 +71,70 @@ Expected healthy result:
 - `pnpm typecheck`: exits `0`
 - `pnpm test`: all tests pass except known skipped security integration tests when test Supabase env vars are absent
 
-## 2. Environment Variables
+## 2. Deployment
+
+### Infrastructure
+
+**Hosting:** Vercel. Production deploys automatically from the `main` branch
+via Vercel's GitHub integration. No manual `vercel --prod` command is required
+or used.
+
+**Production URLs:**
+- `https://clinicnotes.ai`
+- `https://clinic-notes-ai-git-main-brian-niceleys-projects.vercel.app`
+
+Preview deployments are created automatically for all branches and PRs with
+branch-scoped aliases (for example
+`clinic-notes-ai-git-<branch>-brian-niceleys-projects.vercel.app`).
+
+**Cron and function settings** are defined in `vercel.json`. Do not adjust
+function duration or cron schedule outside that file.
+
+### Supabase environments
+
+| Environment | Project name     | Project ID           | Region         |
+|-------------|------------------|----------------------|----------------|
+| Production  | Clinic notes AI  | kacfxexozjueepauitdb | West US/Oregon |
+| Local dev   | Supabase CLI     | —                    | localhost      |
+
+⚠️ **Gap — no verified hosted dev project:** A separate hosted Supabase
+project for development/staging has not been created or verified for this
+repo. Local development runs against the Supabase CLI (`supabase start`).
+This means there is no hosted staging environment that mirrors production
+schema. Resolve before general availability.
+
+### Deploying a migration
+
+Migrations in `supabase/migrations/` are applied manually. There is no
+automatic migration runner on deploy.
+
+Procedure:
+1. Apply the migration to local CLI first and verify with `pnpm test`
+2. Apply to production via Supabase dashboard SQL editor or `supabase db push`
+   targeting the production project
+3. Confirm the migration appears in the production migration history
+
+Do not apply migrations directly to production without first verifying locally.
+
+### Environment variable promotion
+
+When adding a new required environment variable:
+1. Add it to `.env.local` for local dev
+2. Add it to the Vercel project environment variables (production + preview)
+3. Document it in section 3 (Environment Variables) of this RUNBOOK
+4. If it affects `validateConfig()`, update that function and its tests
+
+### Rolling back a deployment
+
+Vercel retains previous deployment snapshots. To roll back:
+1. Open the Vercel dashboard → Deployments
+2. Select the last known good deployment
+3. Promote it to production
+
+Note: rolling back the app does not roll back a migration. If a migration
+must be reverted, write and apply a compensating migration manually.
+
+## 3. Environment Variables
 
 ### Required
 
@@ -123,7 +186,25 @@ Expected healthy result:
 
 These `TEST_*` vars are only used by the live Supabase security integration suite.
 
-## 3. Failure Scenarios
+### URL variable reconciliation
+
+Two URL variables exist and their roles overlap:
+
+- `NEXT_PUBLIC_APP_URL`: used by the jobs runner to construct callback URLs
+  into the deployed app (`/api/jobs/[id]/trigger`). Falls back to
+  `http://localhost:3000` if unset. **Must be set in production.**
+- `VERCEL_URL`: injected automatically by Vercel at build time. Used as a
+  fallback base URL in the jobs runner if `NEXT_PUBLIC_APP_URL` is unset.
+  Not available at runtime in all contexts.
+- `NEXT_PUBLIC_SITE_URL`: **not currently used anywhere in this codebase.**
+  If found in a deployment environment, it is a leftover from a prior
+  configuration and can be removed.
+
+**Rule:** Set `NEXT_PUBLIC_APP_URL` explicitly in all hosted environments.
+Do not rely on `VERCEL_URL` as the primary source. Remove `NEXT_PUBLIC_SITE_URL`
+if present.
+
+## 4. Failure Scenarios
 
 ### Redis unavailable
 
@@ -153,13 +234,14 @@ What the user sees:
 #### Session revocation behavior
 
 Current behavior:
-- Session revocation is fail-open on Redis outage
-- `revokeSession()` swallows Redis write failures
-- `isSessionRevoked()` returns `false` on Redis errors
+- Logout write path fails closed
+- Request-time revocation enforcement fails open
+- `revokeSession()` throws on Redis write failure or unavailable revocation store
+- `isSessionRevoked()` returns `false` on Redis read errors
 
 What the user sees:
-- Logout still clears the browser cookie
-- A revoked session may continue to work elsewhere if Redis write/check failed
+- Logout returns `503` and the browser cookie is not cleared if revocation write fails
+- A request may continue through if Redis is unavailable during the read-side revocation check
 
 ### Anthropic fails
 
@@ -227,7 +309,7 @@ What the user sees:
 Operator action:
 - Use the manual SQL in the Operator Procedures section
 
-## 4. Operator Procedures
+## 5. Operator Procedures
 
 ### A. Revoke current user session
 
@@ -245,11 +327,12 @@ Expected success output:
 
 What it does:
 - Clears the local cookie
-- Attempts to write `revoked:jti:<jti>` into Redis with TTL=`SESSION_TTL_SECONDS`
+- Writes `revoked:jti:<jti>` into Redis with TTL=`SESSION_TTL_SECONDS`
 
 If Redis is down:
-- Cookie is still cleared
-- Revocation write may silently fail
+- Route returns `503`
+- Cookie is not cleared
+- User must retry logout after Redis recovers
 
 ### B. Revoke specific session manually
 
@@ -396,20 +479,70 @@ Expected healthy result:
 - `0` rows if no EHR extraction has been generated yet
 - `1` row with `fields`, `generated_at`, `updated_at`, and `transcript_id` for the latest stored extraction
 
-## 5. Known Limitations
+## 6. Known Limitations
 
 - No admin UI exists for session revocation.
 - Jobs retry up to `3` attempts, but there is still no operator UI for retry visibility or control beyond the session page status panel.
 - No stuck-job tooling exists.
-- No storage lifecycle/retention policy exists beyond explicit session deletion.
+- No automated TTL cleanup job exists yet for storage artifacts retained after soft-delete.
 - Bucket override support is inconsistent. `TRANSCRIPT_BUCKET` is partly honored; `AUDIO_BUCKET` is not consistently honored.
 - JTI discovery for per-session manual revocation has no app procedure.
 - `DEFAULT_PRACTICE_ID` is still required by config validation even though it has no meaningful active runtime callsite.
 - Rate-limit runtime failures are not gracefully handled; a Redis outage can produce 500s.
-- Session revocation is fail-open when Redis is unavailable.
+- Session revocation is asymmetric on Redis outage: logout fails closed, request-time revocation checks fail open.
 - EHR extraction staleness: stored extraction is keyed by transcript. Manual regeneration is available. Automatic staleness detection is deferred until after beta.
 
-## 6. Storage
+## 7. Database
+
+### Immutability triggers
+
+Two `BEFORE UPDATE` triggers enforce field-level immutability on clinical
+tables. These are intentional constraints, not bugs. If an UPDATE statement
+raises an exception citing one of the fields below, the application code is
+attempting to mutate a field that must never change after row creation.
+
+**`trg_notes_freeze_immutable_fields`** on `public.notes`
+Frozen fields: `session_id`, `job_id`, `org_id`, `created_by`, `note_type`
+Mutable fields: `content`, `status`, `updated_at`, `deleted_at`
+Migration: `202603221830_freeze_note_immutable_fields.sql`
+
+**`trg_sessions_freeze_immutable_fields`** on `public.sessions`
+Frozen fields: `org_id`, `created_by`, `session_type`
+Mutable fields: `status`, `patient_label`, `completed_at`, `updated_at`, `deleted_at`
+Migration: `202603300940_freeze_session_immutable_fields.sql`
+
+If you see an exception like:
+
+```text
+ERROR: notes.session_id is immutable after creation
+ERROR: sessions.session_type is immutable after creation
+```
+
+the fix is in the application layer, not the database. Do not drop or
+disable these triggers to resolve the error.
+
+### Soft-delete pattern (D008)
+
+All patient-related tables (`sessions`, `jobs`, `notes`, `transcripts`,
+`session_consents`, `carelogic_field_extractions`) use a `deleted_at`
+column for logical deletion. Hard deletes on these tables are not permitted
+by application code.
+
+- RLS SELECT policies filter `deleted_at IS NULL` at the database layer
+- Application queries also filter `deleted_at IS NULL` explicitly
+- Storage artifacts (audio, transcripts, drafts) are retained after soft-delete
+  and are eligible for hard-delete only via the TTL cleanup job (Milestone C,
+  not yet implemented)
+
+See DECISIONS.md D008 for full rationale.
+
+### Schema migrations
+
+Migration files live in `supabase/migrations/`. Filename prefix is a
+timestamp in `YYYYMMDDHHmm` format. Migrations are append-only — never
+edit an applied migration. Write a compensating migration instead.
+
+## 8. Storage
 
 ### Buckets
 
@@ -436,19 +569,24 @@ Expected healthy result:
 
 Current behavior:
 - No automatic retention or expiration
-- Artifacts are only deleted when a session is explicitly deleted
+- Session deletion uses soft-delete only (D008). No rows are physically
+  removed by the application delete path.
+- Storage artifacts (audio, transcripts, drafts) are retained after
+  session soft-delete. Blob cleanup is deferred to the TTL job (Milestone C,
+  not yet implemented).
 - Stored EHR extraction rows live in `public.carelogic_field_extractions`
 
-Delete order on session delete:
-1. delete `notes` rows
-2. delete `transcripts` rows
-3. delete audio storage objects
-4. delete transcript storage objects
-5. delete draft storage objects
-6. delete `carelogic_field_extractions` rows
-7. delete `jobs` rows
-8. delete `session_consents`
-9. delete `sessions` row
+Soft-delete cascade on session delete:
+All child rows are stamped with the same `deleted_at` timestamp as the
+parent session, in this order:
+1. `notes`
+2. `transcripts`
+3. `carelogic_field_extractions`
+4. `jobs`
+5. `session_consents`
+6. `sessions` row
+
+Storage blobs are not touched during this operation.
 
 ### Stored EHR extractions
 
@@ -477,7 +615,7 @@ Cleanup behavior:
 
 This means bucket override support is inconsistent and should not be treated as a fully supported operational feature.
 
-## 7. Beta Clinician Onboarding
+## 9. Beta Clinician Onboarding
 
 ### Send an invite
 
