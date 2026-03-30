@@ -16,12 +16,16 @@ import { revokeSession } from "@/lib/auth/revocation";
 import { writeAuditLog } from "@/lib/audit";
 import { sessionTtlSeconds } from "@/lib/config";
 import { withLogging } from "@/lib/logger";
+import { apiLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
 
 export const POST = withLogging(async (request: NextRequest) => {
   // Read session before clearing cookie so we can revoke the JTI
   const session = await readSessionFromCookieHeader(
-    request.headers.get("cookie")
+    request.headers.get("cookie"),
   );
+  const identifier = getIdentifier(request, session?.sub ?? null);
+  const limited = await checkRateLimit(apiLimit, identifier);
+  if (limited) return limited;
 
   if (session?.jti) {
     await revokeSession(session.jti, sessionTtlSeconds());

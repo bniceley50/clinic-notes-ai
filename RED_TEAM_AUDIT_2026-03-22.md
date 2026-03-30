@@ -103,7 +103,7 @@ The invite UPDATE at step 4 is also not atomic with the profile INSERT — both 
 2. Consider using a Postgres advisory lock or `INSERT ... ON CONFLICT DO NOTHING` to make provisioning idempotent.
 3. Handle the unique violation error code gracefully by re-reading the profile instead of returning `bootstrap_failed`.
 
-**Status:** Open
+**Status:** Fixed
 
 **Acknowledged?** No.
 
@@ -121,7 +121,7 @@ The invite UPDATE at step 4 is also not atomic with the profile INSERT — both 
 
 **Recommendation:** Add `checkRateLimit(apiLimit, identifier)` to the logout route for consistency. Low priority.
 
-**Status:** Open
+**Status:** Fixed
 
 **Acknowledged?** No.
 
