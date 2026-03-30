@@ -111,6 +111,9 @@ The dev project uses a subset of production env vars. Real AI vendor calls
 Set `AI_ENABLE_STUB_APIS=1` and `AI_ENABLE_REAL_APIS=0` for local dev against
 this project. Set `ALLOW_DEV_LOGIN=1` and `NEXT_PUBLIC_ALLOW_DEV_LOGIN=1` to
 enable the dev login bypass.
+To verify the invite provisioning path, override `ALLOW_DEV_LOGIN=0` for that
+run. The default dev configuration enables dev-login bypass, which skips
+invite-backed `resolveUserProfile` entirely.
 
 ### Deploying a migration
 
