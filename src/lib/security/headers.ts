@@ -14,7 +14,10 @@ const SUPABASE_ORIGINS = [
   "wss://*.supabase.in",
 ];
 
-const SENTRY_INGEST_ORIGINS = ["https://*.ingest.sentry.io"];
+const SENTRY_INGEST_ORIGINS = [
+  "https://*.ingest.sentry.io",
+  "https://*.ingest.us.sentry.io",
+];
 
 function joinSources(values: string[]): string {
   return [...new Set(values)].join(" ");
