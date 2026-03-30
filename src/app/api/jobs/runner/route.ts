@@ -44,26 +44,9 @@ function getAuthorizationResult(request: NextRequest): {
 }
 
 export const GET = withLogging(async (request: NextRequest) => {
-  if (!jobsRunnerToken()) {
-    return NextResponse.json(
-      { error: "Runner endpoint not configured" },
-      { status: 503 },
-    );
-  }
-
-  const authorization = getAuthorizationResult(request);
-  if (!authorization.ok) {
-    return NextResponse.json(
-      { error: authorization.error },
-      { status: authorization.status },
-    );
-  }
-
-  const limited = await checkRateLimit(workerLimit, "worker:runner");
-  if (limited) return limited;
-
   // Runner heartbeat — tells Sentry the cron executed successfully.
-  // Auto-creates the monitor on first check-in via monitorConfig.
+  // Auto-creates the monitor on first check-in via monitorConfig and reports
+  // every terminal path so cron auth/config/runtime failures are visible.
   const checkInId = Sentry.captureCheckIn(
     {
       monitorSlug: "jobs-runner",
@@ -89,22 +72,60 @@ export const GET = withLogging(async (request: NextRequest) => {
     await Sentry.flush(2000);
   };
 
+  const respondWithCheckIn = async (
+    response: Response,
+    status: "ok" | "error",
+  ) => {
+    await finishCheckIn(status);
+    return response;
+  };
+
+  if (!jobsRunnerToken()) {
+    return await respondWithCheckIn(
+      NextResponse.json(
+        { error: "Runner endpoint not configured" },
+        { status: 503 },
+      ),
+      "error",
+    );
+  }
+
+  const authorization = getAuthorizationResult(request);
+  if (!authorization.ok) {
+    return await respondWithCheckIn(
+      NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      ),
+      "error",
+    );
+  }
+
+  const limited = await checkRateLimit(workerLimit, "worker:runner");
+  if (limited) {
+    return await respondWithCheckIn(limited, "error");
+  }
+
   try {
     const queued = await listQueuedJobs();
     if (queued.error) {
-      await finishCheckIn("error");
-      return NextResponse.json(
-        { error: "Failed to load queued jobs" },
-        { status: 500 },
+      return await respondWithCheckIn(
+        NextResponse.json(
+          { error: "Failed to load queued jobs" },
+          { status: 500 },
+        ),
+        "error",
       );
     }
 
     const expired = await listExpiredRunningLeasedJobs();
     if (expired.error) {
-      await finishCheckIn("error");
-      return NextResponse.json(
-        { error: "Failed to load expired running jobs" },
-        { status: 500 },
+      return await respondWithCheckIn(
+        NextResponse.json(
+          { error: "Failed to load expired running jobs" },
+          { status: 500 },
+        ),
+        "error",
       );
     }
 
@@ -134,11 +155,12 @@ export const GET = withLogging(async (request: NextRequest) => {
       }
     });
 
-    await finishCheckIn("ok");
-
-    return NextResponse.json({
-      processed: queued.data.length,
-    });
+    return await respondWithCheckIn(
+      NextResponse.json({
+        processed: queued.data.length,
+      }),
+      "ok",
+    );
   } catch (error) {
     await finishCheckIn("error");
     throw error;

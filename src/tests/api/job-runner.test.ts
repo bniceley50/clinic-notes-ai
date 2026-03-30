@@ -8,6 +8,8 @@ const {
   mockCheckRateLimit,
   mockCleanupSoftDeletedArtifacts,
   mockWorkerLimit,
+  mockCaptureCheckIn,
+  mockFlush,
 } = vi.hoisted(() => ({
   mockJobsRunnerToken: vi.fn(),
   mockListQueuedJobs: vi.fn(),
@@ -16,6 +18,8 @@ const {
   mockCheckRateLimit: vi.fn(),
   mockCleanupSoftDeletedArtifacts: vi.fn(),
   mockWorkerLimit: { name: "worker-limit" },
+  mockCaptureCheckIn: vi.fn(() => "check-in-1"),
+  mockFlush: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@/lib/config", () => ({
@@ -39,6 +43,11 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/logger", () => ({
   withLogging: (handler: (...args: unknown[]) => unknown) => handler,
+}));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureCheckIn: mockCaptureCheckIn,
+  flush: mockFlush,
 }));
 
 import { GET } from "../../app/api/jobs/runner/route";
@@ -105,6 +114,28 @@ describe("GET /api/jobs/runner", () => {
     expect(mockListExpiredRunningJobs).toHaveBeenCalled();
     expect(mockRequeueStaleLeasedJob).toHaveBeenCalledWith("expired-job-1");
     expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:runner");
+    expect(mockCaptureCheckIn).toHaveBeenNthCalledWith(
+      1,
+      {
+        monitorSlug: "jobs-runner",
+        status: "in_progress",
+      },
+      {
+        schedule: {
+          type: "crontab",
+          value: "* * * * *",
+        },
+        checkinMargin: 2,
+        maxRuntime: 1,
+        timezone: "UTC",
+      },
+    );
+    expect(mockCaptureCheckIn).toHaveBeenNthCalledWith(2, {
+      checkInId: "check-in-1",
+      monitorSlug: "jobs-runner",
+      status: "ok",
+    });
+    expect(mockFlush).toHaveBeenCalledWith(2000);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:3000/api/jobs/queued-job-1/process",
       expect.objectContaining({
@@ -121,5 +152,30 @@ describe("GET /api/jobs/runner", () => {
     expect(response.status).toBe(200);
     expect(mockListExpiredRunningJobs).toHaveBeenCalled();
     expect(mockRequeueStaleLeasedJob).not.toHaveBeenCalled();
+  });
+
+  it("reports an error check-in when the runner token is missing", async () => {
+    mockJobsRunnerToken.mockReturnValue("");
+
+    const response = await GET(makeRequest() as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload).toEqual({ error: "Runner endpoint not configured" });
+    expect(mockCaptureCheckIn).toHaveBeenNthCalledWith(
+      1,
+      {
+        monitorSlug: "jobs-runner",
+        status: "in_progress",
+      },
+      expect.any(Object),
+    );
+    expect(mockCaptureCheckIn).toHaveBeenNthCalledWith(2, {
+      checkInId: "check-in-1",
+      monitorSlug: "jobs-runner",
+      status: "error",
+    });
+    expect(mockFlush).toHaveBeenCalledWith(2000);
+    expect(mockCheckRateLimit).not.toHaveBeenCalled();
   });
 });
