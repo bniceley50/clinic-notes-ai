@@ -12,7 +12,6 @@ import { writeAuditLog } from "@/lib/audit";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
-const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 const VALID_STATUSES = ["active", "completed", "archived"] as const;
 
 export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
@@ -54,7 +53,6 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
 
   const update: {
     patient_label?: string | null;
-    session_type?: (typeof VALID_SESSION_TYPES)[number];
     status?: (typeof VALID_STATUSES)[number];
   } = {};
 
@@ -67,20 +65,6 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
     }
 
     update.patient_label = body.patient_label;
-  }
-
-  if ("session_type" in body) {
-    if (
-      typeof body.session_type !== "string" ||
-      !VALID_SESSION_TYPES.includes(body.session_type as (typeof VALID_SESSION_TYPES)[number])
-    ) {
-      return jsonNoStore(
-        { error: "session_type must be one of: general, intake, follow-up" },
-        { status: 400 },
-      );
-    }
-
-    update.session_type = body.session_type as (typeof VALID_SESSION_TYPES)[number];
   }
 
   if ("status" in body) {

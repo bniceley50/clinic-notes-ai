@@ -140,4 +140,22 @@ describe("PATCH /api/sessions/[sessionId]", () => {
       },
     });
   });
+
+  it("returns 400 when session_type is the only requested update", async () => {
+    const response = await PATCH(
+      makeRequest({
+        session_type: "intake",
+      }) as never,
+      {
+        params: Promise.resolve({ sessionId: "session-1" }),
+      },
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      error: "No valid fields to update",
+    });
+    expect(response.status).toBe(400);
+    expect(mockUpdateMySession).not.toHaveBeenCalled();
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
+  });
 });

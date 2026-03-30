@@ -33,7 +33,6 @@ export function SessionDetailManager({
         },
         body: JSON.stringify({
           patient_label: formData.get("patient_label"),
-          session_type: formData.get("session_type"),
           status: formData.get("status"),
         }),
       });
@@ -108,21 +107,6 @@ export function SessionDetailManager({
               defaultValue={session.patient_label ?? ""}
               className="ql-input"
             />
-          </div>
-          <div className="ql-field" style={{ width: 160 }}>
-            <label htmlFor="session_type" className="ql-label">
-              Type
-            </label>
-            <select
-              id="session_type"
-              name="session_type"
-              defaultValue={session.session_type}
-              className="ql-select"
-            >
-              <option value="general">General</option>
-              <option value="intake">Intake</option>
-              <option value="follow-up">Follow-up</option>
-            </select>
           </div>
           <div className="ql-field" style={{ width: 150 }}>
             <label htmlFor="status" className="ql-label">

@@ -35,7 +35,6 @@ export type CreateSessionInput = {
 
 export type UpdateSessionInput = {
   patient_label?: string | null;
-  session_type?: "intake" | "follow-up" | "general";
   status?: "active" | "completed" | "archived";
 };
 
@@ -136,10 +135,6 @@ export async function updateMySession(
 
   if ("patient_label" in input) {
     update.patient_label = input.patient_label?.trim() || null;
-  }
-
-  if (input.session_type) {
-    update.session_type = input.session_type;
   }
 
   if (input.status) {
