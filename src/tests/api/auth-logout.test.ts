@@ -149,4 +149,43 @@ describe("POST /api/auth/logout", () => {
     expect(mockWriteAuditLog).not.toHaveBeenCalled();
     expect(mockClearSessionCookie).not.toHaveBeenCalled();
   });
+
+  it("returns 503 and leaves the session cookie untouched when revocation fails", async () => {
+    mockReadSessionFromCookieHeader.mockResolvedValue({
+      sub: "00000000-0000-0000-0000-000000000001",
+      practiceId: "org-1",
+      role: "provider",
+      iat: 1,
+      exp: 2,
+      jti: "jti-1",
+    });
+    mockRevokeSession.mockRejectedValue(new Error("Redis unavailable"));
+
+    const request = new Request("http://localhost:3000/api/auth/logout", {
+      method: "POST",
+      headers: {
+        cookie: "cna_session=test",
+      },
+    });
+
+    const response = await POST(request as never);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "Logout unavailable. Please try again.",
+    });
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("location")).toBeNull();
+    expect(mockGetIdentifier).toHaveBeenCalledWith(
+      request,
+      "00000000-0000-0000-0000-000000000001",
+    );
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(
+      { name: "api-limit" },
+      "ip:127.0.0.1",
+    );
+    expect(mockRevokeSession).toHaveBeenCalledWith("jti-1", 28800);
+    expect(mockWriteAuditLog).not.toHaveBeenCalled();
+    expect(mockClearSessionCookie).not.toHaveBeenCalled();
+  });
 });

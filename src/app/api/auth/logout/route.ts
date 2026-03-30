@@ -28,7 +28,17 @@ export const POST = withLogging(async (request: NextRequest) => {
   if (limited) return limited;
 
   if (session?.jti) {
-    await revokeSession(session.jti, sessionTtlSeconds());
+    try {
+      await revokeSession(session.jti, sessionTtlSeconds());
+    } catch {
+      // Revocation write failed — do not clear the cookie.
+      // Returning 503 so the client knows logout did not complete.
+      // The user can retry; the session remains valid until Redis recovers.
+      return NextResponse.json(
+        { error: "Logout unavailable. Please try again." },
+        { status: 503 },
+      );
+    }
   }
 
   if (session) {

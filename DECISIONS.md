@@ -227,3 +227,28 @@ This file records architectural decisions and their rationale. Entries are appen
 - `softDeleteSession()` replaced `deleteSessionCascade()`.
 
 - Patient-related rows are retained with `deleted_at`; storage artifacts remain in place until the Milestone C TTL cleaner exists.
+
+---
+
+## D009: Session Revocation Failure Policy — Asymmetric Fail Behavior
+
+**Date:** 2026-03-30
+**Status:** Accepted (pre-production)
+**Context:** JTI revocation uses Upstash Redis. Redis can be unavailable due to
+network partition, outage, or misconfiguration. Two failure modes exist:
+write-side (logout) and read-side (per-request enforcement).
+**Decision:** Asymmetric failure policy:
+- Write-side (`revokeSession`): **fails hard**. If the revocation write fails,
+  the logout route returns 503 and does not clear the session cookie. Logout
+  intent is never silently lost. The user sees a failure and can retry.
+- Read-side (`isSessionRevoked`): **fails open**. If the revocation check fails
+  during request enforcement, the request is allowed through. A Redis outage
+  does not take down the entire authenticated surface.
+**Consequence:** During a Redis outage, logout is temporarily unavailable.
+Previously-revoked tokens remain blocked (their Redis keys survive the outage).
+Tokens revoked during the outage window are not recorded and remain valid until
+expiry. This is an accepted pre-production tradeoff.
+**Revisit condition:** Before general availability or if a Redis outage
+coincides with a known credential compromise event, re-evaluate whether
+read-side should also fail closed, with appropriate operational runbook coverage
+for the resulting app-wide 401 behavior.

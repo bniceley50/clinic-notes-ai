@@ -5,8 +5,15 @@
  * JTI claims. Keys are set with a TTL matching the session lifetime
  * so the store self-cleans.
  *
- * Graceful fallback: if Redis is unavailable, revocation checks
- * pass through (allow) rather than hard-failing all requests.
+ * Read-side failure policy (isSessionRevoked): fails OPEN.
+ * A Redis outage during a read allows the request through rather than
+ * taking down the entire authenticated surface. This is an explicit
+ * temporary tradeoff accepted pre-production — see DECISIONS.md D009.
+ *
+ * Write-side failure policy (revokeSession): fails HARD.
+ * A Redis outage during logout propagates the error to the caller.
+ * The logout route is responsible for returning 503 and NOT clearing
+ * the cookie, so logout intent is never silently lost.
  */
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -33,23 +40,31 @@ async function redisCommand(
 
 /**
  * Write a revoked JTI to Redis with a TTL (seconds).
- * No-op if Redis is not configured or jti is missing.
+ *
+ * Throws if Redis is unavailable or the write fails — callers must
+ * handle the error and must NOT clear the session cookie on failure.
+ *
+ * No-op if jti is missing (untracked sessions cannot be explicitly revoked).
  */
 export async function revokeSession(
   jti: string | undefined,
   ttlSeconds: number
 ): Promise<void> {
-  if (!redisAvailable || !jti) return;
-  try {
-    await redisCommand(["SET", `${REVOKED_PREFIX}${jti}`, "1", "EX", ttlSeconds]);
-  } catch {
-    // Non-fatal — logout still clears the cookie
+  if (!jti) return;
+  if (!redisAvailable) {
+    throw new Error("Revocation store unavailable");
   }
+  await redisCommand(["SET", `${REVOKED_PREFIX}${jti}`, "1", "EX", ttlSeconds]);
 }
 
 /**
  * Returns true if the JTI has been revoked.
- * Returns false on any error or if Redis is not configured.
+ *
+ * Fails OPEN — returns false on any error or if Redis is not configured.
+ * This is an explicit policy decision: a Redis outage during request
+ * enforcement allows sessions through rather than causing a full
+ * authenticated-app outage. See DECISIONS.md D009 for rationale and
+ * the conditions under which this should be revisited.
  */
 export async function isSessionRevoked(
   jti: string | undefined
@@ -59,7 +74,7 @@ export async function isSessionRevoked(
     const result = await redisCommand(["EXISTS", `${REVOKED_PREFIX}${jti}`]);
     return result === 1;
   } catch {
-    // Fail open — do not block requests if Redis is down
+    // Explicit policy: fail open. See module docblock.
     return false;
   }
 }
