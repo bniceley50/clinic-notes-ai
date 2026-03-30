@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import {
@@ -102,6 +103,30 @@ export const GET = withLogging(async (request: NextRequest) => {
     } else if (cleaned > 0) {
       console.log(`[runner] cleaned ${cleaned} soft-deleted job artifact set(s)`);
     }
+  });
+
+  // Runner heartbeat — tells Sentry the cron executed successfully.
+  // Auto-creates the monitor on first check-in via monitorConfig.
+  const checkInId = Sentry.captureCheckIn(
+    {
+      monitorSlug: "jobs-runner",
+      status: "in_progress",
+    },
+    {
+      schedule: {
+        type: "crontab",
+        value: "* * * * *",
+      },
+      checkinMargin: 2,
+      maxRuntime: 1,
+      timezone: "UTC",
+    },
+  );
+
+  Sentry.captureCheckIn({
+    checkInId,
+    monitorSlug: "jobs-runner",
+    status: "ok",
   });
 
   return NextResponse.json({
