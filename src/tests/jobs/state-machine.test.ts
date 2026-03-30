@@ -261,7 +261,7 @@ describe("job state machine", () => {
 
     const result = await processJob("job-1");
 
-    expect(result).toEqual({ success: false, error: "already claimed or not queued" });
+    expect(result).toEqual({ success: true, error: null, alreadyRunning: true });
     expect(mockDownloadAudioForJob).not.toHaveBeenCalled();
     expect(mockTranscribeAudioChunked).not.toHaveBeenCalled();
     expect(mockUpdateClaimedJobWorkerFields).not.toHaveBeenCalled();

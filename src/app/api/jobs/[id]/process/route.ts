@@ -26,7 +26,11 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   const result = await processJob(jobId);
 
   if (result.success) {
-    return NextResponse.json({ job_id: jobId, status: "complete" });
+    const status = result.alreadyRunning ? 202 : 200;
+    return NextResponse.json(
+      { job_id: jobId, status: "processing" },
+      { status },
+    );
   }
 
   return NextResponse.json(

@@ -18,6 +18,7 @@ import { writeAuditLog } from "@/lib/audit";
 type ProcessResult = {
   success: boolean;
   error: string | null;
+  alreadyRunning?: boolean;
 };
 
 type TranscriptLookupRow = {
@@ -157,7 +158,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     }
 
     if (!claimed.data?.run_token) {
-      return { success: false, error: "already claimed or not queued" };
+      return { success: true, error: null, alreadyRunning: true };
     }
 
     const job = claimed.data;
