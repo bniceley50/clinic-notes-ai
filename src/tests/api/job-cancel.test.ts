@@ -81,7 +81,7 @@ describe('POST /api/jobs/[id]/cancel', () => {
       error: null,
     })
     mockUpdateJobWorkerFields.mockResolvedValue({
-      data: { id: 'job-1', status: 'failed' },
+      data: { id: 'job-1', status: 'cancelled' },
       error: null,
     })
     mockWriteAuditLog.mockResolvedValue(undefined)
@@ -136,6 +136,27 @@ describe('POST /api/jobs/[id]/cancel', () => {
     })
   })
 
+  it('returns 409 when the job is already cancelled', async () => {
+    mockGetMyJob.mockResolvedValue({
+      data: {
+        id: 'job-1',
+        session_id: 'session-1',
+        status: 'cancelled',
+      },
+      error: null,
+    })
+
+    const response = await POST(makeRequest() as never, {
+      params: Promise.resolve({ id: 'job-1' }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(payload).toEqual({
+      error: 'Job cannot be cancelled in its current state',
+    })
+  })
+
   it('cancels an active job and writes an audit log', async () => {
     const response = await POST(makeRequest() as never, {
       params: Promise.resolve({ id: 'job-1' }),
@@ -146,12 +167,12 @@ describe('POST /api/jobs/[id]/cancel', () => {
     expect(payload).toEqual({
       job: {
         id: 'job-1',
-        status: 'failed',
+        status: 'cancelled',
       },
     })
     expect(mockUpdateJobWorkerFields).toHaveBeenCalledWith('job-1', {
-      status: 'failed',
-      stage: 'failed',
+      status: 'cancelled',
+      stage: 'cancelled',
       error_message: 'Cancelled by user',
       claimed_at: null,
       lease_expires_at: null,

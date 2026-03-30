@@ -27,7 +27,11 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  if (job.status === "complete" || job.status === "failed") {
+  if (
+    job.status === "complete" ||
+    job.status === "failed" ||
+    job.status === "cancelled"
+  ) {
     return NextResponse.json(
       { error: "Job cannot be cancelled in its current state" },
       { status: 409 },
@@ -35,8 +39,8 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   }
 
   const { data, error } = await updateJobWorkerFields(id, {
-    status: "failed",
-    stage: "failed",
+    status: "cancelled",
+    stage: "cancelled",
     error_message: "Cancelled by user",
     claimed_at: null,
     lease_expires_at: null,
@@ -62,7 +66,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   return NextResponse.json({
     job: {
       id,
-      status: "failed",
+      status: "cancelled",
     },
   });
 });
