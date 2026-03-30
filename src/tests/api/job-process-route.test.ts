@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockProcessJob, mockCheckRateLimit } = vi.hoisted(() => ({
+const { mockProcessJob, mockCheckRateLimit, mockWorkerLimit } = vi.hoisted(() => ({
   mockProcessJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
+  mockWorkerLimit: { name: "worker-limit" },
 }));
 
 vi.mock("@/lib/jobs/processor", () => ({
@@ -10,8 +11,7 @@ vi.mock("@/lib/jobs/processor", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  apiLimit: null,
-  getIdentifier: vi.fn(() => "ip:127.0.0.1"),
+  workerLimit: mockWorkerLimit,
   checkRateLimit: mockCheckRateLimit,
 }));
 
@@ -56,6 +56,7 @@ describe("POST /api/jobs/[id]/process", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(202);
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:process");
     expect(payload).toEqual({ job_id: "job-1", status: "processing" });
   });
 

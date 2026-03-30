@@ -7,7 +7,7 @@ import {
   requeueStaleLeasedJob,
 } from "@/lib/jobs/queries";
 import { cleanupSoftDeletedArtifacts } from "@/lib/storage/cleanup";
-import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
 function getAuthorizationResult(request: NextRequest): {
@@ -59,8 +59,7 @@ export const GET = withLogging(async (request: NextRequest) => {
     );
   }
 
-  const identifier = getIdentifier(request, null);
-  const limited = await checkRateLimit(apiLimit, identifier);
+  const limited = await checkRateLimit(workerLimit, "worker:runner");
   if (limited) return limited;
 
   // Runner heartbeat — tells Sentry the cron executed successfully.

@@ -7,6 +7,7 @@ const {
   mockRequeueStaleLeasedJob,
   mockCheckRateLimit,
   mockCleanupSoftDeletedArtifacts,
+  mockWorkerLimit,
 } = vi.hoisted(() => ({
   mockJobsRunnerToken: vi.fn(),
   mockListQueuedJobs: vi.fn(),
@@ -14,6 +15,7 @@ const {
   mockRequeueStaleLeasedJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockCleanupSoftDeletedArtifacts: vi.fn(),
+  mockWorkerLimit: { name: "worker-limit" },
 }));
 
 vi.mock("@/lib/config", () => ({
@@ -31,8 +33,7 @@ vi.mock("@/lib/storage/cleanup", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  apiLimit: null,
-  getIdentifier: vi.fn(() => "ip:127.0.0.1"),
+  workerLimit: mockWorkerLimit,
   checkRateLimit: mockCheckRateLimit,
 }));
 
@@ -103,6 +104,7 @@ describe("GET /api/jobs/runner", () => {
     expect(response.status).toBe(200);
     expect(mockListExpiredRunningJobs).toHaveBeenCalled();
     expect(mockRequeueStaleLeasedJob).toHaveBeenCalledWith("expired-job-1");
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:runner");
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:3000/api/jobs/queued-job-1/process",
       expect.objectContaining({

@@ -2,7 +2,7 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { processJob } from "@/lib/jobs/processor";
-import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
 type RouteContext = {
@@ -18,8 +18,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const identifier = getIdentifier(request, null);
-  const limited = await checkRateLimit(apiLimit, identifier);
+  const limited = await checkRateLimit(workerLimit, "worker:process");
   if (limited) return limited;
 
   const { id: jobId } = await ctx.params;

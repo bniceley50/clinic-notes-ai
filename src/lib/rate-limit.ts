@@ -49,6 +49,18 @@ export const apiLimit = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(200, "1 h"), analytics: true, prefix: "ratelimit:api" })
   : null;
 
+// Separate limiter for internal worker traffic (runner, process endpoints).
+// Keyed on a stable worker identity rather than IP, so internal self-fetches
+// never collide with the end-user apiLimit bucket.
+export const workerLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      analytics: true,
+      prefix: "ratelimit:worker",
+    })
+  : null;
+
 export function getIdentifier(
   request: Request,
   userId?: string | null
