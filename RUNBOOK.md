@@ -92,16 +92,25 @@ function duration or cron schedule outside that file.
 
 ### Supabase environments
 
-| Environment | Project name     | Project ID           | Region         |
-|-------------|------------------|----------------------|----------------|
-| Production  | Clinic notes AI  | kacfxexozjueepauitdb | West US/Oregon |
-| Local dev   | Supabase CLI     | —                    | localhost      |
+| Environment | Project name         | Project ID           | Region    |
+|-------------|----------------------|----------------------|-----------|
+| Production  | clinic-notes-ai      | kacfxexozjueepauitdb | us-west-2 |
+| Dev/Staging | clinic-notes-ai-dev  | qkhfusvmqfmtzoandrtf | us-west-2 |
+| Local       | Supabase CLI         | —                    | localhost |
 
-⚠️ **Gap — no verified hosted dev project:** A separate hosted Supabase
-project for development/staging has not been created or verified for this
-repo. Local development runs against the Supabase CLI (`supabase start`).
-This means there is no hosted staging environment that mirrors production
-schema. Resolve before general availability.
+The CLI is linked to the dev project (`supabase link` ref: `qkhfusvmqfmtzoandrtf`).
+Run `supabase db push --include-all` to apply migrations to dev.
+Run migrations against production via the Supabase dashboard SQL editor or
+`supabase db push` with the production project ref.
+
+**Dev environment variable scope:**
+The dev project uses a subset of production env vars. Real AI vendor calls
+(`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), Redis (`UPSTASH_REDIS_REST_URL`,
+`UPSTASH_REDIS_REST_TOKEN`), and job runner credentials (`JOBS_RUNNER_TOKEN`,
+`CRON_SECRET`) are not wired in the current dev configuration.
+Set `AI_ENABLE_STUB_APIS=1` and `AI_ENABLE_REAL_APIS=0` for local dev against
+this project. Set `ALLOW_DEV_LOGIN=1` and `NEXT_PUBLIC_ALLOW_DEV_LOGIN=1` to
+enable the dev login bypass.
 
 ### Deploying a migration
 
