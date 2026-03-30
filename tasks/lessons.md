@@ -78,3 +78,8 @@ after any manual download.
 was replaced with soft-delete pattern. Storage artifacts are retained until
 TTL cleanup. Orphaned PHI risk is managed by RLS filtering deleted_at IS NULL,
 not by destroying rows. Do not promote this lesson.
+
+## 2026-03-30 - Soft-delete test cleanup needs separate hygiene path
+**What happened:** Smoke-test cleanup now uses soft-delete to stay consistent with D008, which means shared test databases will accumulate `deleted_at` rows over time.
+**Root cause:** Behavioral consistency with production removed the old hard-delete teardown path.
+**Rule going forward:** Milestone C TTL work should include either a test-only purge path for rows already marked `deleted_at IS NOT NULL` or isolated ephemeral test data. Do not reintroduce hard-delete into normal app flows just to keep tests tidy.
