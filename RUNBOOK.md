@@ -466,14 +466,14 @@ Delete order on session delete:
   - `updated_at`
 
 Cleanup behavior:
-- The table has `ON DELETE CASCADE` from `sessions`
-- `deleteSessionCascade()` also explicitly deletes `carelogic_field_extractions` rows before deleting `jobs`
+- Session cleanup is handled by soft-delete (`deleted_at`) on the extraction row and its parent session.
+- Storage artifact cleanup is deferred to the future TTL job; session deletion no longer removes blobs immediately.
 
 ### Bucket override caveat
 
-- `TRANSCRIPT_BUCKET` is honored by transcript upload and session-delete transcript cleanup.
+- `TRANSCRIPT_BUCKET` is honored by transcript upload.
 - `AUDIO_BUCKET` is only honored by audio download code.
-- Audio upload, signed upload, and session-delete audio cleanup hardcode `audio`.
+- Audio upload and signed upload hardcode `audio`.
 
 This means bucket override support is inconsistent and should not be treated as a fully supported operational feature.
 

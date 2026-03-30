@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockLoadCurrentUser,
   mockGetMySession,
-  mockDeleteSessionCascade,
+  mockSoftDeleteSession,
   mockCheckRateLimit,
   mockWriteAuditLog,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
   mockGetMySession: vi.fn(),
-  mockDeleteSessionCascade: vi.fn(),
+  mockSoftDeleteSession: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
 }));
@@ -20,7 +20,7 @@ vi.mock("../../lib/auth/loader", () => ({
 
 vi.mock("../../lib/sessions/queries", () => ({
   getSessionForOrg: vi.fn(),
-  deleteSessionCascade: mockDeleteSessionCascade,
+  softDeleteSession: mockSoftDeleteSession,
   getMySession: mockGetMySession,
   updateMySession: vi.fn(),
 }));
@@ -92,7 +92,18 @@ describe("DELETE /api/sessions/[sessionId]", () => {
       },
       error: null,
     });
-    mockDeleteSessionCascade.mockResolvedValue({ deleted: true });
+    mockSoftDeleteSession.mockResolvedValue({
+      id: "session-1",
+      org_id: "org-1",
+      created_by: "user-1",
+      patient_label: "Patient One",
+      session_type: "general",
+      status: "active",
+      created_at: "2026-03-15T09:00:00.000Z",
+      updated_at: "2026-03-15T09:00:00.000Z",
+      completed_at: null,
+      deleted_at: "2026-03-29T12:00:00.000Z",
+    });
     mockWriteAuditLog.mockResolvedValue(undefined);
   });
 
@@ -119,7 +130,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(payload).toEqual({ deleted: true });
     expect(mockGetMySession).toHaveBeenCalledWith(providerAuth.user, "session-1");
-    expect(mockDeleteSessionCascade).toHaveBeenCalledWith("session-1", "org-1");
+    expect(mockSoftDeleteSession).toHaveBeenCalledWith("session-1", "org-1");
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
       actorId: "user-1",
@@ -167,7 +178,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(mockDeleteSessionCascade).toHaveBeenCalledWith("session-1", "org-1");
+    expect(mockSoftDeleteSession).toHaveBeenCalledWith("session-1", "org-1");
   });
 
   it("returns 404 when a provider tries to delete another provider's session in the same org", async () => {
@@ -183,7 +194,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
 
     expect(response.status).toBe(404);
     expect(payload).toEqual({ error: "Not found" });
-    expect(mockDeleteSessionCascade).not.toHaveBeenCalled();
+    expect(mockSoftDeleteSession).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the session is outside the authenticated org", async () => {
@@ -199,6 +210,6 @@ describe("DELETE /api/sessions/[sessionId]", () => {
 
     expect(response.status).toBe(404);
     expect(payload).toEqual({ error: "Not found" });
-    expect(mockDeleteSessionCascade).not.toHaveBeenCalled();
+    expect(mockSoftDeleteSession).not.toHaveBeenCalled();
   });
 });

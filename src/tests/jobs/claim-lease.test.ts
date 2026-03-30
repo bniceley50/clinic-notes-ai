@@ -5,6 +5,7 @@ const {
   mockRpc,
   mockMaybeSingle,
   mockSelect,
+  mockIsDeleted,
   mockEqRunToken,
   mockEqId,
   mockUpdate,
@@ -16,8 +17,11 @@ const {
   mockSelect: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
   })),
-  mockEqRunToken: vi.fn(() => ({
+  mockIsDeleted: vi.fn(() => ({
     select: mockSelect,
+  })),
+  mockEqRunToken: vi.fn(() => ({
+    is: mockIsDeleted,
   })),
   mockEqId: vi.fn(() => ({
     eq: mockEqRunToken,

@@ -6,6 +6,7 @@ const {
   mockUpsertNoteForJob,
   mockWriteAuditLog,
   mockMaybeSingle,
+  mockIsDeleted,
   mockEqOrgId,
   mockEqSessionId,
   mockEqJobId,
@@ -18,8 +19,11 @@ const {
   mockUpsertNoteForJob: vi.fn(),
   mockWriteAuditLog: vi.fn(),
   mockMaybeSingle: vi.fn(),
-  mockEqOrgId: vi.fn(() => ({
+  mockIsDeleted: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
+  })),
+  mockEqOrgId: vi.fn(() => ({
+    is: mockIsDeleted,
   })),
   mockEqSessionId: vi.fn(() => ({
     eq: mockEqOrgId,

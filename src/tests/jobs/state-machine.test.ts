@@ -13,6 +13,7 @@ const {
   mockWriteAuditLog,
   mockInsert,
   mockMaybeSingle,
+  mockIsDeleted,
   mockEqOrgId,
   mockEqSessionId,
   mockEqJobId,
@@ -32,8 +33,11 @@ const {
   mockWriteAuditLog: vi.fn(),
   mockInsert: vi.fn(),
   mockMaybeSingle: vi.fn(),
-  mockEqOrgId: vi.fn(() => ({
+  mockIsDeleted: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
+  })),
+  mockEqOrgId: vi.fn(() => ({
+    is: mockIsDeleted,
   })),
   mockEqSessionId: vi.fn(() => ({
     eq: mockEqOrgId,

@@ -9,6 +9,7 @@ const {
   mockWriteAuditLog,
   mockMaybeSingle,
   mockLimit,
+  mockIsDeleted,
   mockEqOrg,
   mockEqSession,
   mockSelect,
@@ -25,8 +26,11 @@ const {
   mockLimit: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
   })),
-  mockEqOrg: vi.fn(() => ({
+  mockIsDeleted: vi.fn(() => ({
     limit: mockLimit,
+  })),
+  mockEqOrg: vi.fn(() => ({
+    is: mockIsDeleted,
   })),
   mockEqSession: vi.fn(() => ({
     eq: mockEqOrg,

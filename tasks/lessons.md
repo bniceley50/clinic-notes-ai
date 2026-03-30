@@ -74,3 +74,7 @@ after any manual download.
 **What happened:** Added hard delete for sessions with full cascade (notes, transcripts, audio, jobs, consents).
 **Root cause:** Beta readiness requires clinicians to manage their own data and prevent PII accumulation.
 **Rule going forward:** Any delete operation on clinical data must cascade completely - no orphaned PHI.
+[CORRECTION 2026-03-29] — This lesson contradicts D008. Hard cascade delete
+was replaced with soft-delete pattern. Storage artifacts are retained until
+TTL cleanup. Orphaned PHI risk is managed by RLS filtering deleted_at IS NULL,
+not by destroying rows. Do not promote this lesson.

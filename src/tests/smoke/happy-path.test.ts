@@ -32,7 +32,7 @@ vi.mock("@/lib/ai/whisper", () => ({ transcribeAudioChunked: vi.fn(async () => (
 vi.mock("@/lib/storage/transcript", () => ({ uploadTranscript: vi.fn(async ({ orgId, sessionId, jobId }: { orgId: string; sessionId: string; jobId: string }) => ({ storagePath: `${orgId}/${sessionId}/${jobId}/transcript.txt`, error: null })) }));
 vi.mock("@/lib/config", async () => ({ ...(await vi.importActual<typeof import("@/lib/config")>("@/lib/config")), anthropicApiKey: () => "test-anthropic-key", aiRealApisEnabled: () => true }));
 
-import { createSession } from "@/lib/sessions/queries";
+import { createSession, softDeleteSession } from "@/lib/sessions/queries";
 import { createJob, getJobById } from "@/lib/jobs/queries";
 import { processJob } from "@/lib/jobs/processor";
 import { POST as postUploadComplete } from "@/app/api/jobs/[id]/upload-complete/route";
@@ -58,9 +58,9 @@ describeSmoke("smoke happy path", () => {
 
   afterEach(async () => {
     if (sessionIds.length === 0) return;
-    await admin.from("transcripts").delete().in("session_id", sessionIds);
-    await admin.from("jobs").delete().in("session_id", sessionIds);
-    await admin.from("sessions").delete().in("id", sessionIds.splice(0));
+    for (const sessionId of sessionIds.splice(0)) {
+      await softDeleteSession(sessionId, appUser.orgId);
+    }
     vi.unstubAllGlobals();
   });
 

@@ -93,6 +93,7 @@ export async function generateNoteForJob(jobId: string): Promise<ProcessResult> 
       .eq("job_id", jobId)
       .eq("session_id", job.session_id)
       .eq("org_id", job.org_id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (transcriptError) {

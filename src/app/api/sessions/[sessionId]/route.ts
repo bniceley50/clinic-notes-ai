@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { jsonNoStore } from "@/lib/http/response";
 import {
-  deleteSessionCascade,
   getMySession,
+  softDeleteSession,
   updateMySession,
 } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
@@ -141,7 +141,7 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   }
 
   try {
-    await deleteSessionCascade(sessionId, result.user.orgId);
+    await softDeleteSession(sessionId, result.user.orgId);
   } catch (cascadeError) {
     const message =
       cascadeError instanceof Error ? cascadeError.message : "Failed to delete session";

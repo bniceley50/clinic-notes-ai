@@ -266,6 +266,7 @@ export const POST = withLogging(async (request: NextRequest) => {
     .select("id")
     .eq("session_id", body.session_id)
     .eq("org_id", result.user.orgId)
+    .is("deleted_at", null)
     .limit(1)
     .maybeSingle();
 

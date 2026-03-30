@@ -14,6 +14,7 @@ const {
   mockWriteAuditLog,
   mockMaybeSingle,
   mockConsentLimit,
+  mockConsentIsDeleted,
   mockConsentEqOrg,
   mockConsentEqSession,
   mockConsentSelect,
@@ -36,8 +37,11 @@ const {
   mockConsentLimit: vi.fn(() => ({
     maybeSingle: mockMaybeSingle,
   })),
-  mockConsentEqOrg: vi.fn(() => ({
+  mockConsentIsDeleted: vi.fn(() => ({
     limit: mockConsentLimit,
+  })),
+  mockConsentEqOrg: vi.fn(() => ({
+    is: mockConsentIsDeleted,
   })),
   mockConsentEqSession: vi.fn(() => ({
     eq: mockConsentEqOrg,

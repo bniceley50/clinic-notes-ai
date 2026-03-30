@@ -60,7 +60,9 @@ vi.mock("../../lib/supabase/server", () => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
-                single: mockSessionSingle,
+                is: () => ({
+                  single: mockSessionSingle,
+                }),
               }),
             }),
           }),

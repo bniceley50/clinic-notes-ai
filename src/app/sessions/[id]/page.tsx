@@ -64,6 +64,7 @@ export default async function SessionDetailPage({ params }: Props) {
       .select("hipaa_consent, part2_applicable, part2_consent, created_at")
       .eq("session_id", session.id)
       .eq("org_id", user.orgId)
+      .is("deleted_at", null)
       .limit(1)
       .maybeSingle();
 

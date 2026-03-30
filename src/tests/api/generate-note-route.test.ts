@@ -184,8 +184,10 @@ describe("POST /api/generate-note", () => {
             select: () => ({
               eq: () => ({
                 eq: () => ({
-                  limit: () => ({
-                    maybeSingle: mockMaybeSingle,
+                  is: () => ({
+                    limit: () => ({
+                      maybeSingle: mockMaybeSingle,
+                    }),
                   }),
                 }),
               }),

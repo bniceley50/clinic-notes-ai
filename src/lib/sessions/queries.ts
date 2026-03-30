@@ -25,6 +25,7 @@ export type SessionRow = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  deleted_at: string | null;
 };
 
 export type CreateSessionInput = {
@@ -39,11 +40,7 @@ export type UpdateSessionInput = {
 };
 
 const SESSION_COLUMNS =
-  "id, org_id, created_by, patient_label, session_type, status, created_at, updated_at, completed_at";
-
-const AUDIO_BUCKET = "audio";
-const TRANSCRIPTS_BUCKET = process.env.TRANSCRIPT_BUCKET ?? "transcripts";
-const DRAFTS_BUCKET = "drafts";
+  "id, org_id, created_by, patient_label, session_type, status, created_at, updated_at, completed_at, deleted_at";
 
 function isOrgAdmin(user: AppUser): boolean {
   return user.role === "admin";
@@ -82,6 +79,7 @@ export async function listMySessions(
     .from("sessions")
     .select(SESSION_COLUMNS)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .neq("status", "archived")
     .order("created_at", { ascending: false });
 
@@ -109,6 +107,7 @@ export async function getMySession(
     .select(SESSION_COLUMNS)
     .eq("id", sessionId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .limit(1);
 
   if (!isOrgAdmin(user)) {
@@ -154,6 +153,7 @@ export async function updateMySession(
     .update(update)
     .eq("id", sessionId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .select(SESSION_COLUMNS)
     .limit(1);
 
@@ -188,6 +188,7 @@ export async function getSessionForOrg(
     .select(SESSION_COLUMNS)
     .eq("id", sessionId)
     .eq("org_id", orgId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -197,124 +198,66 @@ export async function getSessionForOrg(
   return { data: (data ?? null) as SessionRow | null, error: null };
 }
 
-type SessionJobArtifactRow = {
-  id: string;
-  audio_storage_path: string | null;
-  transcript_storage_path: string | null;
-  draft_storage_path: string | null;
-};
-
-export async function deleteSessionCascade(
+export async function softDeleteSession(
   sessionId: string,
   orgId: string,
-): Promise<{ deleted: true }> {
+): Promise<SessionRow> {
   const db = createServiceClient();
 
-  const { data: jobs, error: jobsError } = await db
-    .from("jobs")
-    .select("id, audio_storage_path, transcript_storage_path, draft_storage_path")
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (jobsError) {
-    throw new Error(`Failed to load jobs for session delete: ${jobsError.message}`);
-  }
-
-  const jobRows = (jobs ?? []) as SessionJobArtifactRow[];
-
-  const { error: notesError } = await db
-    .from("notes")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (notesError) {
-    throw new Error(`Failed to delete notes: ${notesError.message}`);
-  }
-
-  const { error: transcriptsError } = await db
-    .from("transcripts")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (transcriptsError) {
-    throw new Error(`Failed to delete transcripts: ${transcriptsError.message}`);
-  }
-
-  const audioPaths = jobRows
-    .map((job) => job.audio_storage_path)
-    .filter((path): path is string => Boolean(path));
-  if (audioPaths.length > 0) {
-    const { error } = await db.storage.from(AUDIO_BUCKET).remove(audioPaths);
-    if (error) {
-      throw new Error(`Failed to delete audio files: ${error.message}`);
-    }
-  }
-
-  const transcriptPaths = jobRows
-    .map((job) => job.transcript_storage_path)
-    .filter((path): path is string => Boolean(path));
-  if (transcriptPaths.length > 0) {
-    const { error } = await db.storage
-      .from(TRANSCRIPTS_BUCKET)
-      .remove(transcriptPaths);
-    if (error) {
-      throw new Error(`Failed to delete transcript files: ${error.message}`);
-    }
-  }
-
-  const draftPaths = jobRows
-    .map((job) => job.draft_storage_path)
-    .filter((path): path is string => Boolean(path));
-  if (draftPaths.length > 0) {
-    const { error } = await db.storage.from(DRAFTS_BUCKET).remove(draftPaths);
-    if (error) {
-      throw new Error(`Failed to delete draft files: ${error.message}`);
-    }
-  }
-
-  const { error: extractionsDeleteError } = await db
-    .from("carelogic_field_extractions")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (extractionsDeleteError) {
-    throw new Error(
-      `Failed to delete EHR extractions: ${extractionsDeleteError.message}`,
-    );
-  }
-
-  const { error: jobsDeleteError } = await db
-    .from("jobs")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (jobsDeleteError) {
-    throw new Error(`Failed to delete jobs: ${jobsDeleteError.message}`);
-  }
-
-  const { error: consentsDeleteError } = await db
-    .from("session_consents")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("org_id", orgId);
-
-  if (consentsDeleteError) {
-    throw new Error(`Failed to delete consent records: ${consentsDeleteError.message}`);
-  }
-
-  const { error: sessionDeleteError } = await db
+  const { data: session, error: sessionLoadError } = await db
     .from("sessions")
-    .delete()
+    .select(SESSION_COLUMNS)
     .eq("id", sessionId)
-    .eq("org_id", orgId);
+    .eq("org_id", orgId)
+    .maybeSingle();
 
-  if (sessionDeleteError) {
-    throw new Error(`Failed to delete session: ${sessionDeleteError.message}`);
+  if (sessionLoadError) {
+    throw new Error(`Failed to load session: ${sessionLoadError.message}`);
   }
 
-  return { deleted: true };
+  if (!session) {
+    throw new Error("Failed to soft-delete session: session not found");
+  }
+
+  const sessionRow = session as SessionRow;
+  if (sessionRow.deleted_at) {
+    return sessionRow;
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const markDeleted = async (table: string, label: string) => {
+    const { error } = await db
+      .from(table)
+      .update({ deleted_at: deletedAt })
+      .eq("session_id", sessionId)
+      .eq("org_id", orgId)
+      .is("deleted_at", null);
+
+    if (error) {
+      throw new Error(`Failed to soft-delete ${label}: ${error.message}`);
+    }
+  };
+
+  await markDeleted("notes", "notes");
+  await markDeleted("transcripts", "transcripts");
+  await markDeleted("carelogic_field_extractions", "EHR extractions");
+  await markDeleted("jobs", "jobs");
+  await markDeleted("session_consents", "consent records");
+
+  const { error: sessionUpdateError } = await db
+    .from("sessions")
+    .update({ deleted_at: deletedAt })
+    .eq("id", sessionId)
+    .eq("org_id", orgId)
+    .is("deleted_at", null);
+
+  if (sessionUpdateError) {
+    throw new Error(`Failed to soft-delete session: ${sessionUpdateError.message}`);
+  }
+
+  return {
+    ...sessionRow,
+    deleted_at: deletedAt,
+  };
 }

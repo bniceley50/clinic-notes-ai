@@ -50,6 +50,7 @@ async function loadSeed(job: JobRow): Promise<SessionSeed> {
       .select("patient_label, session_type")
       .eq("id", job.session_id)
       .eq("org_id", job.org_id)
+      .is("deleted_at", null)
       .single(),
     db
       .from("profiles")

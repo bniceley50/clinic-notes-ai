@@ -78,10 +78,13 @@ This file records architectural decisions and their rationale. Entries are appen
 ## D008: Data Retention — Soft-Delete Rows, TTL Artifacts Only
 
 **Date:** 2026-03-03
-**Status:** Accepted
-**Context:** Domain rules say "never hard-delete patient-related records" but `JOB_TTL_SECONDS` implies cleanup. Need to clarify what gets purged.
-**Decision:** DB rows (sessions, notes, jobs, transcripts, audit logs) are soft-deleted only (archived/expired flags). File artifacts (audio uploads, intermediate files in Supabase Storage) are eligible for hard-delete after TTL. Clinical content rows are never physically deleted by background TTL jobs.
-**Open item:** Exact TTL values per artifact type to be defined during Milestone A implementation.
+**D008 — Status: Implemented (Milestone B)**
+- Soft-delete implemented via deleted_at column on all patient-related tables
+- RLS policies filter deleted_at IS NULL on all SELECT policies
+- Storage artifact cleanup (audio, transcripts, drafts) deferred to TTL job
+  (not yet implemented — scheduled for Milestone C)
+- Hard cascade delete (deleteSessionCascade) removed
+- Last updated: 2026-03-29
 **Consequence:** Patient-related records are always recoverable. Storage costs are controlled by expiring temporary blobs only.
 
 ---

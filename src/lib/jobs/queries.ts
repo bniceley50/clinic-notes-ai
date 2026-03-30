@@ -103,6 +103,7 @@ export async function getJobsForSession(
     .select(JOB_COLUMNS)
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (!isOrgAdmin(user)) {
@@ -129,6 +130,7 @@ export async function getActiveJobForSession(
     .select(JOB_COLUMNS)
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .in("status", ["queued", "running"])
     .order("created_at", { ascending: false })
     .limit(1);
@@ -157,6 +159,7 @@ export async function getMyJob(
     .select(JOB_COLUMNS)
     .eq("id", jobId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .limit(1);
 
   if (!isOrgAdmin(user)) {
@@ -183,6 +186,7 @@ export async function getJobForOrg(
     .select(JOB_COLUMNS)
     .eq("id", jobId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -205,6 +209,7 @@ export async function getJobById(
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("id", jobId)
+    .is("deleted_at", null)
     .single();
 
   if (error) return null;
@@ -221,6 +226,7 @@ export async function listQueuedJobs(): Promise<{
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("status", "queued")
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -240,6 +246,7 @@ export async function listExpiredRunningLeasedJobs(): Promise<{
     .from("jobs")
     .select(JOB_COLUMNS)
     .eq("status", "running")
+    .is("deleted_at", null)
     .lte("lease_expires_at", new Date().toISOString())
     .order("created_at", { ascending: true });
 
@@ -283,6 +290,7 @@ export async function updateJobWorkerFields(
     .from("jobs")
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", jobId)
+    .is("deleted_at", null)
     .select(JOB_COLUMNS)
     .single();
 
@@ -305,6 +313,7 @@ export async function updateClaimedJobWorkerFields(
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", jobId)
     .eq("run_token", runToken)
+    .is("deleted_at", null)
     .select(JOB_COLUMNS)
     .maybeSingle();
 
@@ -332,6 +341,7 @@ export async function requeueStaleLeasedJob(
     })
     .eq("id", jobId)
     .eq("status", "running")
+    .is("deleted_at", null)
     .lte("lease_expires_at", new Date().toISOString())
     .select(JOB_COLUMNS)
     .maybeSingle();

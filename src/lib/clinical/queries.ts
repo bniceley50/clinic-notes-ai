@@ -101,6 +101,7 @@ export async function upsertNoteForJob(input: {
     .eq("job_id", input.jobId)
     .eq("session_id", input.sessionId)
     .eq("org_id", input.orgId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (existing.error) {
@@ -117,6 +118,7 @@ export async function upsertNoteForJob(input: {
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.data.id)
+      .is("deleted_at", null)
       .select(NOTE_COLUMNS)
       .single();
 
@@ -159,6 +161,7 @@ export async function getLatestTranscriptForSession(
     .select(TRANSCRIPT_COLUMNS)
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -183,6 +186,7 @@ export async function getTranscriptForJob(
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
     .eq("job_id", jobId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -203,6 +207,7 @@ export async function getExtractionForTranscript(
     .select(EXTRACTION_COLUMNS)
     .eq("transcript_id", transcriptId)
     .eq("org_id", user.orgId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -262,6 +267,7 @@ export async function getLatestNoteForSession(
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
     .eq("created_by", user.userId)
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -287,6 +293,7 @@ export async function getMyNote(
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
     .eq("created_by", user.userId)
+    .is("deleted_at", null)
     .single();
 
   if (error) {
@@ -314,6 +321,7 @@ export async function updateMyNoteContent(
     .eq("session_id", sessionId)
     .eq("org_id", user.orgId)
     .eq("created_by", user.userId)
+    .is("deleted_at", null)
     .select(NOTE_COLUMNS)
     .single();
 
