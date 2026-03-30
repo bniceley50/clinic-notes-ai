@@ -29,7 +29,10 @@
 - [x] Sentry installation and configuration
 
 ### In Progress
-- [ ] Audit findings remediation - Brian
+- [x] Audit remediation: SSRF via `NEXT_PUBLIC_APP_URL` / runner token leakage (HIGH)
+- [x] Audit remediation: cancel route bypasses run-token fencing (HIGH)
+- [ ] Audit remediation: auth/session provisioning race in `resolveUserProfile` (MEDIUM)
+- [ ] Audit remediation: logout route missing rate limiting (LOW)
 
 ### Up Next
 - [ ] Monthly memory-bank review: promote repeated lessons to CLAUDE-patterns.md or the global system prompt

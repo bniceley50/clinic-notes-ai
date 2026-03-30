@@ -221,3 +221,9 @@ This file records architectural decisions and their rationale. Entries are appen
 - This runtime behavior supersedes earlier retention assumptions in D008 for session deletion.
 
 - Retention and compliance documentation must describe the current hard-delete path honestly until the implementation changes.
+
+- [CORRECTION 2026-03-30] This note is superseded. D008 soft-delete is now the runtime behavior.
+
+- `softDeleteSession()` replaced `deleteSessionCascade()`.
+
+- Patient-related rows are retained with `deleted_at`; storage artifacts remain in place until the Milestone C TTL cleaner exists.

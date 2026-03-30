@@ -44,6 +44,8 @@ process.env.NEXT_PUBLIC_APP_URL ??
 2. Use separate `JOBS_RUNNER_TOKEN` values for preview vs. production deployments.
 3. Consider adding a request signature (HMAC of jobId + timestamp) instead of relying solely on a static bearer token.
 
+**Status:** Fixed
+
 **Acknowledged?** No.
 
 ---
@@ -69,6 +71,8 @@ The cancel doesn't clear `run_token`, `claimed_at`, or `lease_expires_at`, so th
 1. Use `updateClaimedJobWorkerFields` with the current run_token (read-then-CAS), or
 2. Set a `cancel_requested` flag that the processor checks at each stage gate, or
 3. At minimum, clear `run_token` so the processor's next fenced update fails and the processor detects claim loss.
+
+**Status:** Fixed
 
 **Acknowledged?** No.
 
@@ -99,6 +103,8 @@ The invite UPDATE at step 4 is also not atomic with the profile INSERT — both 
 2. Consider using a Postgres advisory lock or `INSERT ... ON CONFLICT DO NOTHING` to make provisioning idempotent.
 3. Handle the unique violation error code gracefully by re-reading the profile instead of returning `bootstrap_failed`.
 
+**Status:** Open
+
 **Acknowledged?** No.
 
 ---
@@ -114,6 +120,8 @@ The invite UPDATE at step 4 is also not atomic with the profile INSERT — both 
 **Current mitigations:** An unauthenticated client gets a redirect with cookie cleared — minimal work done per request. The `/api/auth` path is public so middleware doesn't verify the session.
 
 **Recommendation:** Add `checkRateLimit(apiLimit, identifier)` to the logout route for consistency. Low priority.
+
+**Status:** Open
 
 **Acknowledged?** No.
 
