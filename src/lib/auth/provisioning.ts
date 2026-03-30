@@ -4,16 +4,25 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { SessionRole } from "@/lib/auth/types";
 
 export type ProvisioningErrorCode = "no_invite" | "bootstrap_failed";
+const PG_UNIQUE_VIOLATION = "23505";
+
+async function readExistingProfile(
+  admin: ReturnType<typeof createServiceClient>,
+  userId: string,
+) {
+  const { data } = await admin
+    .from("profiles")
+    .select("org_id, role")
+    .eq("user_id", userId)
+    .single();
+
+  return data ?? null;
+}
 
 export async function resolveUserProfile(user: User) {
   const admin = createServiceClient();
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("org_id, role")
-    .eq("user_id", user.id)
-    .single();
-
+  const profile = await readExistingProfile(admin, user.id);
   if (profile) {
     return {
       orgId: profile.org_id,
@@ -48,6 +57,17 @@ export async function resolveUserProfile(user: User) {
       });
 
     if (profileError) {
+      if (profileError.code === PG_UNIQUE_VIOLATION) {
+        const raceProfile = await readExistingProfile(admin, user.id);
+        if (raceProfile) {
+          return {
+            orgId: raceProfile.org_id,
+            role: raceProfile.role as SessionRole,
+            errorCode: null as ProvisioningErrorCode | null,
+          };
+        }
+      }
+
       return {
         orgId: null,
         role: null,
@@ -89,6 +109,17 @@ export async function resolveUserProfile(user: User) {
   });
 
   if (profileError) {
+    if (profileError.code === PG_UNIQUE_VIOLATION) {
+      const raceProfile = await readExistingProfile(admin, user.id);
+      if (raceProfile) {
+        return {
+          orgId: raceProfile.org_id,
+          role: raceProfile.role as SessionRole,
+          errorCode: null as ProvisioningErrorCode | null,
+        };
+      }
+    }
+
     return {
       orgId: null,
       role: null,
