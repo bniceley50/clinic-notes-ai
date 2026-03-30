@@ -227,6 +227,7 @@ export async function listQueuedJobs(): Promise<{
     .select(JOB_COLUMNS)
     .eq("status", "queued")
     .is("deleted_at", null)
+    .not("audio_storage_path", "is", null)
     .order("created_at", { ascending: true });
 
   if (error) {
