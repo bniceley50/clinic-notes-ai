@@ -22,8 +22,7 @@ export async function middleware(request: NextRequest) {
   if (
     /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
     /^\/api\/jobs\/[^/]+\/process$/.test(pathname) ||
-    pathname === "/api/jobs/runner" ||
-    pathname === "/api/sentry-smoke-server"
+    pathname === "/api/jobs/runner"
   ) {
     return NextResponse.next();
   }
