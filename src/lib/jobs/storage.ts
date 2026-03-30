@@ -58,7 +58,7 @@ export function buildAudioStoragePath(input: {
   sessionId: string;
   jobId: string;
 }): string {
-  return `audio/${input.orgId}/${input.sessionId}/${input.jobId}/recording.webm`;
+  return `${input.orgId}/${input.sessionId}/${input.jobId}/recording.webm`;
 }
 
 export function buildTranscriptStoragePath(input: {
@@ -66,7 +66,7 @@ export function buildTranscriptStoragePath(input: {
   sessionId: string;
   jobId: string;
 }): string {
-  return `transcripts/${input.orgId}/${input.sessionId}/${input.jobId}/transcript.txt`;
+  return `${input.orgId}/${input.sessionId}/${input.jobId}/transcript.txt`;
 }
 
 export function buildDraftStoragePath(input: {
@@ -74,5 +74,5 @@ export function buildDraftStoragePath(input: {
   sessionId: string;
   jobId: string;
 }): string {
-  return `drafts/${input.orgId}/${input.sessionId}/${input.jobId}/note.md`;
+  return `${input.orgId}/${input.sessionId}/${input.jobId}/note.md`;
 }

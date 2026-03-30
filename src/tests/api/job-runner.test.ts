@@ -6,12 +6,14 @@ const {
   mockListExpiredRunningJobs,
   mockRequeueStaleLeasedJob,
   mockCheckRateLimit,
+  mockCleanupSoftDeletedArtifacts,
 } = vi.hoisted(() => ({
   mockJobsRunnerToken: vi.fn(),
   mockListQueuedJobs: vi.fn(),
   mockListExpiredRunningJobs: vi.fn(),
   mockRequeueStaleLeasedJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
+  mockCleanupSoftDeletedArtifacts: vi.fn(),
 }));
 
 vi.mock("@/lib/config", () => ({
@@ -22,6 +24,10 @@ vi.mock("@/lib/jobs/queries", () => ({
   listQueuedJobs: mockListQueuedJobs,
   listExpiredRunningLeasedJobs: mockListExpiredRunningJobs,
   requeueStaleLeasedJob: mockRequeueStaleLeasedJob,
+}));
+
+vi.mock("@/lib/storage/cleanup", () => ({
+  cleanupSoftDeletedArtifacts: mockCleanupSoftDeletedArtifacts,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -70,6 +76,10 @@ describe("GET /api/jobs/runner", () => {
       data: null,
       error: null,
     });
+    mockCleanupSoftDeletedArtifacts.mockResolvedValue({
+      cleaned: 0,
+      error: null,
+    });
   });
 
   afterEach(() => {
@@ -99,6 +109,7 @@ describe("GET /api/jobs/runner", () => {
         method: "POST",
       }),
     );
+    expect(mockCleanupSoftDeletedArtifacts).toHaveBeenCalledTimes(1);
     expect(payload).toEqual({ processed: 1 });
   });
 

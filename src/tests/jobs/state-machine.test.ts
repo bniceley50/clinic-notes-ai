@@ -107,7 +107,7 @@ const baseJob = {
   note_type: "soap",
   attempt_count: 0,
   error_message: null,
-  audio_storage_path: "audio/org-1/session-1/job-1/recording.webm",
+  audio_storage_path: "org-1/session-1/job-1/recording.webm",
   transcript_storage_path: null,
   draft_storage_path: null,
   claimed_at: null,
@@ -149,7 +149,7 @@ describe("job state machine", () => {
     mockInsert.mockResolvedValue({ error: null });
 
     mockUploadTranscript.mockResolvedValue({
-      storagePath: "transcripts/org-1/session-1/job-1/transcript.txt",
+      storagePath: "org-1/session-1/job-1/transcript.txt",
       error: null,
     });
 
@@ -245,7 +245,7 @@ describe("job state machine", () => {
         status: "complete",
         stage: "complete",
         progress: 100,
-        transcript_storage_path: "transcripts/org-1/session-1/job-1/transcript.txt",
+        transcript_storage_path: "org-1/session-1/job-1/transcript.txt",
         claimed_at: null,
         lease_expires_at: null,
         run_token: null,
@@ -342,7 +342,7 @@ describe("job state machine", () => {
     mockGetJobById.mockResolvedValue({
       ...baseJob,
       status: "complete",
-      transcript_storage_path: "transcripts/org-1/session-1/job-1/transcript.txt",
+      transcript_storage_path: "org-1/session-1/job-1/transcript.txt",
     });
 
     const result = await generateNoteForJob("job-1");

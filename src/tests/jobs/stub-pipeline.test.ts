@@ -33,9 +33,9 @@ vi.mock("../../lib/jobs/storage", () => ({
   ensureTranscriptsBucket: mockEnsureTranscriptsBucket,
   ensureDraftsBucket: vi.fn(),
   buildTranscriptStoragePath: vi.fn(
-    () => "transcripts/org-1/session-1/job-1/transcript.txt",
+    () => "org-1/session-1/job-1/transcript.txt",
   ),
-  buildDraftStoragePath: vi.fn(() => "drafts/org-1/session-1/job-1/note.md"),
+  buildDraftStoragePath: vi.fn(() => "org-1/session-1/job-1/note.md"),
 }));
 
 vi.mock("../../lib/jobs/stubs", () => ({
@@ -104,7 +104,7 @@ const baseJob = {
   note_type: "soap",
   attempt_count: 0,
   error_message: null,
-  audio_storage_path: "audio/org-1/session-1/job-1/recording.webm",
+  audio_storage_path: "org-1/session-1/job-1/recording.webm",
   transcript_storage_path: null,
   draft_storage_path: null,
   created_at: "2026-03-09T10:00:00.000Z",
@@ -156,6 +156,13 @@ describe("stub transcript-only pipeline", () => {
     const result = await runPromise;
 
     expect(result).toEqual({ jobId: "job-1", status: "completed" });
+    expect(mockStorageUpload).toHaveBeenCalledWith(
+      "org-1/session-1/job-1/transcript.txt",
+      expect.any(Blob),
+      expect.objectContaining({
+        upsert: true,
+      }),
+    );
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
       actorId: "user-1",

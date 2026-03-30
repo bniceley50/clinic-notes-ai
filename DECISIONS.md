@@ -252,3 +252,27 @@ expiry. This is an accepted pre-production tradeoff.
 coincides with a known credential compromise event, re-evaluate whether
 read-side should also fail closed, with appropriate operational runbook coverage
 for the resulting app-wide 401 behavior.
+
+---
+
+## D013: Milestone C Artifact Cleanup — Blob TTL, No Row Hard-Delete in Production
+
+**Date:** 2026-03-30
+**Status:** Accepted
+**Context:** D008 deferred storage artifact cleanup to a TTL job. Soft-deleted
+rows accumulate indefinitely; storage blobs for deleted sessions are never
+reclaimed until this cleaner runs.
+**Decision:** The TTL cleaner (`cleanupSoftDeletedArtifacts`) removes storage
+objects only. It does not hard-delete patient-related rows in production.
+Row hard-delete is reserved for the test-only purge path (`purgeTestSoftDeletedData`),
+which requires `ALLOW_TEST_PURGE=1` and bypasses the TTL age check.
+The cleaner piggybacks on the existing `/api/jobs/runner` cron route as a
+non-blocking phase. Failures are logged but do not fail the runner response.
+**TTL value:** Controlled by `JOB_TTL_SECONDS` (default 86400 seconds / 24h).
+**Consequence:** Production patient rows are never physically destroyed by
+automated processes. Storage costs are controlled by expiring blobs after TTL.
+Test environments can reclaim both blobs and rows via the guarded purge path.
+**Path format:** Storage paths in `jobs` are bucket-relative
+(e.g. `org/session/job/recording.webm`). A defensive normalizer strips legacy
+prefixed paths (e.g. `audio/org/...`) produced by older stub builders, for
+forward compatibility with any dev/test data predating this migration.

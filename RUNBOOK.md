@@ -165,7 +165,7 @@ must be reverted, write and apply a compensating migration manually.
 - `AI_ENABLE_STUB_APIS`: forces stub AI behavior.
 - `AI_WHISPER_TIMEOUT_MS`: config getter exists, but the current Whisper implementation does not use it.
 - `AI_CLAUDE_TIMEOUT_MS`: timeout for the synchronous `/api/generate-note` Anthropic request.
-- `JOB_TTL_SECONDS`: config getter exists, but there is no active runtime callsite.
+- `JOB_TTL_SECONDS`: blob-retention TTL in seconds for soft-deleted job artifacts. The jobs runner removes audio/transcript/draft objects after this cutoff. Default: `86400` (24 hours).
 - `VERCEL_URL`: used by the jobs runner to infer its base URL if `NEXT_PUBLIC_APP_URL` is unset.
 - `VERCEL_AUTOMATION_BYPASS_SECRET`: optional header for protected Vercel automation calls.
 - `TRANSCRIPT_BUCKET`: overrides transcript bucket name for transcript upload/delete paths.
@@ -174,6 +174,7 @@ must be reverted, write and apply a compensating migration manually.
 ### Dev/Test Only
 
 - `ALLOW_DEV_LOGIN`: enables `/api/auth/dev-login` in development only.
+- `ALLOW_TEST_PURGE`: enables `purgeTestSoftDeletedData()` in test-only environments. Never set in production.
 - `NEXT_PUBLIC_ALLOW_DEV_LOGIN`: shows the `/dev-login` page in development.
 - `E2E_AUTH_STUB`: short-circuits dev login into a fixed local session.
 - `TEST_SUPABASE_URL`
@@ -484,7 +485,7 @@ Expected healthy result:
 - No admin UI exists for session revocation.
 - Jobs retry up to `3` attempts, but there is still no operator UI for retry visibility or control beyond the session page status panel.
 - No stuck-job tooling exists.
-- No automated TTL cleanup job exists yet for storage artifacts retained after soft-delete.
+- No operator UI exists for TTL cleanup visibility, manual re-run, or per-artifact inspection.
 - Bucket override support is inconsistent. `TRANSCRIPT_BUCKET` is partly honored; `AUDIO_BUCKET` is not consistently honored.
 - JTI discovery for per-session manual revocation has no app procedure.
 - `DEFAULT_PRACTICE_ID` is still required by config validation even though it has no meaningful active runtime callsite.
@@ -531,8 +532,8 @@ by application code.
 - RLS SELECT policies filter `deleted_at IS NULL` at the database layer
 - Application queries also filter `deleted_at IS NULL` explicitly
 - Storage artifacts (audio, transcripts, drafts) are retained after soft-delete
-  and are eligible for hard-delete only via the TTL cleanup job (Milestone C,
-  not yet implemented)
+  and are hard-deleted later by the TTL cleanup phase on `/api/jobs/runner`
+  once `deleted_at` is older than `JOB_TTL_SECONDS`
 
 See DECISIONS.md D008 for full rationale.
 
@@ -561,19 +562,20 @@ edit an applied migration. Write a compensating migration instead.
 
 ### Path patterns
 
-- Audio: `audio/{orgId}/{sessionId}/{jobId}/recording.<ext>`
-- Transcript: `transcripts/{orgId}/{sessionId}/{jobId}/transcript.txt`
-- Draft: `drafts/{orgId}/{sessionId}/{jobId}/note.md`
+- Audio object key in `audio`: `{orgId}/{sessionId}/{jobId}/recording.<ext>`
+- Transcript object key in `transcripts`: `{orgId}/{sessionId}/{jobId}/transcript.txt`
+- Draft object key in `drafts`: `{orgId}/{sessionId}/{jobId}/note.md`
 
 ### Cleanup behavior
 
 Current behavior:
-- No automatic retention or expiration
 - Session deletion uses soft-delete only (D008). No rows are physically
   removed by the application delete path.
-- Storage artifacts (audio, transcripts, drafts) are retained after
-  session soft-delete. Blob cleanup is deferred to the TTL job (Milestone C,
-  not yet implemented).
+- Blob cleanup runs automatically on the `/api/jobs/runner` cron route after
+  normal job maintenance. It removes audio, transcript, and draft objects for
+  soft-deleted jobs older than `JOB_TTL_SECONDS`.
+- Production cleanup clears artifact path columns on the soft-deleted `jobs`
+  rows after successful blob removal. It does not hard-delete patient rows.
 - Stored EHR extraction rows live in `public.carelogic_field_extractions`
 
 Soft-delete cascade on session delete:
@@ -605,7 +607,7 @@ Storage blobs are not touched during this operation.
 
 Cleanup behavior:
 - Session cleanup is handled by soft-delete (`deleted_at`) on the extraction row and its parent session.
-- Storage artifact cleanup is deferred to the future TTL job; session deletion no longer removes blobs immediately.
+- Blob cleanup is handled later by the TTL phase on `/api/jobs/runner`; session deletion still does not remove blobs immediately.
 
 ### Bucket override caveat
 

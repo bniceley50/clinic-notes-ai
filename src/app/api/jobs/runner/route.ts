@@ -5,6 +5,7 @@ import {
   listQueuedJobs,
   requeueStaleLeasedJob,
 } from "@/lib/jobs/queries";
+import { cleanupSoftDeletedArtifacts } from "@/lib/storage/cleanup";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -92,6 +93,16 @@ export const GET = withLogging(async (request: NextRequest) => {
       },
     });
   }
+
+  // Artifact cleanup phase — runs after job maintenance, non-blocking.
+  // Failures are logged but do not fail the runner response.
+  void cleanupSoftDeletedArtifacts().then(({ cleaned, error }) => {
+    if (error) {
+      console.error("[runner] artifact cleanup error:", error);
+    } else if (cleaned > 0) {
+      console.log(`[runner] cleaned ${cleaned} soft-deleted job artifact set(s)`);
+    }
+  });
 
   return NextResponse.json({
     processed: queued.data.length,
