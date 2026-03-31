@@ -23,5 +23,6 @@ export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   silent: true,
-  disableLogger: true,
+  // TEMPORARY: disableLogger removed to allow Sentry debug output in runtime logs.
+  // Restore logger stripping after transport diagnostics are complete.
 });
