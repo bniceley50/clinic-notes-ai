@@ -35,6 +35,7 @@ const VALID_STAGES = new Set([
   "exporting",
   "complete",
   "failed",
+  "cancelled",
 ]);
 
 export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
