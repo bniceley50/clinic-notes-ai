@@ -1,4 +1,4 @@
-export type JobStage = "queued" | "transcribing" | "complete" | "failed";
+export type JobStage = "queued" | "transcribing" | "complete" | "failed" | "cancelled";
 
 export type AdvancedJobStage = "drafting" | "exporting";
 
@@ -36,13 +36,15 @@ function normalizeStage(stage: string, status: string): AnyJobStage {
     stage === "drafting" ||
     stage === "exporting" ||
     stage === "complete" ||
-    stage === "failed"
+    stage === "failed" ||
+    stage === "cancelled"
   ) {
     return stage;
   }
 
   if (status === "failed") return "failed";
   if (status === "complete") return "complete";
+  if (status === "cancelled") return "cancelled";
   return "queued";
 }
 
