@@ -16,7 +16,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import { updateJobWorkerFields, getJobById } from "@/lib/jobs/queries";
-import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
+import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -52,8 +52,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const identifier = getIdentifier(request, null);
-  const limited = await checkRateLimit(apiLimit, identifier);
+  const limited = await checkRateLimit(workerLimit, "worker:update");
   if (limited) return limited;
 
   const { id } = await ctx.params;
