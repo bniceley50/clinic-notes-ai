@@ -63,6 +63,11 @@ export const GET = withLogging(async (request: NextRequest) => {
     },
   );
 
+  console.log(
+    "[runner] sentry client=",
+    Sentry.getClient() ? "initialized" : "NOT INITIALIZED",
+  ); // TEMPORARY
+
   const finishCheckIn = async (status: "ok" | "error") => {
     Sentry.captureCheckIn({
       checkInId,
