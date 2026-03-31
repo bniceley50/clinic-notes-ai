@@ -19,6 +19,7 @@ build/
 .env.production
 .env.development
 .env*.local
+.env.hawk
 
 # secrets and keys
 *.pem

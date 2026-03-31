@@ -1,0 +1,91 @@
+# StackHawk configuration for Clinic Notes AI
+# Docs: https://docs.stackhawk.com/configuration/
+#
+# Usage:
+#   hawk scan                          # scan against local dev server
+#   hawk scan --env staging            # scan against staging
+#
+# Required env vars:
+#   HAWK_API_KEY       — from app.stackhawk.com (Settings -> API Keys)
+#   APP_ID             — from app.stackhawk.com (Applications -> clinic-notes-ai -> App ID)
+#   APP_BASE_URL       — override per environment (see below)
+#   SESSION_COOKIE     — a valid production/staging session cookie value for auth
+#
+# To get a SESSION_COOKIE:
+#   1. Log in to the app in your browser
+#   2. Open DevTools -> Application -> Cookies -> clinicnotes.ai
+#   3. Copy the value of the cna_session cookie
+#   4. Set it as SESSION_COOKIE env var before running hawk scan
+
+app:
+  applicationId: ${APP_ID}
+  env: ${APP_ENV:-local}
+  host: ${APP_BASE_URL:-http://localhost:3000}
+
+  # Spider configuration — controls how StackHawk discovers routes
+  spider:
+    maxDuration: 2
+    # Seed URLs beyond the root so the spider finds authenticated routes
+    extraPaths:
+      - /login
+      - /dashboard
+      - /sessions
+      - /api/health
+
+  # Authentication — Clinic Notes AI uses cookie-based session auth
+  # StackHawk needs a valid session cookie to reach protected routes
+  antiCsrf:
+    enabled: false
+
+  authentication:
+    loggedInIndicator: "\\Qdashboard\\E"
+    loggedOutIndicator: "\\Qlogin\\E"
+    cookieAuthorization:
+      cookieNames:
+        - cna_session
+      cookieValues:
+        cna_session: ${SESSION_COOKIE}
+
+  # Routes to exclude from scanning entirely
+  # These are either internal-only, destructive, or handled by external auth
+  excludePaths:
+    # Cron/worker routes — use in-route auth, not cookie session
+    - /api/jobs/runner
+    - /api/jobs/.*/worker
+    - /api/jobs/.*/process
+    # Next.js internals
+    - /_next/.*
+    - /favicon.ico
+    # Static assets
+    - .*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?)$
+
+  # Route-specific configuration
+  # Scan public routes without auth, protected routes with cookie
+  openApiConf:
+    enabled: false
+
+  # Hawk will test these routes specifically in addition to spidered routes
+  urlsToScan:
+    # Public routes
+    - /login
+    - /set-password
+    - /api/health
+    # Protected routes (requires SESSION_COOKIE)
+    - /dashboard
+    - /sessions
+    - /api/sessions
+    - /api/auth/logout
+
+  # Scan policy — what vulnerability classes to test
+  # Tailored for a Next.js / Supabase / healthcare SaaS
+  hawkAddOn:
+    enabled: true
+
+# Environment overrides
+# Use: hawk scan --env staging
+#      APP_BASE_URL=https://staging.clinicnotes.ai hawk scan --env staging
+#
+# Example .env.hawk (git-ignored):
+#   HAWK_API_KEY=hawk.xxxxx
+#   APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#   SESSION_COOKIE=<paste cna_session value here>
