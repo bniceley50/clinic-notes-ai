@@ -276,3 +276,24 @@ Test environments can reclaim both blobs and rows via the guarded purge path.
 (e.g. `org/session/job/recording.webm`). A defensive normalizer strips legacy
 prefixed paths (e.g. `audio/org/...`) produced by older stub builders, for
 forward compatibility with any dev/test data predating this migration.
+
+---
+
+## D014: Claude Code Governance Pack
+
+**Date:** 2026-03-31
+**Status:** Accepted
+
+### Decision
+Install module-level `CLAUDE.md` files, `.claude/settings.json` permission
+fencing, and a `tools/prompts/` template library.
+
+### Why
+- Prevent Claude Code from touching `.env`, secrets, or running destructive commands
+- Give Claude focused per-module context instead of loading the full root `CLAUDE.md`
+- Canonicalize prompt patterns for audit, review, debug, and scaffold sessions
+
+### Consequences
+- Claude Code sessions are now fail-closed on destructive ops by default
+- New modules should get a `CLAUDE.md` on creation, not after the fact
+- `tools/prompts/` is the canonical home for reusable session prompts
