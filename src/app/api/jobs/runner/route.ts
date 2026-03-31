@@ -63,6 +63,8 @@ export const GET = withLogging(async (request: NextRequest) => {
     },
   );
   const messageId = Sentry.captureMessage("runner-checkin-smoke"); // TEMPORARY
+  const sentryDsn = Sentry.getClient()?.getDsn()?.toString() ?? "unparseable";
+  const flushed = await Sentry.flush(2000); // TEMPORARY
 
   console.log(
     "[runner] sentry client=",
@@ -166,10 +168,12 @@ export const GET = withLogging(async (request: NextRequest) => {
         processed: queued.data.length,
         _debug: {
           sentryClient: Sentry.getClient() ? "initialized" : "NOT_INITIALIZED",
+          sentryDsn,
           dsn: process.env.SENTRY_DSN ? "set" : "missing",
           runtime: process.env.NEXT_RUNTIME ?? "unknown",
           checkInId,
           messageId,
+          flushed,
         },
       }),
       "ok",
