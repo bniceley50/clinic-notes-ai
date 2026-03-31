@@ -8,7 +8,7 @@
  * Read-side failure policy (isSessionRevoked): fails OPEN.
  * A Redis outage during a read allows the request through rather than
  * taking down the entire authenticated surface. This is an explicit
- * temporary tradeoff accepted pre-production — see DECISIONS.md D009.
+ * temporary tradeoff accepted pre-production — see DECISIONS.md D009b.
  *
  * Write-side failure policy (revokeSession): fails HARD.
  * A Redis outage during logout propagates the error to the caller.
@@ -63,7 +63,7 @@ export async function revokeSession(
  * Fails OPEN — returns false on any error or if Redis is not configured.
  * This is an explicit policy decision: a Redis outage during request
  * enforcement allows sessions through rather than causing a full
- * authenticated-app outage. See DECISIONS.md D009 for rationale and
+ * authenticated-app outage. See DECISIONS.md D009b for rationale and
  * the conditions under which this should be revisited.
  */
 export async function isSessionRevoked(

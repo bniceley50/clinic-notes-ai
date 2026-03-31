@@ -230,7 +230,7 @@ This file records architectural decisions and their rationale. Entries are appen
 
 ---
 
-## D009: Session Revocation Failure Policy — Asymmetric Fail Behavior
+## D009b: Session Revocation Failure Policy — Asymmetric Fail Behavior
 
 **Date:** 2026-03-30
 **Status:** Accepted (pre-production)
