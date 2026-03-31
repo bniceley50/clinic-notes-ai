@@ -63,7 +63,8 @@ export async function middleware(request: NextRequest) {
   if (
     /^\/api\/jobs\/[^/]+\/worker$/.test(pathname) ||
     /^\/api\/jobs\/[^/]+\/process$/.test(pathname) ||
-    pathname === "/api/jobs/runner"
+    pathname === "/api/jobs/runner" ||
+    pathname === "/api/sentry-smoke"
   ) {
     const res = NextResponse.next();
     return attachCsp(res, nonce, isProduction);
