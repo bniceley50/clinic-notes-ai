@@ -23,7 +23,6 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
   useEffect(() => {
     if (!blob || uploadedRef.current) return;
     uploadedRef.current = true;
-    setUploadError(null);
 
     const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
 
