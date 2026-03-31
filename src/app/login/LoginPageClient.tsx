@@ -113,7 +113,7 @@ export function LoginPageClient({
   };
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#F9F9F9" }}>
+    <div className="flex min-h-screen flex-col bg-nav-bg">
       <div
         className="fixed top-0 left-0 right-0 flex items-center px-4 z-10"
         style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
@@ -125,16 +125,15 @@ export function LoginPageClient({
         <div className="card-ql w-full max-w-sm p-8 mt-8 space-y-6">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold"
-              style={{ backgroundColor: "#3B276A" }}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold bg-primary"
             >
               CN
             </div>
             <div>
-              <p className="text-sm font-bold" style={{ color: "#3B276A" }}>
+              <p className="text-sm font-bold text-primary">
                 Structured documentation for behavioral health
               </p>
-              <p className="text-xs" style={{ color: "#777777" }}>
+              <p className="text-xs text-text-muted">
                 Review transcripts, extract EHR-ready fields, and optionally draft notes for clinician review.
               </p>
             </div>
@@ -165,8 +164,7 @@ export function LoginPageClient({
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-                style={{ color: "#517AB7" }}
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider text-accent"
               >
                 Email Address
               </label>
@@ -184,8 +182,7 @@ export function LoginPageClient({
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-                style={{ color: "#517AB7" }}
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider text-accent"
               >
                 Password
               </label>
@@ -201,13 +198,13 @@ export function LoginPageClient({
             </div>
 
             {error && (
-              <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
+              <p className="text-sm font-medium text-alert">
                 {error}
               </p>
             )}
 
             {resetSent && !error && (
-              <p className="text-sm font-medium" style={{ color: "#517AB7" }}>
+              <p className="text-sm font-medium text-accent">
                 Check your email for a password reset link.
               </p>
             )}
@@ -224,14 +221,13 @@ export function LoginPageClient({
               type="button"
               onClick={handleForgotPassword}
               disabled={loading || !email}
-              className="w-full text-sm"
-              style={{ color: "#517AB7" }}
+              className="w-full text-sm text-accent"
             >
               Forgot password?
             </button>
           </form>
 
-          <p className="text-[11px] text-center" style={{ color: "#777777" }}>
+          <p className="text-[11px] text-center text-text-muted">
             Sign in with your email and password to access your session workspace.
           </p>
         </div>

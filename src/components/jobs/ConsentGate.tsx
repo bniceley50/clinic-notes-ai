@@ -74,15 +74,13 @@ export function ConsentGate({
       }}
     >
       <p
-        className="text-sm font-semibold"
-        style={{ color: "#8A4B08" }}
+        className="text-sm font-semibold text-[#8A4B08]"
       >
         Patient Consent Required
       </p>
 
       <p
-        className="text-xs"
-        style={{ color: "#8A4B08" }}
+        className="text-xs text-[#8A4B08]"
       >
         Before recording, confirm that the patient has verbally consented to
         AI-assisted documentation. Audio will be processed by OpenAI
@@ -90,8 +88,7 @@ export function ConsentGate({
       </p>
 
       <label
-        className="flex items-start gap-2 text-xs cursor-pointer"
-        style={{ color: "#8A4B08" }}
+        className="flex items-start gap-2 text-xs cursor-pointer text-[#8A4B08]"
       >
         <input
           type="checkbox"
@@ -136,8 +133,7 @@ export function ConsentGate({
 
       {error && (
         <p
-          className="text-xs font-medium"
-          style={{ color: "#CC2200" }}
+          className="text-xs font-medium text-alert"
           role="alert"
         >
           {error}
@@ -146,8 +142,7 @@ export function ConsentGate({
 
       {declined && (
         <p
-          className="text-xs font-medium"
-          style={{ color: "#CC2200" }}
+          className="text-xs font-medium text-alert"
           role="alert"
         >
           Consent declined. No job can be started for this session.

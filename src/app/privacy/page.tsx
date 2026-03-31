@@ -3,27 +3,27 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function PrivacyPage() {
   return (
-    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#F9F9F9" }}>
+    <div className="flex min-h-screen flex-col bg-nav-bg">
       <div
         className="flex items-center px-4"
         style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
       >
-        <Link href="/login" className="text-xs font-semibold tracking-wide no-underline" style={{ color: "#ffffff" }}>
+        <Link href="/login" className="text-xs font-semibold tracking-wide no-underline text-white">
           Clinic Notes AI
         </Link>
       </div>
 
       <main className="flex-1 px-6 py-8 mx-auto w-full max-w-2xl">
-        <h1 className="text-base font-bold uppercase tracking-wider mb-1" style={{ color: "#517AB7" }}>
+        <h1 className="text-base font-bold uppercase tracking-wider mb-1 text-accent">
           Privacy Policy
         </h1>
-        <p className="text-[11px] mb-6" style={{ color: "#777777" }}>
+        <p className="text-[11px] mb-6 text-text-muted">
           Last updated: March 24, 2026
         </p>
 
-        <div className="card-ql p-6 space-y-5 text-sm" style={{ color: "#333333" }}>
+        <div className="card-ql p-6 space-y-5 text-sm text-text-body">
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               1. Who We Are
             </h2>
             <p>
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               2. Information We Collect
             </h2>
             <p>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               3. How We Use Information
             </h2>
             <p>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               4. Third-Party Services
             </h2>
             <p>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               5. Data Isolation and Security
             </h2>
             <p>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               6. Data Retention
             </h2>
             <p>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               7. Your Rights
             </h2>
             <p>
@@ -132,7 +132,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               8. HIPAA Notice
             </h2>
             <p>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               9. Changes to This Policy
             </h2>
             <p>
@@ -156,12 +156,12 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#517AB7" }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-accent">
               10. Contact
             </h2>
             <p>
               For privacy-related questions or data requests, contact us at{" "}
-              <a href="mailto:brian@niceley.ai" style={{ color: "#517AB7" }}>
+              <a href="mailto:brian@niceley.ai" className="text-accent">
                 brian@niceley.ai
               </a>.
             </p>

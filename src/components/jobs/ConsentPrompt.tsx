@@ -22,7 +22,7 @@ export function ConsentPrompt({ sessionId, onConsented }: Props) {
         Record Consent
       </div>
       <div className="p-3">
-        <p className="text-xs" style={{ color: "#333333" }}>
+        <p className="text-xs text-text-body">
           Before recording, confirm that the patient has verbally consented to
           AI-assisted documentation. Audio will be processed by OpenAI
           (transcription) and Anthropic (EHR field extraction).

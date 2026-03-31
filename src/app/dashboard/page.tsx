@@ -36,14 +36,13 @@ export default async function DashboardPage() {
 
     return (
       <main
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: "#F9F9F9" }}
+        className="flex min-h-screen items-center justify-center bg-nav-bg"
       >
         <div className="card-ql w-full max-w-md space-y-4 p-8">
-          <h1 className="text-base font-bold" style={{ color: "#CC2200" }}>
+          <h1 className="text-base font-bold text-alert">
             {title}
           </h1>
-          <p className="text-sm" style={{ color: "#333333" }}>
+          <p className="text-sm text-text-body">
             {message}
           </p>
           <form action="/api/auth/logout" method="POST">
@@ -84,12 +83,11 @@ export default async function DashboardPage() {
     >
       <div className="mb-5">
         <h1
-          className="text-base font-bold uppercase tracking-wider"
-          style={{ color: "#517AB7" }}
+          className="text-base font-bold uppercase tracking-wider text-accent"
         >
           Documentation Dashboard
         </h1>
-        <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
+        <p className="mt-0.5 text-xs text-text-muted">
           Your session transcript and EHR extraction workspace
         </p>
       </div>
@@ -128,15 +126,13 @@ export default async function DashboardPage() {
             style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
           >
             <span
-              className="text-xs font-bold uppercase tracking-wider"
-              style={{ color: "#517AB7" }}
+              className="text-xs font-bold uppercase tracking-wider text-accent"
             >
               Recent Documentation Workspaces
             </span>
             <Link
               href="/sessions"
-              className="text-xs font-medium no-underline"
-              style={{ color: "#517AB7" }}
+              className="text-xs font-medium no-underline text-accent"
             >
               View all
             </Link>
@@ -156,11 +152,10 @@ export default async function DashboardPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-8 text-center"
-                    style={{ color: "#777777" }}
+                    className="py-8 text-center text-text-muted"
                   >
                     No sessions yet. Create a session to start a transcript and structured documentation workflow.{" "}
-                    <Link href="/sessions" style={{ color: "#517AB7" }}>
+                    <Link href="/sessions" className="text-accent">
                       Create one
                     </Link>
                   </td>
@@ -169,8 +164,7 @@ export default async function DashboardPage() {
               {recentRows.map((s) => (
                 <tr key={s.id}>
                   <td
-                    className="font-medium text-xs"
-                    style={{ color: "#0B1215" }}
+                    className="font-medium text-xs text-text-dark"
                   >
                     {s.patient_label || "Untitled"}
                   </td>
@@ -191,14 +185,13 @@ export default async function DashboardPage() {
                       {s.status}
                     </span>
                   </td>
-                  <td className="text-xs" style={{ color: "#777777" }}>
+                  <td className="text-xs text-text-muted">
                     {new Date(s.created_at).toLocaleDateString()}
                   </td>
                   <td className="text-right">
                     <Link
                       href={`/sessions/${s.id}`}
-                      className="text-xs font-medium no-underline"
-                      style={{ color: "#517AB7" }}
+                      className="text-xs font-medium no-underline text-accent"
                     >
                       Open
                     </Link>
@@ -225,22 +218,19 @@ export default async function DashboardPage() {
               <tbody>
                 <tr>
                   <td
-                    className="w-20 text-xs font-semibold"
-                    style={{ color: "#517AB7" }}
+                    className="w-20 text-xs font-semibold text-accent"
                   >
                     Name
                   </td>
                   <td
-                    className="text-xs font-semibold"
-                    style={{ color: "#0B1215" }}
+                    className="text-xs font-semibold text-text-dark"
                   >
                     {user.profile.display_name}
                   </td>
                 </tr>
                 <tr>
                   <td
-                    className="text-xs font-semibold"
-                    style={{ color: "#517AB7" }}
+                    className="text-xs font-semibold text-accent"
                   >
                     Role
                   </td>
@@ -252,12 +242,11 @@ export default async function DashboardPage() {
                 </tr>
                 <tr>
                   <td
-                    className="text-xs font-semibold"
-                    style={{ color: "#517AB7" }}
+                    className="text-xs font-semibold text-accent"
                   >
                     Org
                   </td>
-                  <td className="text-xs" style={{ color: "#333333" }}>
+                  <td className="text-xs text-text-body">
                     {user.org.name}
                   </td>
                 </tr>

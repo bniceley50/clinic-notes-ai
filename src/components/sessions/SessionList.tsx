@@ -115,7 +115,7 @@ export function SessionList({
         <tbody>
           {sessions.length === 0 && !error && (
             <tr>
-              <td colSpan={5} className="text-center py-8" style={{ color: "#777777" }}>
+              <td colSpan={5} className="text-center py-8 text-text-muted">
                 No sessions yet. Create one above.
               </td>
             </tr>
@@ -126,7 +126,7 @@ export function SessionList({
 
             return (
               <tr key={session.id}>
-                <td className="font-medium" style={{ color: "#0B1215" }}>
+                <td className="font-medium text-text-dark">
                   {session.patient_label || "Untitled session"}
                 </td>
                 <td>
@@ -146,7 +146,7 @@ export function SessionList({
                     {session.status}
                   </span>
                 </td>
-                <td className="text-xs" style={{ color: "#777777" }}>
+                <td className="text-xs text-text-muted">
                   {new Date(session.created_at).toLocaleString()}
                 </td>
                 <td className="text-right">

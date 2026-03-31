@@ -251,7 +251,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
             +10s
           </button>
           {!compact && (
-            <label className="flex items-center gap-2 text-xs" style={{ color: "#555555" }}>
+            <label className="flex items-center gap-2 text-xs text-[#555555]">
               <span>Speed</span>
               <select
                 value={playbackRate}
@@ -281,15 +281,14 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
             className="min-w-0 flex-1 accent-[#3B276A]"
             aria-label="Seek audio"
           />
-          <span className="shrink-0 text-xs tabular-nums" style={{ color: "#555555" }}>
+          <span className="shrink-0 text-xs tabular-nums text-[#555555]">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
           <button
             type="button"
             onClick={() => void handleDownload()}
             disabled={downloading}
-            className="shrink-0 text-xs font-medium"
-            style={{ color: "#517AB7" }}
+            className="shrink-0 text-xs font-medium text-accent"
           >
             {downloading ? "Downloading..." : "Download"}
           </button>

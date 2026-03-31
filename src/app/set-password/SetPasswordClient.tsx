@@ -170,8 +170,7 @@ export function SetPasswordClient() {
 
   return (
     <main
-      className="flex min-h-screen flex-col items-center justify-center"
-      style={{ backgroundColor: "#F9F9F9" }}
+      className="flex min-h-screen flex-col items-center justify-center bg-nav-bg"
     >
       <div
         className="fixed top-0 left-0 right-0 flex items-center px-4"
@@ -183,16 +182,15 @@ export function SetPasswordClient() {
       <div className="card-ql w-full max-w-sm p-8 mt-8 space-y-6">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold"
-            style={{ backgroundColor: "#3B276A" }}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-bold bg-primary"
           >
             CN
           </div>
           <div>
-            <p className="text-sm font-bold" style={{ color: "#3B276A" }}>
+            <p className="text-sm font-bold text-primary">
               Set your password
             </p>
-            <p className="text-xs" style={{ color: "#777777" }}>
+            <p className="text-xs text-text-muted">
               Finish account setup so you can sign in normally with email and password.
             </p>
           </div>
@@ -206,7 +204,7 @@ export function SetPasswordClient() {
         </div>
 
         {loading ? (
-          <p className="text-sm" style={{ color: "#333333" }}>
+          <p className="text-sm text-text-body">
             Setting up your account...
           </p>
         ) : session ? (
@@ -214,8 +212,7 @@ export function SetPasswordClient() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-                style={{ color: "#517AB7" }}
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider text-accent"
               >
                 New Password
               </label>
@@ -233,8 +230,7 @@ export function SetPasswordClient() {
             <div>
               <label
                 htmlFor="confirm-password"
-                className="block text-xs font-semibold mb-1 uppercase tracking-wider"
-                style={{ color: "#517AB7" }}
+                className="block text-xs font-semibold mb-1 uppercase tracking-wider text-accent"
               >
                 Confirm Password
               </label>
@@ -250,7 +246,7 @@ export function SetPasswordClient() {
             </div>
 
             {error && (
-              <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
+              <p className="text-sm font-medium text-alert">
                 {error}
               </p>
             )}
@@ -265,10 +261,10 @@ export function SetPasswordClient() {
           </form>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm font-medium" style={{ color: "#CC2200" }}>
+            <p className="text-sm font-medium text-alert">
               {error ?? "No active session. Please use a valid invite or reset link."}
             </p>
-            <a href="/login" className="text-sm" style={{ color: "#517AB7" }}>
+            <a href="/login" className="text-sm text-accent">
               Return to sign in
             </a>
           </div>

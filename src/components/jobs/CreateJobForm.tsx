@@ -244,7 +244,7 @@ export function CreateJobForm({
   if (mode === "advanced") {
     return (
       <div className="space-y-3">
-        <p className="text-xs" style={{ color: "#555555" }}>
+        <p className="text-xs text-[#555555]">
           Generate an optional draft note from the completed transcript.
           This is an advanced workflow and is not required for EHR field extraction.
         </p>
@@ -286,19 +286,19 @@ export function CreateJobForm({
           </button>
 
           {!shouldAllowJobStart(localConsentStatus) && (
-            <p className="text-xs font-medium" style={{ color: "#8A4B08" }}>
+            <p className="text-xs font-medium text-[#8A4B08]">
               Patient consent must be recorded before optional note generation is available.
             </p>
           )}
 
           {!transcript && (
-            <p className="text-xs font-medium" style={{ color: "#8A4B08" }}>
+            <p className="text-xs font-medium text-[#8A4B08]">
               A completed transcript is required before generating an optional note.
             </p>
           )}
 
           {error && (
-            <p className="text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+            <p className="text-sm font-medium text-alert" role="alert">
               {error}
             </p>
           )}
@@ -325,19 +325,19 @@ export function CreateJobForm({
         </div>
 
         {!canStartJob && !error && !jobId && (
-          <p className="mt-2 text-xs font-medium" style={{ color: "#8A4B08" }}>
+          <p className="mt-2 text-xs font-medium text-[#8A4B08]">
             Patient consent must be recorded before AI-assisted documentation can begin.
           </p>
         )}
 
         {hasActiveJob && !error && !jobId && (
-          <p className="mt-2 text-xs font-medium" style={{ color: "#746EB1" }}>
+          <p className="mt-2 text-xs font-medium text-secondary">
             This session already has an active job running.
           </p>
         )}
 
         {error && (
-          <p className="mt-2 text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+          <p className="mt-2 text-sm font-medium text-alert" role="alert">
             {error}
           </p>
         )}
@@ -367,7 +367,7 @@ export function CreateJobForm({
           )}
 
           {isConsentDeclined(localConsentStatus) && (
-            <p className="mt-3 text-xs font-medium" style={{ color: "#CC2200" }}>
+            <p className="mt-3 text-xs font-medium text-alert">
               Recording is blocked because the patient did not consent.
             </p>
           )}
@@ -416,14 +416,14 @@ export function CreateJobForm({
               )}
 
               {triggerPending && uploadComplete && (
-                <p className="mt-3 text-sm font-medium" style={{ color: "#746EB1" }}>
+                <p className="mt-3 text-sm font-medium text-secondary">
                   Audio uploaded - starting transcription...
                 </p>
               )}
 
               {triggerError && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium" style={{ color: "#CC2200" }} role="alert">
+                  <p className="text-sm font-medium text-alert" role="alert">
                     {triggerError}
                   </p>
                   <button
@@ -434,8 +434,7 @@ export function CreateJobForm({
                       }
                     }}
                     disabled={triggerPending}
-                    className="text-xs font-medium underline"
-                    style={{ color: "#517AB7" }}
+                    className="text-xs font-medium underline text-accent"
                   >
                     Try again
                   </button>
@@ -447,7 +446,7 @@ export function CreateJobForm({
       )}
 
       {audioUploaded && (
-        <p className="mt-3 text-sm font-medium" style={{ color: "#2F6F44" }}>
+        <p className="mt-3 text-sm font-medium text-[#2F6F44]">
           Audio uploaded - transcription started
         </p>
       )}

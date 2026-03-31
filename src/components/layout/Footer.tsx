@@ -17,21 +17,19 @@ export function Footer() {
       }}
     >
       <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-        <p className="text-[11px]" style={{ color: "#777777" }}>
+        <p className="text-[11px] text-text-muted">
           &copy; {year} Niceley AI Consulting LLC. All rights reserved.
         </p>
         <nav className="flex items-center gap-4">
           <Link
             href="/terms"
-            className="text-[11px] no-underline transition-colors"
-            style={{ color: "#777777" }}
+            className="text-[11px] no-underline transition-colors text-text-muted"
           >
             Terms of Service
           </Link>
           <Link
             href="/privacy"
-            className="text-[11px] no-underline transition-colors"
-            style={{ color: "#777777" }}
+            className="text-[11px] no-underline transition-colors text-text-muted"
           >
             Privacy Policy
           </Link>

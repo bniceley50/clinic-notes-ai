@@ -30,8 +30,7 @@ export function StatCard({ label, value, subtext, variant = "accent" }: Props) {
       />
       <div className="px-4 py-3">
         <p
-          className="text-[11px] font-bold uppercase tracking-wider"
-          style={{ color: "#777777" }}
+          className="text-[11px] font-bold uppercase tracking-wider text-text-muted"
         >
           {label}
         </p>
@@ -42,7 +41,7 @@ export function StatCard({ label, value, subtext, variant = "accent" }: Props) {
           {value}
         </p>
         {subtext && (
-          <p className="mt-1 text-[11px]" style={{ color: "#777777" }}>
+          <p className="mt-1 text-[11px] text-text-muted">
             {subtext}
           </p>
         )}

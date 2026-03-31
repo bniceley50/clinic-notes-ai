@@ -144,12 +144,12 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
       />
 
       {error && (
-        <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
+        <p className="mt-2 text-xs font-medium text-alert" role="alert">
           {error}
         </p>
       )}
       {!error && (
-        <p className="mt-2 text-xs" style={{ color: "#777777" }}>
+        <p className="mt-2 text-xs text-text-muted">
           Supported formats: WebM, MP3, MP4, M4A, OGG, WAV.
         </p>
       )}

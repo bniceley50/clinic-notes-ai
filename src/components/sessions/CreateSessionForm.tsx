@@ -27,16 +27,14 @@ export function CreateSessionForm() {
       data-testid="create-session-form"
     >
       <h2
-        className="mb-4 text-xs font-bold uppercase tracking-wider"
-        style={{ color: "#517AB7" }}
+        className="mb-4 text-xs font-bold uppercase tracking-wider text-accent"
       >
         New Session
       </h2>
 
       {state.error && (
         <p
-          className="mb-3 text-sm font-medium"
-          style={{ color: "#CC2200" }}
+          className="mb-3 text-sm font-medium text-alert"
           role="alert"
         >
           {state.error}
@@ -67,7 +65,7 @@ export function CreateSessionForm() {
             value={patientIdentifier}
             onChange={(event) => setPatientIdentifier(event.target.value)}
           />
-          <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+          <p className="mt-1 text-xs text-text-muted">
             Use chart numbers or initials only. Do not enter real patient
             names.
           </p>

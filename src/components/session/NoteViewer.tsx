@@ -148,8 +148,7 @@ export function NoteViewer({
       >
         <div className="flex items-center gap-2">
           <span
-            className="text-xs font-bold uppercase tracking-wider"
-            style={{ color: "#517AB7" }}
+            className="text-xs font-bold uppercase tracking-wider text-accent"
           >
             {noteType.toUpperCase()} Note
           </span>
@@ -196,9 +195,8 @@ export function NoteViewer({
           <button
             type="button"
             onClick={() => setShowWarning(false)}
-            className="ml-4 font-bold text-sm leading-none"
+            className="ml-4 font-bold text-sm leading-none text-primary"
             aria-label="Dismiss"
-            style={{ color: "#3B276A" }}
           >
             ✕
           </button>
@@ -207,7 +205,7 @@ export function NoteViewer({
 
       {/* ── Note body — sectioned ───────────────────────── */}
       {hasContent ? (
-        <div className="divide-y" style={{ borderColor: "#E7E9EC" }} data-testid="clinical-note-content">
+        <div className="divide-y border-border-subtle" data-testid="clinical-note-content">
           {sections.map((section) => (
             <div key={section.heading}>
               {/* Section header strip */}
@@ -237,7 +235,7 @@ export function NoteViewer({
           ))}
         </div>
       ) : (
-        <div className="px-4 py-6 text-center text-sm" style={{ color: "#777777" }}>
+        <div className="px-4 py-6 text-center text-sm text-text-muted">
           <p>No note content yet.</p>
           <p className="mt-1 text-xs">Start a job above to generate a draft.</p>
         </div>

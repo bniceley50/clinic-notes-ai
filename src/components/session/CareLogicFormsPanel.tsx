@@ -111,7 +111,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
   if (state.loading) {
     return (
       <div className="ql-panel" data-testid="carelogic-forms-panel-loading">
-        <div className="flex items-center gap-2 text-sm" style={{ color: "#746EB1" }}>
+        <div className="flex items-center gap-2 text-sm text-secondary">
           <span
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}

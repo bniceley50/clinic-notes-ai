@@ -16,10 +16,10 @@ function MiniBar({ value, max, color = "#517AB7" }: { value: number; max: number
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
+      <div className="flex-1 h-2 rounded-[2px] bg-[#E7E9EC]">
         <div className="h-2 rounded-[2px]" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
-      <span className="text-xs w-6 text-right" style={{ color: "#777777" }}>{value}</span>
+      <span className="text-xs w-6 text-right text-text-muted">{value}</span>
     </div>
   );
 }
@@ -64,10 +64,10 @@ export default async function ReportsPage() {
     >
       {/* Page heading */}
       <div className="mb-5">
-        <h1 className="text-base font-bold uppercase tracking-wider" style={{ color: "#517AB7" }}>
+        <h1 className="text-base font-bold uppercase tracking-wider text-accent">
           Reports
         </h1>
-        <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
+        <p className="mt-0.5 text-xs text-text-muted">
           Clinical activity summary - {user.org.name}
         </p>
       </div>
@@ -89,10 +89,10 @@ export default async function ReportsPage() {
             className="flex items-center justify-between px-4 py-2 border-b"
             style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
           >
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#517AB7" }}>
+            <span className="text-xs font-bold uppercase tracking-wider text-accent">
               Session Activity
             </span>
-            <span className="text-xs" style={{ color: "#777777" }}>
+            <span className="text-xs text-text-muted">
               Showing {tableRows.length} of {total}
             </span>
           </div>
@@ -110,14 +110,14 @@ export default async function ReportsPage() {
             <tbody>
               {tableRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8" style={{ color: "#777777" }}>
+                  <td colSpan={6} className="text-center py-8 text-text-muted">
                     No sessions found.
                   </td>
                 </tr>
               )}
               {tableRows.map((s) => (
                 <tr key={s.id}>
-                  <td className="text-xs font-semibold" style={{ color: "#0B1215" }}>
+                  <td className="text-xs font-semibold text-text-dark">
                     {s.patient_label || "Untitled"}
                   </td>
                   <td>
@@ -130,14 +130,14 @@ export default async function ReportsPage() {
                       {s.status}
                     </span>
                   </td>
-                  <td className="text-xs" style={{ color: "#777777" }}>
+                  <td className="text-xs text-text-muted">
                     {new Date(s.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-xs" style={{ color: "#777777" }}>
+                  <td className="text-xs text-text-muted">
                     {new Date(s.updated_at).toLocaleDateString()}
                   </td>
                   <td className="text-right">
-                    <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline" style={{ color: "#517AB7" }}>
+                    <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline text-accent">
                       Open
                     </Link>
                   </td>
@@ -160,13 +160,13 @@ export default async function ReportsPage() {
             </div>
             <div className="p-3 space-y-2">
               {typeEntries.length === 0 && (
-                <p className="text-xs" style={{ color: "#777777" }}>No data</p>
+                <p className="text-xs text-text-muted">No data</p>
               )}
               {typeEntries.map(([type, count]) => (
                 <div key={type}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium capitalize" style={{ color: "#333333" }}>{type}</span>
-                    <span className="text-[10px] font-bold" style={{ color: "#517AB7" }}>
+                    <span className="text-xs font-medium capitalize text-text-body">{type}</span>
+                    <span className="text-[10px] font-bold text-accent">
                       {Math.round((count / total) * 100)}%
                     </span>
                   </div>
@@ -192,11 +192,11 @@ export default async function ReportsPage() {
                   >
                     {status}
                   </span>
-                  <span className="text-xs font-bold" style={{ color: "#333333" }}>{count}</span>
+                  <span className="text-xs font-bold text-text-body">{count}</span>
                 </div>
               ))}
               {Object.keys(statusCounts).length === 0 && (
-                <p className="text-xs" style={{ color: "#777777" }}>No data</p>
+                <p className="text-xs text-text-muted">No data</p>
               )}
             </div>
           </div>

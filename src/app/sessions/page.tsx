@@ -27,10 +27,10 @@ export default async function SessionsPage() {
       {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-base font-bold uppercase tracking-wider" style={{ color: "#517AB7" }}>
+          <h1 className="text-base font-bold uppercase tracking-wider text-accent">
             Sessions
           </h1>
-          <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
+          <p className="mt-0.5 text-xs text-text-muted">
             {user.org.name} - {user.profile.display_name}
           </p>
         </div>
@@ -41,7 +41,7 @@ export default async function SessionsPage() {
 
       {/* Error state */}
       {error && (
-        <p className="mt-4 text-sm font-medium" style={{ color: "#CC2200" }}>
+        <p className="mt-4 text-sm font-medium text-alert">
           Failed to load sessions: {error}
         </p>
       )}
