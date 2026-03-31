@@ -94,9 +94,9 @@ if (-not (Test-Path $envHawkPath)) {
 
 $hawkApiKey = $null
 $appId = $null
-Get-Content $envHawkPath | ForEach-Object {
-    if ($_ -match '^\s*HAWK_API_KEY\s*=\s*(.+)\s*$') { $script:hawkApiKey = $Matches[1].Trim() }
-    if ($_ -match '^\s*APP_ID\s*=\s*(.+)\s*$') { $script:appId = $Matches[1].Trim() }
+foreach ($line in (Get-Content $envHawkPath)) {
+    if ($line -match '^\s*HAWK_API_KEY\s*=\s*(.+)\s*$') { $hawkApiKey = $Matches[1].Trim() }
+    if ($line -match '^\s*APP_ID\s*=\s*(.+)\s*$') { $appId = $Matches[1].Trim() }
 }
 
 if (-not $hawkApiKey -or $hawkApiKey -match '^hawk\.x+$') {
@@ -117,14 +117,29 @@ Write-Host ""
 
 $stackhawkYml = Join-Path $repoRoot 'stackhawk.yml'
 
-docker run --rm `
-    -e "HAWK_API_KEY=$hawkApiKey" `
-    -e "APP_ID=$appId" `
-    -e "APP_ENV=local" `
-    -e "APP_BASE_URL=http://host.docker.internal:3000" `
-    -e "SESSION_COOKIE=$sessionCookie" `
-    -v "${stackhawkYml}:/hawk/stackhawk.yml" `
-    stackhawk/hawkscan
+# Write a temp Docker env file to bypass all PS 5.1 variable-passing issues.
+# Docker --env-file reads KEY=VALUE directly from disk — no shell interpolation.
+$dockerEnvFile = Join-Path $repoRoot '.hawk-docker.env'
+try {
+    @(
+        "API_KEY=$hawkApiKey",
+        "APP_ID=$appId",
+        "APP_ENV=local",
+        "APP_BASE_URL=http://host.docker.internal:3000",
+        "SESSION_COOKIE=$sessionCookie"
+    ) | Set-Content -Path $dockerEnvFile -Encoding ASCII
+
+    $dockerArgs = @(
+        'run', '--rm',
+        '--env-file', $dockerEnvFile,
+        '-v', "${stackhawkYml}:/hawk/stackhawk.yml",
+        'stackhawk/hawkscan'
+    )
+    & docker @dockerArgs
+} finally {
+    # Always clean up the temp env file (contains secrets)
+    Remove-Item $dockerEnvFile -Force -ErrorAction SilentlyContinue
+}
 
 $exitCode = $LASTEXITCODE
 
