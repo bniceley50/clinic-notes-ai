@@ -26,3 +26,5 @@ Sentry.init({
     return breadcrumb;
   },
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
