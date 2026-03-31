@@ -3,7 +3,9 @@ import * as Sentry from "@sentry/nextjs";
 const tracesSampleRate = process.env.NODE_ENV === "production" ? 0.1 : 1.0;
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  // Server runtime uses SENTRY_DSN (not exposed to the client).
+  // NEXT_PUBLIC_SENTRY_DSN is for the browser SDK only.
+  dsn: process.env.SENTRY_DSN,
   tracesSampleRate,
   sendDefaultPii: false,
   beforeSend(event) {
