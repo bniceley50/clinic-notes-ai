@@ -48,6 +48,15 @@ See `.env.example` for all required and optional variables.
 | [RUNBOOK.md](./RUNBOOK.md) | Current operational behavior, failure modes, and operator procedures |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Current runtime data flow and component map |
 
+## Portfolio & Hiring Resources
+
+| Doc | Purpose |
+|-----|---------|
+| [docs/PORTFOLIO_PACK.md](./docs/PORTFOLIO_PACK.md) | One-page project brief, architecture snapshot, and resume bullets |
+| [docs/INTERVIEW_STORIES.md](./docs/INTERVIEW_STORIES.md) | STAR-style interview stories from real project issues/fixes |
+| [docs/DEMO_SCRIPT_5MIN.md](./docs/DEMO_SCRIPT_5MIN.md) | Time-boxed 5-minute demo script |
+| [docs/LINKEDIN_META_APPLICATION_BULLETS.md](./docs/LINKEDIN_META_APPLICATION_BULLETS.md) | Role-targeted bullets for LinkedIn and Meta/Facebook applications |
+
 ## Scripts
 
 ```bash
