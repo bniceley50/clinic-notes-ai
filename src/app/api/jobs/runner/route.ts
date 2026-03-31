@@ -62,6 +62,7 @@ export const GET = withLogging(async (request: NextRequest) => {
       timezone: "UTC",
     },
   );
+  const messageId = Sentry.captureMessage("runner-checkin-smoke"); // TEMPORARY
 
   console.log(
     "[runner] sentry client=",
@@ -167,6 +168,8 @@ export const GET = withLogging(async (request: NextRequest) => {
           sentryClient: Sentry.getClient() ? "initialized" : "NOT_INITIALIZED",
           dsn: process.env.SENTRY_DSN ? "set" : "missing",
           runtime: process.env.NEXT_RUNTIME ?? "unknown",
+          checkInId,
+          messageId,
         },
       }),
       "ok",
