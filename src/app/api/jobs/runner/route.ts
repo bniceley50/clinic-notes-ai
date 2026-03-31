@@ -163,6 +163,11 @@ export const GET = withLogging(async (request: NextRequest) => {
     return await respondWithCheckIn(
       NextResponse.json({
         processed: queued.data.length,
+        _debug: {
+          sentryClient: Sentry.getClient() ? "initialized" : "NOT_INITIALIZED",
+          dsn: process.env.SENTRY_DSN ? "set" : "missing",
+          runtime: process.env.NEXT_RUNTIME ?? "unknown",
+        },
       }),
       "ok",
     );
