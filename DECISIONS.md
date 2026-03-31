@@ -297,3 +297,47 @@ fencing, and a `tools/prompts/` template library.
 - Claude Code sessions are now fail-closed on destructive ops by default
 - New modules should get a `CLAUDE.md` on creation, not after the fact
 - `tools/prompts/` is the canonical home for reusable session prompts
+
+---
+
+## D015 — CSP Hardening: Nonce-Based script-src, Deferred style-src
+
+Date: 2026-03-31
+Status: Accepted
+
+### Context
+ZAP security scan (2026-03-31) confirmed that the production CSP in
+src/lib/security/headers.ts explicitly allows script-src 'unsafe-inline'
+and style-src 'unsafe-inline'. Both are real findings, not scanner noise.
+
+No app-authored inline scripts exist in the codebase. However, Next.js App
+Router emits framework-generated inline scripts for hydration and runtime
+bootstrapping, so removing 'unsafe-inline' from script-src requires
+per-request nonce plumbing — CSP must move from static next.config.ts
+headers to request-scoped middleware generation.
+
+### Decision
+1. Harden script-src to nonce-based CSP by moving CSP generation out of
+   next.config.ts static headers and into per-request middleware.
+2. Explicitly retain style-src 'unsafe-inline' as a temporary tradeoff.
+   The UI currently uses many inline React style={...} props (confirmed in
+   LoginPageClient.tsx and nearby). This is not incomplete work — it is a
+   deliberate deferral pending an inline-style refactor.
+3. Track the style-src cleanup as a separate future task.
+
+### Consequences
+- CSP is intentionally asymmetric post-implementation: script-src is
+  nonce-hardened, style-src retains 'unsafe-inline'
+- headers.ts will lose script-src 'unsafe-inline'
+- next.config.ts static CSP header for script-src will be removed
+- Middleware must generate and attach a fresh nonce on every request
+- The nonce must be passed to the Next.js runtime so framework-generated
+  scripts receive it
+- Future readers seeing style-src 'unsafe-inline' in headers.ts should
+  reference this entry before treating it as unfinished work
+
+### Related
+- ZAP scan report: 2026-03-31
+- src/lib/security/headers.ts
+- src/middleware.ts
+- next.config.ts

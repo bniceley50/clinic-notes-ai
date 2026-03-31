@@ -5,6 +5,7 @@ type SecurityHeader = {
 
 type SecurityHeadersOptions = {
   isProduction?: boolean;
+  nonce?: string;
 };
 
 const SUPABASE_ORIGINS = [
@@ -25,14 +26,24 @@ function joinSources(values: string[]): string {
 
 export function buildContentSecurityPolicy({
   isProduction = false,
+  nonce,
 }: SecurityHeadersOptions = {}): string {
-  const scriptSrc = ["'self'", "'unsafe-inline'"];
+  // Nonce-based script-src: replaces 'unsafe-inline' per D015.
+  // When nonce is present (middleware path), inline scripts are locked to
+  // framework-generated tags carrying that nonce value.
+  // 'unsafe-inline' is intentionally absent from this branch.
+  const scriptSrc = nonce
+    ? ["'self'", `'nonce-${nonce}'`]
+    : ["'self'", "'unsafe-inline'"]; // fallback only — should not reach production
 
-  // Keep local Next.js development functional without weakening production.
+  // Keep 'unsafe-eval' in development for Next.js HMR.
   if (!isProduction) {
     scriptSrc.push("'unsafe-eval'");
   }
 
+  // style-src retains 'unsafe-inline' as a deliberate temporary tradeoff.
+  // The UI uses many inline React style={...} props (e.g. layout.tsx, LoginPageClient.tsx).
+  // This is not incomplete work — see DECISIONS.md D015 before changing.
   const directives = [
     `default-src 'self'`,
     `base-uri 'self'`,
@@ -65,11 +76,16 @@ export function buildContentSecurityPolicy({
   return directives.join("; ");
 }
 
-export function buildSecurityHeaders({
+/**
+ * All security headers except Content-Security-Policy.
+ * Used by next.config.ts for static header emission.
+ * CSP is now request-scoped and emitted by middleware with a per-request nonce.
+ * See DECISIONS.md D015.
+ */
+export function buildNonCspSecurityHeaders({
   isProduction = false,
 }: SecurityHeadersOptions = {}): SecurityHeader[] {
   const headers: SecurityHeader[] = [
-    { key: "Content-Security-Policy", value: buildContentSecurityPolicy({ isProduction }) },
     { key: "Permissions-Policy", value: "camera=(), geolocation=(), microphone=(self)" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "X-Content-Type-Options", value: "nosniff" },
@@ -87,4 +103,22 @@ export function buildSecurityHeaders({
   }
 
   return headers;
+}
+
+/**
+ * Full security headers including CSP.
+ * Retained for non-middleware contexts and tests.
+ * next.config.ts should use buildNonCspSecurityHeaders instead.
+ */
+export function buildSecurityHeaders({
+  isProduction = false,
+  nonce,
+}: SecurityHeadersOptions = {}): SecurityHeader[] {
+  return [
+    {
+      key: "Content-Security-Policy",
+      value: buildContentSecurityPolicy({ isProduction, nonce }),
+    },
+    ...buildNonCspSecurityHeaders({ isProduction }),
+  ];
 }

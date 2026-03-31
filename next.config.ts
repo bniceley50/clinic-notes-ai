@@ -1,14 +1,17 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
-import { buildSecurityHeaders } from "./src/lib/security/headers";
+import { buildNonCspSecurityHeaders } from "./src/lib/security/headers";
 
+// CSP is intentionally absent from static headers.
+// It is now emitted per-request by middleware with a nonce value.
+// See DECISIONS.md D015.
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     return [
       {
         source: "/:path*",
-        headers: buildSecurityHeaders({
+        headers: buildNonCspSecurityHeaders({
           isProduction: process.env.NODE_ENV === "production",
         }),
       },
