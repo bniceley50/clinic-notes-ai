@@ -6,6 +6,7 @@ Sentry.init({
   // Edge runtime uses SENTRY_DSN (not exposed to the client).
   // NEXT_PUBLIC_SENTRY_DSN is for the browser SDK only.
   dsn: process.env.SENTRY_DSN,
+  environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development",
   tracesSampleRate,
   sendDefaultPii: false,
   beforeSend(event) {
