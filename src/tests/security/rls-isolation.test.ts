@@ -1,30 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-type SessionRow = {
-  id: string
-  org_id: string
-  created_by: string
-}
-
-type JobRow = {
-  id: string
-  session_id: string
-  org_id: string
-  created_by: string
-  status: string
-  stage: string
-  note_type: string
-}
-
-type NoteRow = {
-  id: string
-  session_id: string
-  org_id: string
-  created_by: string
-  content: string
-}
-
 type ExtractionRow = {
   id: string
   session_id: string
@@ -32,13 +8,6 @@ type ExtractionRow = {
   job_id: string
   transcript_id: string
   generated_by: string
-}
-
-type ConsentRow = {
-  id: string
-  session_id: string
-  org_id: string
-  clinician_id: string
 }
 
 const supabaseUrl = process.env.TEST_SUPABASE_URL ?? 'http://127.0.0.1:54321'

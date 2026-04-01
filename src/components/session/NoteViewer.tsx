@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 // ── Section definitions per note type ────────────────────────
 const NOTE_SECTIONS: Record<string, string[]> = {
@@ -205,7 +205,7 @@ export function NoteViewer({
 
       {/* ── Note body — sectioned ───────────────────────── */}
       {hasContent ? (
-        <div className="divide-y border-border-subtle" data-testid="clinical-note-content">
+        <div className="divide-y divide-border-subtle" data-testid="clinical-note-content">
           {sections.map((section) => (
             <div key={section.heading}>
               {/* Section header strip */}

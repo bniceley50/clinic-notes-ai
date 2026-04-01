@@ -1,5 +1,6 @@
 "use client";
 
+import "./globals.css";
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
