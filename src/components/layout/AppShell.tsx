@@ -15,10 +15,10 @@ type Props = {
  */
 export function AppShell({ user, userId, children }: Props) {
   return (
-    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#F9F9F9" }}>
+    <div className="flex min-h-screen flex-col bg-nav-bg">
       <SentryUserScope userId={userId} />
       <Header user={user} />
-      <main className="flex-1 px-6 py-6" style={{ backgroundColor: "#F9F9F9" }}>
+      <main className="flex-1 px-6 py-6 bg-nav-bg">
         {children}
       </main>
       <Footer />

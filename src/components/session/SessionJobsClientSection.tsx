@@ -60,7 +60,7 @@ export function SessionJobsClientSection({
           Session Capture
         </div>
         <div className="p-3">
-          <p className="mb-3 text-xs" style={{ color: "#777777" }}>
+          <p className="mb-3 text-xs text-text-muted">
             Record or upload session audio to create a reviewable transcript.
           </p>
           <CreateJobForm
@@ -86,22 +86,20 @@ export function SessionJobsClientSection({
             onJobCancelled={handleJobCancelled}
           />
           {completedAudioJobs.length > 0 ? (
-            <div className="space-y-3 border-t pt-3" style={{ borderColor: "#E7E9EC" }}>
+            <div className="space-y-3 border-t pt-3 border-border-subtle">
               {completedAudioJobs.map((job) => (
                 <div
                   key={job.id}
-                  className="space-y-2 rounded border p-3"
-                  style={{ borderColor: "#E7E9EC" }}
+                  className="space-y-2 rounded border p-3 border-border-subtle"
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <p
-                        className="text-xs font-semibold uppercase tracking-wide"
-                        style={{ color: "#3B276A" }}
+                        className="text-xs font-semibold uppercase tracking-wide text-primary"
                       >
                         Recorded audio
                       </p>
-                      <p className="text-xs" style={{ color: "#777777" }}>
+                      <p className="text-xs text-text-muted">
                         {new Date(job.created_at).toLocaleString()}
                       </p>
                     </div>

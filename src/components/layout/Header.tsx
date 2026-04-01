@@ -59,12 +59,11 @@ export function Header({ user }: Props) {
         {/* Logo mark */}
         <div className="flex items-center gap-3">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white text-sm font-bold"
-            style={{ backgroundColor: "#3B276A" }}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white text-sm font-bold bg-primary"
           >
             CN
           </div>
-          <span className="text-sm font-bold" style={{ color: "#3B276A" }}>
+          <span className="text-sm font-bold text-primary">
             Clinic Notes AI
           </span>
         </div>
@@ -115,10 +114,10 @@ export function Header({ user }: Props) {
         {/* User info + sign out */}
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-xs font-semibold" style={{ color: "#0B1215" }}>
+            <p className="text-xs font-semibold text-text-dark">
               {user.displayName}
             </p>
-            <p className="text-[11px]" style={{ color: "#777777" }}>
+            <p className="text-[11px] text-text-muted">
               {user.role}
             </p>
           </div>

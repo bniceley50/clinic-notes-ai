@@ -162,8 +162,7 @@ export function JobStatusPanel({
   if (state.jobs.length === 0) {
     return (
       <p
-        className="mt-6 text-center text-sm"
-        style={{ color: "#777777" }}
+        className="mt-6 text-center text-sm text-text-muted"
         data-testid="job-status-panel"
       >
         No jobs yet. Start one above.
@@ -183,7 +182,7 @@ export function JobStatusPanel({
              return (
                <>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#3B276A" }}>
+            <span className="text-sm font-bold uppercase tracking-wide text-primary">
               {getJobTitle(jobState, job.attempt_count)}
             </span>
             <span
@@ -196,18 +195,18 @@ export function JobStatusPanel({
             </span>
           </div>
 
-          <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+          <p className="mt-1 text-xs text-text-muted">
             Created {new Date(job.created_at).toLocaleDateString()} · Optional note format:{" "}
             <span className="font-medium">{formatNoteType(job.note_type)}</span>
           </p>
 
           {shouldShowJobProgress(jobState) && (
             <div className="mt-3">
-              <div className="mb-1 flex items-center justify-between text-xs" style={{ color: "#777777" }}>
+              <div className="mb-1 flex items-center justify-between text-xs text-text-muted">
                 <div className="flex items-center gap-3">
                   <span className="uppercase tracking-wide">{jobState.stage}</span>
                   {job.attempt_count > 1 && (
-                    <span className="font-medium" style={{ color: "#3B276A" }}>
+                    <span className="font-medium text-primary">
                       {retrying
                         ? `Retry ${job.attempt_count} of ${MAX_TRANSCRIPTION_ATTEMPTS}`
                         : `Attempt ${job.attempt_count} of ${MAX_TRANSCRIPTION_ATTEMPTS}`}
@@ -216,7 +215,7 @@ export function JobStatusPanel({
                 </div>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
-              <div className="h-1.5 w-full rounded-[2px]" style={{ backgroundColor: "#E7E9EC" }}>
+              <div className="h-1.5 w-full rounded-[2px] bg-[#E7E9EC]">
                 <div
                   className="h-1.5 rounded-[2px] transition-all duration-500"
                   style={{
@@ -229,7 +228,7 @@ export function JobStatusPanel({
           )}
 
           {!shouldShowJobProgress(jobState) && (
-            <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: "#777777" }}>
+            <div className="mt-2 flex items-center gap-4 text-xs text-text-muted">
               <span>
                 Stage: <span className="font-medium">{jobState.stage}</span>
               </span>
@@ -264,7 +263,7 @@ export function JobStatusPanel({
           )}
 
           {job.audio_storage_path && (
-            <p className="mt-2 text-xs font-medium" style={{ color: "#2E7D32" }}>
+            <p className="mt-2 text-xs font-medium text-success">
               &#10003; Audio uploaded
             </p>
           )}
@@ -287,31 +286,30 @@ export function JobStatusPanel({
           )}
 
           {job.error_message && (
-            <p className="mt-2 text-xs font-medium" style={{ color: "#CC2200" }}>
+            <p className="mt-2 text-xs font-medium text-alert">
               {job.error_message}
             </p>
           )}
 
           {exhaustedRetries && (
             <div className="mt-3 rounded-[2px] border px-3 py-2" style={{ borderColor: "#F4CCCC", backgroundColor: "#FFF4F2" }}>
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#B42318" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#B42318]">
                 What to do next
               </p>
-              <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+              <p className="mt-1 text-xs text-text-muted">
                 The transcription could not be completed after 3 attempts. Please try uploading the audio again or contact support if the problem continues.
               </p>
             </div>
           )}
 
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-[11px]" suppressHydrationWarning style={{ color: "#777777" }}>
+            <p className="text-[11px] text-text-muted" suppressHydrationWarning>
               {new Date(job.created_at).toLocaleString()}
             </p>
             {shouldShowJobProgress(jobState) && (
-              <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#746EB1" }}>
+              <span className="inline-flex items-center gap-1 text-xs text-secondary">
                 <span
-                  className="h-1.5 w-1.5 animate-pulse rounded-full"
-                  style={{ backgroundColor: "#746EB1" }}
+                  className="h-1.5 w-1.5 animate-pulse rounded-full bg-secondary"
                 />
                 Live
               </span>

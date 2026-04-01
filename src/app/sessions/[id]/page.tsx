@@ -117,8 +117,7 @@ export default async function SessionDetailPage({ params }: Props) {
       <div className="mb-4 flex items-center justify-between">
         <Link
           href="/sessions"
-          className="text-xs font-medium no-underline"
-          style={{ color: "#517AB7" }}
+          className="text-xs font-medium no-underline text-accent"
         >
           All Sessions
         </Link>
@@ -143,59 +142,59 @@ export default async function SessionDetailPage({ params }: Props) {
             <table>
               <tbody>
                 <tr>
-                  <td className="w-28 text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td className="w-28 text-xs font-semibold text-accent">
                     Patient
                   </td>
-                  <td className="text-xs font-semibold" style={{ color: "#0B1215" }}>
+                  <td className="text-xs font-semibold text-text-dark">
                     {session.patient_label || "Untitled"}
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td className="text-xs font-semibold text-accent">
                     Type
                   </td>
-                  <td className="text-xs" style={{ color: "#333333" }}>
+                  <td className="text-xs text-text-body">
                     {session.session_type}
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td className="text-xs font-semibold text-accent">
                     Created
                   </td>
-                  <td className="text-xs" style={{ color: "#777777" }}>
+                  <td className="text-xs text-text-muted">
                     {new Date(session.created_at).toLocaleString()}
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td className="text-xs font-semibold text-accent">
                     Updated
                   </td>
-                  <td className="text-xs" style={{ color: "#777777" }}>
+                  <td className="text-xs text-text-muted">
                     {new Date(session.updated_at).toLocaleString()}
                   </td>
                 </tr>
                 {session.completed_at && (
                   <tr>
-                    <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                    <td className="text-xs font-semibold text-accent">
                       Completed
                     </td>
-                    <td className="text-xs" style={{ color: "#777777" }}>
+                    <td className="text-xs text-text-muted">
                       {new Date(session.completed_at).toLocaleString()}
                     </td>
                   </tr>
                 )}
                 <tr>
-                  <td className="text-xs font-semibold" style={{ color: "#517AB7" }}>
+                  <td className="text-xs font-semibold text-accent">
                     Provider
                   </td>
-                  <td className="text-xs" style={{ color: "#333333" }}>
+                  <td className="text-xs text-text-body">
                     {user.profile.display_name}
                   </td>
                 </tr>
               </tbody>
             </table>
             {(user.role === "admin" || session.created_by === user.userId) && (
-              <div className="border-t px-3 py-3" style={{ borderColor: "#E7E9EC" }}>
+              <div className="border-t px-3 py-3 border-border-subtle">
                 <SessionDeleteButton
                   sessionId={session.id}
                   patientLabel={session.patient_label}
@@ -233,7 +232,7 @@ export default async function SessionDetailPage({ params }: Props) {
               <TranscriptViewer transcript={transcriptContent ?? ""} />
             </section>
           ) : (
-            <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
+            <div className="card-ql p-6 text-center text-sm text-text-muted">
               Upload audio to transcribe.
             </div>
           )}
@@ -246,7 +245,7 @@ export default async function SessionDetailPage({ params }: Props) {
               >
                 <p className="ql-kicker">Structured Documentation</p>
                 <h2 className="ql-panel-title">EHR-Ready Fields</h2>
-                <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+                <p className="mt-1 text-xs text-text-muted">
                   Extract structured EHR-ready fields directly from the transcript.
                 </p>
               </div>
@@ -268,7 +267,7 @@ export default async function SessionDetailPage({ params }: Props) {
                 <div>
                   <p className="ql-kicker">Advanced</p>
                   <h2 className="ql-panel-title">Optional Draft Note</h2>
-                  <p className="mt-1 text-xs" style={{ color: "#777777" }}>
+                  <p className="mt-1 text-xs text-text-muted">
                     Generate an optional draft note from the transcript if you need narrative documentation in addition to structured fields.
                   </p>
                 </div>
@@ -298,7 +297,7 @@ export default async function SessionDetailPage({ params }: Props) {
                     initialUpdatedAt={note.updated_at}
                   />
                 ) : (
-                  <div className="card-ql p-6 text-center text-sm" style={{ color: "#777777" }}>
+                  <div className="card-ql p-6 text-center text-sm text-text-muted">
                     No optional note has been generated for this session yet.
                   </div>
                 )}

@@ -50,10 +50,10 @@ export default async function SchedulePage() {
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-base font-bold uppercase tracking-wider" style={{ color: "#517AB7" }}>
+          <h1 className="text-base font-bold uppercase tracking-wider text-accent">
             Schedule
           </h1>
-          <p className="mt-0.5 text-xs" style={{ color: "#777777" }}>
+          <p className="mt-0.5 text-xs text-text-muted">
             Session history by day - {user.org.name}
           </p>
         </div>
@@ -63,9 +63,9 @@ export default async function SchedulePage() {
       </div>
 
       {sortedDates.length === 0 && (
-        <div className="card-ql p-8 text-center text-sm" style={{ color: "#777777" }}>
+        <div className="card-ql p-8 text-center text-sm text-text-muted">
           No sessions yet.{" "}
-          <Link href="/sessions" style={{ color: "#517AB7" }}>Create your first session</Link>
+          <Link href="/sessions" className="text-accent">Create your first session</Link>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export default async function SchedulePage() {
                     Today
                   </span>
                 )}
-                <span className="ml-auto text-xs" style={{ color: "#777777" }}>
+                <span className="ml-auto text-xs text-text-muted">
                   {daySessions.length} session{daySessions.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -105,8 +105,8 @@ export default async function SchedulePage() {
                 <tbody>
                   {daySessions.map((s) => (
                     <tr key={s.id}>
-                      <td className="text-xs font-mono" style={{ color: "#777777" }}>{formatTime(s.created_at)}</td>
-                      <td className="text-xs font-semibold" style={{ color: "#0B1215" }}>{s.patient_label || "Untitled"}</td>
+                      <td className="text-xs font-mono text-text-muted">{formatTime(s.created_at)}</td>
+                      <td className="text-xs font-semibold text-text-dark">{s.patient_label || "Untitled"}</td>
                       <td>
                         <span className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase" style={{ backgroundColor: "#F0F0F0", color: "#333333" }}>
                           {s.session_type}
@@ -118,7 +118,7 @@ export default async function SchedulePage() {
                         </span>
                       </td>
                       <td className="text-right">
-                        <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline" style={{ color: "#517AB7" }}>Open</Link>
+                        <Link href={`/sessions/${s.id}`} className="text-xs font-medium no-underline text-accent">Open</Link>
                       </td>
                     </tr>
                   ))}

@@ -56,8 +56,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
               setUploadError(null);
               void start();
             }}
-            className="flex w-full items-center justify-center gap-2 text-sm font-medium"
-            style={{ color: "#517AB7" }}
+            className="flex w-full items-center justify-center gap-2 text-sm font-medium text-accent"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z" />
@@ -65,14 +64,14 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
             </svg>
             Start recording
           </button>
-          <p className="text-center text-xs" style={{ color: "#777777" }}>
+          <p className="text-center text-xs text-text-muted">
             Chrome and Edge work best. The recording uploads automatically when you stop.
           </p>
         </div>
       )}
 
       {state === "requesting" && (
-        <p className="text-center text-sm" style={{ color: "#746EB1" }}>
+        <p className="text-center text-sm text-secondary">
           Requesting microphone...
         </p>
       )}
@@ -114,14 +113,14 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
               </button>
             </div>
           </div>
-          <p className="text-xs" style={{ color: "#777777" }}>
+          <p className="text-xs text-text-muted">
             Microphone is live. Speak normally, then press Stop to finalize and upload.
           </p>
         </div>
       )}
 
       {state === "stopped" && (
-        <div className="flex items-center justify-center gap-2 text-sm" style={{ color: "#746EB1" }}>
+        <div className="flex items-center justify-center gap-2 text-sm text-secondary">
           <span
             className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
             style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
@@ -132,7 +131,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
 
       {(state === "error" || uploadError) && (
         <div className="space-y-2">
-          <p className="text-xs font-medium" style={{ color: "#CC2200" }} role="alert">
+          <p className="text-xs font-medium text-alert" role="alert">
             {error ?? uploadError}
           </p>
           <button
@@ -141,8 +140,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
               setUploadError(null);
               reset();
             }}
-            className="text-xs font-medium underline"
-            style={{ color: "#517AB7" }}
+            className="text-xs font-medium underline text-accent"
           >
             Try again
           </button>
