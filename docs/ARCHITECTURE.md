@@ -49,7 +49,7 @@ Clinician review/edit -> export (.docx / clipboard)
 - The current executor is still HTTP self-calling on Vercel:
   - `/api/jobs/[id]/trigger` calls the deployed app's `/api/jobs/[id]/process`
   - `/api/jobs/runner` also calls the deployed app's `/api/jobs/[id]/process` for queued jobs
-- Session deletion is a hard cascade delete of related rows and storage artifacts, not a soft delete flow.
+- Session deletion is a soft-delete flow. Related patient rows are marked with `deleted_at`, and storage blobs are cleaned later by the TTL cleanup phase on `/api/jobs/runner`.
 
 ## Milestones
 

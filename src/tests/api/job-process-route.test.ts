@@ -56,7 +56,7 @@ describe("POST /api/jobs/[id]/process", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(202);
-    expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:process");
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:process:job-1");
     expect(payload).toEqual({ job_id: "job-1", status: "processing" });
   });
 

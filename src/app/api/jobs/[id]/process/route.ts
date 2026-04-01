@@ -18,10 +18,10 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(workerLimit, "worker:process");
+  const { id: jobId } = await ctx.params;
+  const limited = await checkRateLimit(workerLimit, `worker:process:${jobId}`);
   if (limited) return limited;
 
-  const { id: jobId } = await ctx.params;
   const result = await processJob(jobId);
 
   if (result.success) {
