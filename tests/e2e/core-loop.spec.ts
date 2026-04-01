@@ -9,7 +9,7 @@ import { expect, test } from "@playwright/test";
  *
  * To run locally:
  *   E2E_AUTH_STUB=1 ALLOW_DEV_LOGIN=1 AUTH_COOKIE_SECRET=your-secret \
- *   SESSION_TTL_SECONDS=28800 pnpm test:e2e
+ *   SESSION_TTL_SECONDS=14400 pnpm test:e2e
  *
  * Future: this test should run against the Vercel preview deployment URL
  * where Supabase is reachable.

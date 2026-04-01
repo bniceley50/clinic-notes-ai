@@ -341,3 +341,26 @@ headers to request-scoped middleware generation.
 - src/lib/security/headers.ts
 - src/middleware.ts
 - next.config.ts
+
+---
+
+## D016: Session TTL Reduced to 4 Hours
+
+**Date:** 2026-03-31
+**Status:** Accepted
+
+### Context
+Session revocation currently depends on Upstash Redis and fails open on the
+read side during a Redis outage (see D009b). The previous 8-hour session TTL
+made that accepted outage window longer than necessary for the CBH rollout.
+
+### Decision
+Adopt `SESSION_TTL_SECONDS=14400` (4 hours) as the operational default for
+local examples, deployment templates, cookie expiry, and Redis revocation TTL.
+
+### Consequences
+- The maximum window for a token revoked during a Redis outage is cut in half
+  relative to the previous 8-hour setting
+- Clinicians may need to re-authenticate during longer workdays
+- Revisit after pilot usage data if the shorter TTL creates material workflow
+  friction
