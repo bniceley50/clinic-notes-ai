@@ -22,8 +22,8 @@ vi.mock("@/lib/audit", () => ({ writeAuditLog: vi.fn(async () => undefined) }));
 vi.mock("@/lib/logger", () => ({ withLogging: <T>(handler: T) => handler }));
 vi.mock("@/lib/storage/audio", () => ({
   buildAudioStoragePath: ({ orgId, sessionId, jobId, fileName }: { orgId: string; sessionId: string; jobId: string; fileName: string }) => `${orgId}/${sessionId}/${jobId}/recording.${fileName.split(".").pop() ?? "webm"}`,
-  finalizeAudioUploadForJob: vi.fn(async ({ jobId, storagePath }: { jobId: string; storagePath: string }) => {
-    const { error } = await admin.from("jobs").update({ audio_storage_path: storagePath, updated_at: new Date().toISOString() }).eq("id", jobId);
+  finalizeJobAudioUploadForOrg: vi.fn(async ({ orgId, sessionId, jobId, storagePath }: { orgId: string; sessionId: string; jobId: string; storagePath: string }) => {
+    const { error } = await admin.from("jobs").update({ audio_storage_path: storagePath, updated_at: new Date().toISOString() }).eq("org_id", orgId).eq("session_id", sessionId).eq("id", jobId);
     return { storagePath: error ? null : storagePath, error: error?.message ?? null };
   }),
 }));

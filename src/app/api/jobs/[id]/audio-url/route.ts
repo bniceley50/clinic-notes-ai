@@ -3,7 +3,7 @@ import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
 import { withLogging } from "@/lib/logger";
 import { apiLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
-import { getSignedAudioUrl } from "@/lib/storage/audio";
+import { getSignedAudioUrlForOrg } from "@/lib/storage/audio";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -36,7 +36,10 @@ export const GET = withLogging(
     }
 
     try {
-      const url = await getSignedAudioUrl(job.audio_storage_path);
+      const url = await getSignedAudioUrlForOrg(
+        result.user.orgId,
+        job.audio_storage_path,
+      );
       return NextResponse.json({
         url,
         filename: deriveDownloadName(job.audio_storage_path),

@@ -3,17 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockLoadCurrentUser,
   mockGetMyJob,
-  mockCreateSignedAudioUpload,
+  mockCreateSignedAudioUploadForOrg,
   mockBuildAudioStoragePath,
-  mockFinalizeAudioUploadForJob,
+  mockFinalizeJobAudioUploadForOrg,
   mockCheckRateLimit,
   mockWriteAuditLog,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
   mockGetMyJob: vi.fn(),
-  mockCreateSignedAudioUpload: vi.fn(),
+  mockCreateSignedAudioUploadForOrg: vi.fn(),
   mockBuildAudioStoragePath: vi.fn(),
-  mockFinalizeAudioUploadForJob: vi.fn(),
+  mockFinalizeJobAudioUploadForOrg: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
 }));
@@ -27,9 +27,9 @@ vi.mock("@/lib/jobs/queries", () => ({
 }));
 
 vi.mock("@/lib/storage/audio", () => ({
-  createSignedAudioUpload: mockCreateSignedAudioUpload,
+  createSignedAudioUploadForOrg: mockCreateSignedAudioUploadForOrg,
   buildAudioStoragePath: mockBuildAudioStoragePath,
-  finalizeAudioUploadForJob: mockFinalizeAudioUploadForJob,
+  finalizeJobAudioUploadForOrg: mockFinalizeJobAudioUploadForOrg,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -85,7 +85,7 @@ describe("POST /api/jobs/[id]/upload-url", () => {
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult);
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMyJob.mockResolvedValue({ data: ownedJob, error: null });
-    mockCreateSignedAudioUpload.mockResolvedValue({
+    mockCreateSignedAudioUploadForOrg.mockResolvedValue({
       path: "org-1/session-1/job-1/test.webm",
       token: "signed-token",
       error: null,
@@ -110,6 +110,13 @@ describe("POST /api/jobs/[id]/upload-url", () => {
       token: "signed-token",
     });
     expect(mockGetMyJob).toHaveBeenCalledWith(authenticatedResult.user, "job-1");
+    expect(mockCreateSignedAudioUploadForOrg).toHaveBeenCalledWith({
+      orgId: "org-1",
+      sessionId: "session-1",
+      jobId: "job-1",
+      fileName: "test.webm",
+      contentType: "audio/webm",
+    });
   });
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -174,7 +181,7 @@ describe("POST /api/jobs/[id]/upload-complete", () => {
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMyJob.mockResolvedValue({ data: ownedJob, error: null });
     mockBuildAudioStoragePath.mockReturnValue("org-1/session-1/job-1/test.webm");
-    mockFinalizeAudioUploadForJob.mockResolvedValue({
+    mockFinalizeJobAudioUploadForOrg.mockResolvedValue({
       storagePath: "org-1/session-1/job-1/test.webm",
       error: null,
     });
@@ -202,6 +209,12 @@ describe("POST /api/jobs/[id]/upload-complete", () => {
       audio_storage_path: "org-1/session-1/job-1/test.webm",
     });
     expect(mockGetMyJob).toHaveBeenCalledWith(authenticatedResult.user, "job-1");
+    expect(mockFinalizeJobAudioUploadForOrg).toHaveBeenCalledWith({
+      orgId: "org-1",
+      sessionId: "session-1",
+      jobId: "job-1",
+      storagePath: "org-1/session-1/job-1/test.webm",
+    });
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
       actorId: "user-1",
@@ -268,7 +281,7 @@ describe("POST /api/jobs/[id]/upload-complete", () => {
   });
 
   it("returns 500 when uploaded bytes do not match a supported audio format", async () => {
-    mockFinalizeAudioUploadForJob.mockResolvedValue({
+    mockFinalizeJobAudioUploadForOrg.mockResolvedValue({
       storagePath: null,
       error: "Uploaded audio content does not match a supported format",
     });

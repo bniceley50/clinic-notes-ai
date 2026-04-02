@@ -6,8 +6,9 @@ import "server-only";
  * Uploads to: audio/{orgId}/{sessionId}/{jobId}/{filename}
  * Then writes audio_storage_path back to the job row.
  *
- * Uses the service role client to bypass storage RLS (the API
- * route already verified ownership before calling this).
+ * Uses the service role client to bypass storage RLS, but the
+ * user-facing helpers below now enforce org/job path boundaries
+ * before signing URLs or writing job rows.
  */
 
 import { createServiceClient } from "@/lib/supabase/server";
@@ -44,6 +45,13 @@ type UploadResult = {
   error: string | null;
 };
 
+type AudioStoragePathParts = {
+  orgId: string;
+  sessionId: string;
+  jobId: string;
+  fileName: string;
+};
+
 export function sanitizeFilename(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase() ?? "webm";
   return `recording.${ext}`;
@@ -63,6 +71,41 @@ export function isAllowedAudioMimeType(contentType: string): boolean {
   return ALLOWED_AUDIO_MIME_TYPES.has(contentType);
 }
 
+export function parseAudioStoragePath(
+  storagePath: string,
+): AudioStoragePathParts | null {
+  const normalized = storagePath.trim().replace(/^\/+|\/+$/g, "");
+  const parts = normalized.split("/");
+
+  if (parts.length !== 4 || parts.some((part) => part.length === 0)) {
+    return null;
+  }
+
+  const [orgId, sessionId, jobId, fileName] = parts;
+  return { orgId, sessionId, jobId, fileName };
+}
+
+function isAudioStoragePathForOrg(storagePath: string, orgId: string): boolean {
+  const parsed = parseAudioStoragePath(storagePath);
+  return parsed?.orgId === orgId;
+}
+
+function isAudioStoragePathForJobContext(
+  storagePath: string,
+  input: Pick<UploadAudioInput, "orgId" | "sessionId" | "jobId">,
+): boolean {
+  const parsed = parseAudioStoragePath(storagePath);
+  if (!parsed) {
+    return false;
+  }
+
+  return (
+    parsed.orgId === input.orgId &&
+    parsed.sessionId === input.sessionId &&
+    parsed.jobId === input.jobId
+  );
+}
+
 export function hasValidAudioSignature(bytes: Uint8Array): boolean {
   return (
     (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) ||
@@ -74,7 +117,7 @@ export function hasValidAudioSignature(bytes: Uint8Array): boolean {
   );
 }
 
-export async function createSignedAudioUpload(
+export async function createSignedAudioUploadForOrg(
   input: SignedUploadInput,
 ): Promise<{ path: string | null; token: string | null; error: string | null }> {
   if (!isAllowedAudioMimeType(input.contentType)) {
@@ -98,10 +141,19 @@ export async function createSignedAudioUpload(
   return { path: storagePath, token: data.token, error: null };
 }
 
-export async function finalizeAudioUploadForJob(input: {
+export async function finalizeJobAudioUploadForOrg(input: {
+  orgId: string;
+  sessionId: string;
   jobId: string;
   storagePath: string;
 }): Promise<UploadResult> {
+  if (!isAudioStoragePathForJobContext(input.storagePath, input)) {
+    return {
+      storagePath: null,
+      error: "Audio path does not match the job context",
+    };
+  }
+
   const db = createServiceClient();
 
   const { data: objectInfo, error: infoError } = await db.storage
@@ -151,6 +203,8 @@ export async function finalizeAudioUploadForJob(input: {
       audio_storage_path: input.storagePath,
       updated_at: new Date().toISOString(),
     })
+    .eq("org_id", input.orgId)
+    .eq("session_id", input.sessionId)
     .eq("id", input.jobId);
 
   if (updateError) {
@@ -160,10 +214,15 @@ export async function finalizeAudioUploadForJob(input: {
   return { storagePath: input.storagePath, error: null };
 }
 
-export async function getSignedAudioUrl(
+export async function getSignedAudioUrlForOrg(
+  orgId: string,
   storagePath: string,
   expiresIn: number = 3600,
 ): Promise<string> {
+  if (!isAudioStoragePathForOrg(storagePath, orgId)) {
+    throw new Error("Audio path does not belong to this org");
+  }
+
   const db = createServiceClient();
   const { data, error } = await db.storage
     .from(AUDIO_BUCKET)
@@ -176,7 +235,7 @@ export async function getSignedAudioUrl(
   return data.signedUrl;
 }
 
-export async function uploadAudioForJob(
+export async function uploadJobAudioForOrg(
   input: UploadAudioInput,
 ): Promise<UploadResult> {
   const db = createServiceClient();
@@ -207,6 +266,8 @@ export async function uploadAudioForJob(
       audio_storage_path: storagePath,
       updated_at: new Date().toISOString(),
     })
+    .eq("org_id", input.orgId)
+    .eq("session_id", input.sessionId)
     .eq("id", input.jobId);
 
   if (updateError) {

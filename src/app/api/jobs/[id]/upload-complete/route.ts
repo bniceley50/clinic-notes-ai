@@ -5,7 +5,7 @@ import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
 import {
   buildAudioStoragePath,
-  finalizeAudioUploadForJob,
+  finalizeJobAudioUploadForOrg,
 } from "@/lib/storage/audio";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
@@ -74,7 +74,9 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     fileName,
   });
 
-  const { storagePath: savedPath, error } = await finalizeAudioUploadForJob({
+  const { storagePath: savedPath, error } = await finalizeJobAudioUploadForOrg({
+    orgId: user.orgId,
+    sessionId: job.session_id,
     jobId: job.id,
     storagePath,
   });
