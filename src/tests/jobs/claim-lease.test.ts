@@ -6,6 +6,7 @@ const {
   mockMaybeSingle,
   mockSelect,
   mockIsDeleted,
+  mockEqOrgId,
   mockEqRunToken,
   mockEqId,
   mockUpdate,
@@ -26,8 +27,11 @@ const {
   mockEqId: vi.fn(() => ({
     eq: mockEqRunToken,
   })),
-  mockUpdate: vi.fn(() => ({
+  mockEqOrgId: vi.fn(() => ({
     eq: mockEqId,
+  })),
+  mockUpdate: vi.fn(() => ({
+    eq: mockEqOrgId,
   })),
   mockFrom: vi.fn(() => ({
     update: mockUpdate,
@@ -43,8 +47,8 @@ vi.mock("../../lib/supabase/server", () => ({
 }));
 
 import {
-  claimJobForProcessing,
-  updateClaimedJobWorkerFields,
+  claimJobForProcessingGlobally,
+  updateClaimedJobWorkerFieldsForOrg,
 } from "../../lib/jobs/queries";
 
 const supabaseUrl = process.env.TEST_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -80,13 +84,13 @@ describe("claim/lease query helpers", () => {
     vi.clearAllMocks();
   });
 
-  it("claimJobForProcessing returns the claimed row from rpc()", async () => {
+  it("claimJobForProcessingGlobally returns the claimed row from rpc()", async () => {
     mockRpc.mockResolvedValue({
       data: [baseJob],
       error: null,
     });
 
-    const result = await claimJobForProcessing("job-1", 300);
+    const result = await claimJobForProcessingGlobally("job-1", 300);
 
     expect(mockRpc).toHaveBeenCalledWith("claim_job_for_processing", {
       p_job_id: "job-1",
@@ -98,13 +102,13 @@ describe("claim/lease query helpers", () => {
     });
   });
 
-  it("claimJobForProcessing returns null when no row was claimed", async () => {
+  it("claimJobForProcessingGlobally returns null when no row was claimed", async () => {
     mockRpc.mockResolvedValue({
       data: [],
       error: null,
     });
 
-    const result = await claimJobForProcessing("job-1", 300);
+    const result = await claimJobForProcessingGlobally("job-1", 300);
 
     expect(result).toEqual({
       data: null,
@@ -112,7 +116,7 @@ describe("claim/lease query helpers", () => {
     });
   });
 
-  it("updateClaimedJobWorkerFields updates only when the run token matches", async () => {
+  it("updateClaimedJobWorkerFieldsForOrg updates only when the run token matches", async () => {
     mockMaybeSingle.mockResolvedValue({
       data: {
         ...baseJob,
@@ -122,7 +126,7 @@ describe("claim/lease query helpers", () => {
       error: null,
     });
 
-    const result = await updateClaimedJobWorkerFields("job-1", "run-token-1", {
+    const result = await updateClaimedJobWorkerFieldsForOrg("org-1", "job-1", "run-token-1", {
       status: "complete",
       progress: 100,
     });
@@ -135,6 +139,7 @@ describe("claim/lease query helpers", () => {
         updated_at: expect.any(String),
       }),
     );
+    expect(mockEqOrgId).toHaveBeenCalledWith("org_id", "org-1");
     expect(mockEqId).toHaveBeenCalledWith("id", "job-1");
     expect(mockEqRunToken).toHaveBeenCalledWith("run_token", "run-token-1");
     expect(result).toEqual({
@@ -147,13 +152,13 @@ describe("claim/lease query helpers", () => {
     });
   });
 
-  it("updateClaimedJobWorkerFields returns null when the run token is stale", async () => {
+  it("updateClaimedJobWorkerFieldsForOrg returns null when the run token is stale", async () => {
     mockMaybeSingle.mockResolvedValue({
       data: null,
       error: null,
     });
 
-    const result = await updateClaimedJobWorkerFields("job-1", "stale-token", {
+    const result = await updateClaimedJobWorkerFieldsForOrg("org-1", "job-1", "stale-token", {
       progress: 25,
     });
 
@@ -242,7 +247,7 @@ describeIntegration("claim/lease integration", () => {
     };
   }
 
-  it("claimJobForProcessing succeeds on a queued job and sets claim metadata", async () => {
+  it("claimJobForProcessingGlobally succeeds on a queued job and sets claim metadata", async () => {
     const jobId = await insertQueuedJob();
 
     const result = await directClaim(jobId, 300);
@@ -256,7 +261,7 @@ describeIntegration("claim/lease integration", () => {
     expect(result.data?.lease_expires_at).toBeTruthy();
   });
 
-  it("claimJobForProcessing returns null for an already-running job", async () => {
+  it("claimJobForProcessingGlobally returns null for an already-running job", async () => {
     const jobId = await insertQueuedJob();
     const claimed = await directClaim(jobId, 300);
 
@@ -270,7 +275,7 @@ describeIntegration("claim/lease integration", () => {
     });
   });
 
-  it("claimJobForProcessing returns null when a live lease already exists", async () => {
+  it("claimJobForProcessingGlobally returns null when a live lease already exists", async () => {
     const jobId = await insertQueuedJob();
     const futureLease = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
@@ -293,7 +298,7 @@ describeIntegration("claim/lease integration", () => {
     });
   });
 
-  it("updateClaimedJobWorkerFields succeeds with the correct run_token", async () => {
+  it("updateClaimedJobWorkerFieldsForOrg succeeds with the correct run_token", async () => {
     const jobId = await insertQueuedJob();
     const claimed = await directClaim(jobId, 300);
 
@@ -318,7 +323,7 @@ describeIntegration("claim/lease integration", () => {
     expect(data?.run_token).toBe(claimed.data.run_token);
   });
 
-  it("updateClaimedJobWorkerFields returns null with the wrong run_token", async () => {
+  it("updateClaimedJobWorkerFieldsForOrg returns null with the wrong run_token", async () => {
     const jobId = await insertQueuedJob();
     const claimed = await directClaim(jobId, 300);
 

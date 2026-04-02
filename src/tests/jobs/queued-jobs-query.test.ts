@@ -47,15 +47,15 @@ vi.mock("../../lib/supabase/server", () => ({
   createServiceClient: mockCreateServiceClient,
 }));
 
-import { listQueuedJobs } from "../../lib/jobs/queries";
+import { listQueuedJobsGlobally } from "../../lib/jobs/queries";
 
-describe("listQueuedJobs", () => {
+describe("listQueuedJobsGlobally", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("only returns queued jobs that have uploaded audio", async () => {
-    const result = await listQueuedJobs();
+    const result = await listQueuedJobsGlobally();
 
     expect(mockFrom).toHaveBeenCalledWith("jobs");
     expect(mockSelect).toHaveBeenCalled();

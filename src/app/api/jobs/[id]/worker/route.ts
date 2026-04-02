@@ -15,7 +15,10 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
-import { updateJobWorkerFields, getJobById } from "@/lib/jobs/queries";
+import {
+  getGlobalJobById,
+  updateJobWorkerFieldsForOrg,
+} from "@/lib/jobs/queries";
 import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -64,7 +67,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const current = await getJobById(id);
+  const current = await getGlobalJobById(id);
   if (!current) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
@@ -140,7 +143,11 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     );
   }
 
-  const { data, error } = await updateJobWorkerFields(id, updates);
+  const { data, error } = await updateJobWorkerFieldsForOrg(
+    current.org_id,
+    id,
+    updates,
+  );
 
   if (error || !data) {
     return NextResponse.json(

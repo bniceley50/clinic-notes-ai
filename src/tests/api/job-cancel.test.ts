@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const {
   mockLoadCurrentUser,
   mockGetMyJob,
-  mockUpdateJobWorkerFields,
+  mockUpdateJobWorkerFieldsForOrg,
   mockCheckRateLimit,
   mockWriteAuditLog,
 } = vi.hoisted(() => ({
   mockLoadCurrentUser: vi.fn(),
   mockGetMyJob: vi.fn(),
-  mockUpdateJobWorkerFields: vi.fn(),
+  mockUpdateJobWorkerFieldsForOrg: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockWriteAuditLog: vi.fn(),
 }))
@@ -20,7 +20,7 @@ vi.mock('../../lib/auth/loader', () => ({
 
 vi.mock('../../lib/jobs/queries', () => ({
   getMyJob: mockGetMyJob,
-  updateJobWorkerFields: mockUpdateJobWorkerFields,
+  updateJobWorkerFieldsForOrg: mockUpdateJobWorkerFieldsForOrg,
 }))
 
 vi.mock('../../lib/rate-limit', () => ({
@@ -80,7 +80,7 @@ describe('POST /api/jobs/[id]/cancel', () => {
       },
       error: null,
     })
-    mockUpdateJobWorkerFields.mockResolvedValue({
+    mockUpdateJobWorkerFieldsForOrg.mockResolvedValue({
       data: { id: 'job-1', status: 'cancelled' },
       error: null,
     })
@@ -112,7 +112,7 @@ describe('POST /api/jobs/[id]/cancel', () => {
 
     expect(response.status).toBe(404)
     expect(payload).toEqual({ error: 'Job not found' })
-    expect(mockUpdateJobWorkerFields).not.toHaveBeenCalled()
+    expect(mockUpdateJobWorkerFieldsForOrg).not.toHaveBeenCalled()
   })
 
   it('returns 409 when the job is already complete', async () => {
@@ -170,7 +170,7 @@ describe('POST /api/jobs/[id]/cancel', () => {
         status: 'cancelled',
       },
     })
-    expect(mockUpdateJobWorkerFields).toHaveBeenCalledWith('job-1', {
+    expect(mockUpdateJobWorkerFieldsForOrg).toHaveBeenCalledWith('org-1', 'job-1', {
       status: 'cancelled',
       stage: 'cancelled',
       error_message: 'Cancelled by user',

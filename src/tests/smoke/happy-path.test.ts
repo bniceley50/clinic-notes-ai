@@ -33,7 +33,7 @@ vi.mock("@/lib/storage/transcript", () => ({ uploadTranscript: vi.fn(async ({ or
 vi.mock("@/lib/config", async () => ({ ...(await vi.importActual<typeof import("@/lib/config")>("@/lib/config")), anthropicApiKey: () => "test-anthropic-key", aiRealApisEnabled: () => true }));
 
 import { createSession, softDeleteSession } from "@/lib/sessions/queries";
-import { createJob, getJobById } from "@/lib/jobs/queries";
+import { createJob, getGlobalJobById } from "@/lib/jobs/queries";
 import { processJob } from "@/lib/jobs/processor";
 import { POST as postUploadComplete } from "@/app/api/jobs/[id]/upload-complete/route";
 import { GET as getCarelogicFields } from "@/app/api/jobs/[id]/carelogic-fields/route";
@@ -78,7 +78,7 @@ describeSmoke("smoke happy path", () => {
     const processed = await processJob(createdJob.data!.id);
     expect(processed).toEqual({ success: true, error: null });
 
-    const refreshedJob = await getJobById(createdJob.data!.id);
+    const refreshedJob = await getGlobalJobById(createdJob.data!.id);
     expect(refreshedJob?.status).toBe("complete");
     expect(refreshedJob?.transcript_storage_path).toBeTruthy();
 

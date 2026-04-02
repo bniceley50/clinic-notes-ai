@@ -3,8 +3,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { JobRow } from "./queries";
 import {
-  getJobById,
-  updateJobWorkerFields,
+  getGlobalJobById,
+  updateJobWorkerFieldsForOrg,
   type JobNoteType,
 } from "./queries";
 import {
@@ -76,7 +76,7 @@ async function loadSeed(job: JobRow): Promise<SessionSeed> {
 }
 
 async function readCurrentJob(jobId: string): Promise<JobRow> {
-  const job = await getJobById(jobId);
+  const job = await getGlobalJobById(jobId);
   if (!job) {
     throw new Error("Job not found");
   }
@@ -111,8 +111,8 @@ async function uploadTextArtifact(
   }
 }
 
-async function failJob(jobId: string, message: string): Promise<void> {
-  await updateJobWorkerFields(jobId, {
+async function failJob(job: JobRow, message: string): Promise<void> {
+  await updateJobWorkerFieldsForOrg(job.org_id, job.id, {
     status: "failed",
     stage: "failed",
     error_message: message,
@@ -163,7 +163,7 @@ export async function generateStubNoteForJob(jobId: string): Promise<PipelineRun
       throw new Error(noteRow.error ?? "Failed to write note row");
     }
 
-    await updateJobWorkerFields(jobId, {
+    await updateJobWorkerFieldsForOrg(current.org_id, jobId, {
       draft_storage_path: draftPath,
     });
 
@@ -191,7 +191,7 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
   try {
     const seed = await loadSeed(current);
 
-    const started = await updateJobWorkerFields(jobId, {
+    const started = await updateJobWorkerFieldsForOrg(current.org_id, jobId, {
       status: "running",
       stage: "transcribing",
       progress: 25,
@@ -250,7 +250,7 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
       throw new Error(transcriptRow.error ?? "Failed to write transcript row");
     }
 
-    const completed = await updateJobWorkerFields(jobId, {
+    const completed = await updateJobWorkerFieldsForOrg(current.org_id, jobId, {
       status: "complete",
       stage: "complete",
       progress: 100,
@@ -268,7 +268,7 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Stub pipeline failed";
-    await failJob(jobId, message);
+    await failJob(current, message);
     return { jobId, status: "failed" };
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 const {
-  mockGetJobById,
+  mockGetGlobalJobById,
   mockGenerateNote,
   mockUpsertNoteForJob,
   mockWriteAuditLog,
@@ -14,7 +14,7 @@ const {
   mockFrom,
   mockCreateServiceClient,
 } = vi.hoisted(() => ({
-  mockGetJobById: vi.fn(),
+  mockGetGlobalJobById: vi.fn(),
   mockGenerateNote: vi.fn(),
   mockUpsertNoteForJob: vi.fn(),
   mockWriteAuditLog: vi.fn(),
@@ -43,7 +43,7 @@ const {
 }))
 
 vi.mock("../../lib/jobs/queries", () => ({
-  getJobById: mockGetJobById,
+  getGlobalJobById: mockGetGlobalJobById,
 }))
 
 vi.mock("../../lib/ai/claude", () => ({
@@ -66,7 +66,7 @@ import { generateNoteForJob } from "../../lib/jobs/processor";
 
 describe("transcript-first note generation helper", () => {
   it("uses the saved transcript to generate an optional note later", async () => {
-    mockGetJobById.mockResolvedValue({
+    mockGetGlobalJobById.mockResolvedValue({
       id: "job-99",
       session_id: "session-99",
       org_id: "org-99",
@@ -115,7 +115,7 @@ describe("transcript-first note generation helper", () => {
   });
 
   it("writes the Anthropic vendor audit event when optional note generation runs", async () => {
-    mockGetJobById.mockResolvedValue({
+    mockGetGlobalJobById.mockResolvedValue({
       id: "job-99",
       session_id: "session-99",
       org_id: "org-99",

@@ -2,9 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
 import {
-  listExpiredRunningLeasedJobs,
-  listQueuedJobs,
-  requeueStaleLeasedJob,
+  listExpiredRunningLeasedJobsGlobally,
+  listQueuedJobsGlobally,
+  requeueStaleLeasedJobForOrg,
 } from "@/lib/jobs/queries";
 import { cleanupSoftDeletedArtifacts } from "@/lib/storage/cleanup";
 import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
@@ -107,7 +107,7 @@ export const GET = withLogging(async (request: NextRequest) => {
   }
 
   try {
-    const queued = await listQueuedJobs();
+    const queued = await listQueuedJobsGlobally();
     if (queued.error) {
       return await respondWithCheckIn(
         NextResponse.json(
@@ -118,7 +118,7 @@ export const GET = withLogging(async (request: NextRequest) => {
       );
     }
 
-    const expired = await listExpiredRunningLeasedJobs();
+    const expired = await listExpiredRunningLeasedJobsGlobally();
     if (expired.error) {
       return await respondWithCheckIn(
         NextResponse.json(
@@ -130,7 +130,7 @@ export const GET = withLogging(async (request: NextRequest) => {
     }
 
     for (const job of expired.data) {
-      await requeueStaleLeasedJob(job.id);
+      await requeueStaleLeasedJobForOrg(job.org_id, job.id);
     }
     const runnerToken = jobsRunnerToken();
 
