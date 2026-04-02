@@ -32,14 +32,21 @@ function generateNonce(): string {
  */
 function attachCsp(
   response: NextResponse,
-  nonce: string,
-  isProduction: boolean,
+  csp: string,
 ): NextResponse {
-  response.headers.set(
-    "Content-Security-Policy",
-    buildContentSecurityPolicy({ nonce, isProduction }),
-  );
+  response.headers.set("Content-Security-Policy", csp);
   return response;
+}
+
+function buildRequestHeadersWithNonce(
+  request: NextRequest,
+  nonce: string,
+  csp: string,
+): Headers {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  return requestHeaders;
 }
 
 export async function middleware(request: NextRequest) {
@@ -58,6 +65,7 @@ export async function middleware(request: NextRequest) {
   // Generate a fresh nonce for this request.
   // Must happen before any branch that returns an HTML response.
   const nonce = generateNonce();
+  const csp = buildContentSecurityPolicy({ nonce, isProduction });
 
   // Worker, process, and runner endpoints use in-route auth, not cookie session auth.
   if (
@@ -66,14 +74,13 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/jobs/runner"
   ) {
     const res = NextResponse.next();
-    return attachCsp(res, nonce, isProduction);
+    return attachCsp(res, csp);
   }
 
   if (isPublicPath(pathname)) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-nonce", nonce);
+    const requestHeaders = buildRequestHeadersWithNonce(request, nonce, csp);
     const res = NextResponse.next({ request: { headers: requestHeaders } });
-    return attachCsp(res, nonce, isProduction);
+    return attachCsp(res, csp);
   }
 
   const session = await readSessionFromCookieHeader(
@@ -83,12 +90,12 @@ export async function middleware(request: NextRequest) {
   if (!session) {
     if (pathname.startsWith("/api/")) {
       const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      return attachCsp(res, nonce, isProduction);
+      return attachCsp(res, csp);
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     const res = NextResponse.redirect(loginUrl);
-    return attachCsp(res, nonce, isProduction);
+    return attachCsp(res, csp);
   }
 
   // JTI revocation check — reject tokens that were explicitly revoked at logout.
@@ -97,24 +104,23 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       res.headers.append("Set-Cookie", clearSessionCookie());
-      return attachCsp(res, nonce, isProduction);
+      return attachCsp(res, csp);
     }
     const loginUrl = new URL("/login", request.url);
     const res = NextResponse.redirect(loginUrl);
     res.headers.append("Set-Cookie", clearSessionCookie());
-    return attachCsp(res, nonce, isProduction);
+    return attachCsp(res, csp);
   }
 
   const user = toSessionUser(session);
 
-  const headers = new Headers(request.headers);
+  const headers = buildRequestHeadersWithNonce(request, nonce, csp);
   headers.set("x-user-id", user.userId);
   headers.set("x-org-id", user.orgId);
   headers.set("x-user-role", user.role);
-  headers.set("x-nonce", nonce);
 
   const res = NextResponse.next({ request: { headers } });
-  return attachCsp(res, nonce, isProduction);
+  return attachCsp(res, csp);
 }
 
 export const config = {

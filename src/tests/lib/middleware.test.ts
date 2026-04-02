@@ -34,6 +34,28 @@ describe("middleware public paths", () => {
     expect(mockIsSessionRevoked).not.toHaveBeenCalled();
   });
 
+  it("forwards CSP and nonce headers into the request for set-password rendering", async () => {
+    const { middleware } = await import("@/middleware");
+    const request = new NextRequest(
+      "https://clinic-notes-ai.vercel.app/set-password?token_hash=test&type=recovery",
+    );
+
+    const response = await middleware(request);
+
+    const csp = response.headers.get("content-security-policy");
+    const forwardedCsp = response.headers.get("x-middleware-request-content-security-policy");
+    const forwardedNonce = response.headers.get("x-middleware-request-x-nonce");
+    const overrideHeaders = response.headers.get("x-middleware-override-headers");
+
+    expect(csp).toBeTruthy();
+    expect(forwardedCsp).toBe(csp);
+    expect(forwardedNonce).toBeTruthy();
+    expect(csp).toContain(`'nonce-${forwardedNonce}'`);
+    expect(overrideHeaders?.split(",")).toEqual(
+      expect.arrayContaining(["content-security-policy", "x-nonce"]),
+    );
+  });
+
   it("redirects an unauthenticated protected page to login", async () => {
     mockReadSessionFromCookieHeader.mockResolvedValueOnce(null);
 
