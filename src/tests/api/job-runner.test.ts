@@ -6,7 +6,7 @@ const {
   mockListExpiredRunningJobs,
   mockRequeueStaleLeasedJob,
   mockCheckRateLimit,
-  mockCleanupSoftDeletedArtifacts,
+  mockCleanupSoftDeletedArtifactsGlobally,
   mockWorkerLimit,
   mockCaptureCheckIn,
   mockFlush,
@@ -16,7 +16,7 @@ const {
   mockListExpiredRunningJobs: vi.fn(),
   mockRequeueStaleLeasedJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
-  mockCleanupSoftDeletedArtifacts: vi.fn(),
+  mockCleanupSoftDeletedArtifactsGlobally: vi.fn(),
   mockWorkerLimit: { name: "worker-limit" },
   mockCaptureCheckIn: vi.fn(() => "check-in-1"),
   mockFlush: vi.fn().mockResolvedValue(true),
@@ -33,7 +33,7 @@ vi.mock("@/lib/jobs/queries", () => ({
 }));
 
 vi.mock("@/lib/storage/cleanup", () => ({
-  cleanupSoftDeletedArtifacts: mockCleanupSoftDeletedArtifacts,
+  cleanupSoftDeletedArtifactsGlobally: mockCleanupSoftDeletedArtifactsGlobally,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -86,7 +86,7 @@ describe("GET /api/jobs/runner", () => {
       data: null,
       error: null,
     });
-    mockCleanupSoftDeletedArtifacts.mockResolvedValue({
+    mockCleanupSoftDeletedArtifactsGlobally.mockResolvedValue({
       cleaned: 0,
       error: null,
     });
@@ -142,7 +142,7 @@ describe("GET /api/jobs/runner", () => {
         method: "POST",
       }),
     );
-    expect(mockCleanupSoftDeletedArtifacts).toHaveBeenCalledTimes(1);
+    expect(mockCleanupSoftDeletedArtifactsGlobally).toHaveBeenCalledTimes(1);
     expect(payload).toEqual({ processed: 1 });
   });
 

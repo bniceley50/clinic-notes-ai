@@ -2,7 +2,13 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
 
-export async function downloadAudioForJob(
+/**
+ * Explicit global worker helper.
+ *
+ * The caller must already have established trusted job ownership
+ * before passing the bucket-relative storage path here.
+ */
+export async function downloadAudioBlobGlobally(
   storagePath: string,
 ): Promise<{ data: Blob | null; error: string | null }> {
   try {

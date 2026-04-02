@@ -136,8 +136,8 @@ vi.mock("../../lib/config", () => ({
 }));
 
 import {
-  cleanupSoftDeletedArtifacts,
-  purgeTestSoftDeletedData,
+  cleanupSoftDeletedArtifactsGlobally,
+  purgeTestSoftDeletedDataGlobally,
 } from "../../lib/storage/cleanup";
 
 describe("storage cleanup", () => {
@@ -180,7 +180,7 @@ describe("storage cleanup", () => {
       },
     ];
 
-    const result = await cleanupSoftDeletedArtifacts();
+    const result = await cleanupSoftDeletedArtifactsGlobally();
 
     expect(result).toEqual({ cleaned: 1, error: null });
     expect(mockAudioRemove).toHaveBeenCalledWith([
@@ -205,7 +205,7 @@ describe("storage cleanup", () => {
   });
 
   it("skips cleanup when no TTL-expired artifact rows are returned", async () => {
-    const result = await cleanupSoftDeletedArtifacts();
+    const result = await cleanupSoftDeletedArtifactsGlobally();
 
     expect(result).toEqual({ cleaned: 0, error: null });
     expect(mockAudioRemove).not.toHaveBeenCalled();
@@ -215,8 +215,8 @@ describe("storage cleanup", () => {
   });
 
   it("throws when test purge is called without ALLOW_TEST_PURGE=1", async () => {
-    await expect(purgeTestSoftDeletedData()).rejects.toThrow(
-      "purgeTestSoftDeletedData() requires ALLOW_TEST_PURGE=1",
+    await expect(purgeTestSoftDeletedDataGlobally()).rejects.toThrow(
+      "purgeTestSoftDeletedDataGlobally() requires ALLOW_TEST_PURGE=1",
     );
   });
 
@@ -234,7 +234,7 @@ describe("storage cleanup", () => {
       },
     ];
 
-    const result = await purgeTestSoftDeletedData();
+    const result = await purgeTestSoftDeletedDataGlobally();
 
     expect(result).toEqual({ purged: 2, error: null });
     expect(cleanupState.lastPurgeSessionIds).toEqual(["session-1", "session-2"]);

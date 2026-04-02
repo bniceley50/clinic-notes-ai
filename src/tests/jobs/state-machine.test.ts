@@ -66,7 +66,7 @@ vi.mock("../../lib/jobs/queries", () => ({
 }));
 
 vi.mock("../../lib/storage/audio-download", () => ({
-  downloadAudioForJob: mockDownloadAudioForJob,
+  downloadAudioBlobGlobally: mockDownloadAudioForJob,
 }));
 
 vi.mock("../../lib/storage/transcript", () => ({

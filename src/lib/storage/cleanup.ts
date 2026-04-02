@@ -1,12 +1,12 @@
 /**
  * Artifact cleanup for soft-deleted sessions.
  *
- * Production path: cleanupSoftDeletedArtifacts()
+ * Production path: cleanupSoftDeletedArtifactsGlobally()
  *   Finds jobs soft-deleted longer than the configured TTL and removes
  *   their storage objects. Does NOT hard-delete any patient-related rows.
  *   See DECISIONS.md D008 and D013.
  *
- * Test path: purgeTestSoftDeletedData()
+ * Test path: purgeTestSoftDeletedDataGlobally()
  *   Removes storage objects AND hard-deletes all soft-deleted rows.
  *   Requires ALLOW_TEST_PURGE=1. Never call in production.
  */
@@ -116,12 +116,12 @@ async function clearArtifactPaths(jobIds: string[]): Promise<void> {
 }
 
 /**
- * Production TTL cleaner.
+ * Explicit global production TTL cleaner.
  *
  * Finds soft-deleted jobs older than JOB_TTL_SECONDS and removes their
  * storage artifacts. No patient-related rows are hard-deleted.
  */
-export async function cleanupSoftDeletedArtifacts(): Promise<{
+export async function cleanupSoftDeletedArtifactsGlobally(): Promise<{
   cleaned: number;
   error: string | null;
 }> {
@@ -163,20 +163,20 @@ export async function cleanupSoftDeletedArtifacts(): Promise<{
 }
 
 /**
- * Test-only purge.
+ * Explicit global test-only purge.
  *
  * Removes storage artifacts AND hard-deletes all soft-deleted rows
  * across patient-related tables. Bypasses the TTL age check.
  *
  * Requires ALLOW_TEST_PURGE=1. Never call this in production.
  */
-export async function purgeTestSoftDeletedData(): Promise<{
+export async function purgeTestSoftDeletedDataGlobally(): Promise<{
   purged: number;
   error: string | null;
 }> {
   if (process.env.ALLOW_TEST_PURGE !== "1") {
     throw new Error(
-      "purgeTestSoftDeletedData() requires ALLOW_TEST_PURGE=1. Never call this in production.",
+      "purgeTestSoftDeletedDataGlobally() requires ALLOW_TEST_PURGE=1. Never call this in production.",
     );
   }
 

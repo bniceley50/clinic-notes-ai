@@ -27,7 +27,7 @@ vi.mock("@/lib/storage/audio", () => ({
     return { storagePath: error ? null : storagePath, error: error?.message ?? null };
   }),
 }));
-vi.mock("@/lib/storage/audio-download", () => ({ downloadAudioForJob: vi.fn(async () => ({ data: new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: "audio/webm" }), error: null })) }));
+vi.mock("@/lib/storage/audio-download", () => ({ downloadAudioBlobGlobally: vi.fn(async () => ({ data: new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: "audio/webm" }), error: null })) }));
 vi.mock("@/lib/ai/whisper", () => ({ transcribeAudioChunked: vi.fn(async () => ({ text: "Client reports improved mood and better sleep.", error: null })) }));
 vi.mock("@/lib/storage/transcript", () => ({ uploadTranscript: vi.fn(async ({ orgId, sessionId, jobId }: { orgId: string; sessionId: string; jobId: string }) => ({ storagePath: `${orgId}/${sessionId}/${jobId}/transcript.txt`, error: null })) }));
 vi.mock("@/lib/config", async () => ({ ...(await vi.importActual<typeof import("@/lib/config")>("@/lib/config")), anthropicApiKey: () => "test-anthropic-key", aiRealApisEnabled: () => true }));

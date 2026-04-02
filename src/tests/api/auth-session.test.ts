@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockCreateClient,
   mockCreateSessionCookie,
-  mockResolveUserProfile,
+  mockResolveUserProfileGlobally,
   mockWriteAuditLog,
   mockCheckRateLimit,
   mockSupabaseConfig,
 } = vi.hoisted(() => ({
   mockCreateClient: vi.fn(),
   mockCreateSessionCookie: vi.fn(),
-  mockResolveUserProfile: vi.fn(),
+  mockResolveUserProfileGlobally: vi.fn(),
   mockWriteAuditLog: vi.fn(),
   mockCheckRateLimit: vi.fn(),
   mockSupabaseConfig: {
@@ -32,7 +32,7 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 vi.mock("@/lib/auth/provisioning", () => ({
-  resolveUserProfile: mockResolveUserProfile,
+  resolveUserProfileGlobally: mockResolveUserProfileGlobally,
 }));
 
 vi.mock("@/lib/audit", () => ({
@@ -62,7 +62,7 @@ describe("POST /api/auth/session", () => {
     mockCreateSessionCookie.mockResolvedValue(
       "cna_session=test-cookie; Path=/; HttpOnly",
     );
-    mockResolveUserProfile.mockResolvedValue({
+    mockResolveUserProfileGlobally.mockResolvedValue({
       orgId: "org-1",
       role: "provider",
       errorCode: null,
@@ -154,7 +154,7 @@ describe("POST /api/auth/session", () => {
   });
 
   it("returns 403 when provisioning finds no invite", async () => {
-    mockResolveUserProfile.mockResolvedValue({
+    mockResolveUserProfileGlobally.mockResolvedValue({
       orgId: null,
       role: null,
       errorCode: "no_invite",

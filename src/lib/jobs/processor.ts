@@ -8,7 +8,7 @@ import {
   type JobNoteType,
   type JobRow,
 } from "@/lib/jobs/queries";
-import { downloadAudioForJob } from "@/lib/storage/audio-download";
+import { downloadAudioBlobGlobally } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudioChunked } from "@/lib/ai/whisper";
 import { generateNote } from "@/lib/ai/claude";
@@ -179,7 +179,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(job, claimedRunToken, "No audio uploaded");
     }
 
-    const downloaded = await downloadAudioForJob(job.audio_storage_path);
+    const downloaded = await downloadAudioBlobGlobally(job.audio_storage_path);
     if (downloaded.error || !downloaded.data) {
       return await failJob(job, claimedRunToken, downloaded.error ?? "Failed to download audio");
     }
