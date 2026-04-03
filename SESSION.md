@@ -19,8 +19,8 @@ PR 4 - session_billing_context resolution logic
 - Prerequisite: billing schema PostgREST exposure verified manually in Supabase dashboard
 
 ## Known Deferred Items
-- clinic-notes-ai-dev contains stale tenant_id billing artifacts from PR 3 verification - treat as disposable, use fresh target for next billing verification
-- Billing schema PostgREST exposure: verify billing is not in exposed schemas list in Supabase dashboard before PR 4 starts (cannot be confirmed from config.toml alone)
+- clinic-notes-ai-dev is disposable only and must not be used as a clean trust anchor for billing verification; it contains stale tenant_id billing artifacts from PR 3 verification, so use a fresh target for the next billing verification pass
+- Billing schema PostgREST exposure: live REST probe on 2026-04-03 returned PGRST106 with "Only the following schemas are exposed: public, graphql_public" when requesting Accept-Profile: billing on qkhfusvmqfmtzoandrtf. Dashboard confirmation is still preferred, but the live API surface currently rejects billing as non-exposed
 - Transcript versioning does not exist - transcripts table has no version identity, billing uses transcript_id + input_hash as provenance placeholder
 - BAAs with Anthropic, OpenAI, and Vercel are still outstanding
 - DEFAULT_PRACTICE_ID required by config validation but has no meaningful runtime callsite
