@@ -9,35 +9,26 @@ type Props = {
 };
 
 const VARIANT_COLORS = {
-  primary: { header: "#3B276A", text: "#3B276A" },
-  accent:  { header: "#517AB7", text: "#517AB7" },
-  success: { header: "#2E7D32", text: "#2E7D32" },
-  muted:   { header: "#777777", text: "#777777" },
+  primary: { header: "bg-primary", text: "text-primary" },
+  accent:  { header: "bg-accent", text: "text-accent" },
+  success: { header: "bg-[#2E7D32]", text: "text-[#2E7D32]" },
+  muted:   { header: "bg-text-muted", text: "text-text-muted" },
 };
 
 export function StatCard({ label, value, subtext, variant = "accent" }: Props) {
   const colors = VARIANT_COLORS[variant];
 
   return (
-    <div
-      className="card-ql flex flex-col overflow-hidden"
-      style={{ minWidth: 0 }}
-    >
+    <div className="card-ql flex min-w-0 flex-col overflow-hidden">
       {/* Color band at top */}
-      <div
-        className="h-1 w-full"
-        style={{ backgroundColor: colors.header }}
-      />
+      <div className={`h-1 w-full ${colors.header}`} />
       <div className="px-4 py-3">
         <p
           className="text-[11px] font-bold uppercase tracking-wider text-text-muted"
         >
           {label}
         </p>
-        <p
-          className="mt-1 text-2xl font-bold"
-          style={{ color: colors.text, lineHeight: 1.1 }}
-        >
+        <p className={`mt-1 text-2xl font-bold leading-[1.1] ${colors.text}`}>
           {value}
         </p>
         {subtext && (

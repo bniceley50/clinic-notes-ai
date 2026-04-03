@@ -114,10 +114,7 @@ export function LoginPageClient({
 
   return (
     <div className="flex min-h-screen flex-col bg-nav-bg">
-      <div
-        className="fixed top-0 left-0 right-0 flex items-center px-4 z-10"
-        style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
-      >
+      <div className="fixed top-0 left-0 right-0 z-10 flex h-[32px] items-center bg-primary px-4 text-white">
         <span className="text-xs font-semibold tracking-wide">Clinic Notes AI</span>
       </div>
 
@@ -139,22 +136,14 @@ export function LoginPageClient({
             </div>
           </div>
 
-          <div
-            className="border-t text-xs font-bold uppercase tracking-wider pt-4"
-            style={{ borderColor: "#E7E9EC", color: "#517AB7" }}
-          >
+          <div className="border-t border-border-subtle pt-4 text-xs font-bold uppercase tracking-wider text-accent">
             Sign In
           </div>
 
           {callbackErrorMessage && !error && (
             <div
               role="alert"
-              className="rounded border px-3 py-2 text-sm font-medium"
-              style={{
-                borderColor: "#E7B8AF",
-                backgroundColor: "#FFF1ED",
-                color: "#8A1F11",
-              }}
+              className="rounded border border-[#E7B8AF] bg-[#FFF1ED] px-3 py-2 text-sm font-medium text-[#8A1F11]"
             >
               {callbackErrorMessage}
             </div>

@@ -37,10 +37,10 @@ const JOB_STATUS_CHIP: Record<string, string> = {
 };
 
 const PROGRESS_BAR_COLOR: Record<string, string> = {
-  queued: "#746EB1",
-  running: "#3B276A",
-  complete: "#2E7D32",
-  failed: "#CC2200",
+  queued: "[&::-moz-progress-bar]:bg-secondary [&::-webkit-progress-value]:bg-secondary",
+  running: "[&::-moz-progress-bar]:bg-primary [&::-webkit-progress-value]:bg-primary",
+  complete: "[&::-moz-progress-bar]:bg-[#2E7D32] [&::-webkit-progress-value]:bg-[#2E7D32]",
+  failed: "[&::-moz-progress-bar]:bg-alert [&::-webkit-progress-value]:bg-alert",
 };
 
 const POLL_INTERVAL_MS = 10_000;
@@ -215,15 +215,11 @@ export function JobStatusPanel({
                 </div>
                 <span data-testid="job-progress">{job.progress}%</span>
               </div>
-              <div className="h-1.5 w-full rounded-[2px] bg-[#E7E9EC]">
-                <div
-                  className="h-1.5 rounded-[2px] transition-all duration-500"
-                  style={{
-                    width: `${job.progress}%`,
-                    backgroundColor: PROGRESS_BAR_COLOR[job.status] ?? "#3B276A",
-                  }}
-                />
-              </div>
+              <progress
+                className={`h-1.5 w-full overflow-hidden rounded-[2px] [&::-webkit-progress-bar]:bg-border-subtle [&::-webkit-progress-value]:rounded-[2px] ${PROGRESS_BAR_COLOR[job.status] ?? PROGRESS_BAR_COLOR.running}`}
+                value={job.progress}
+                max={100}
+              />
             </div>
           )}
 
@@ -274,11 +270,7 @@ export function JobStatusPanel({
                 type="button"
                 onClick={() => void handleCancel(job.id)}
                 disabled={cancelingJobId === job.id}
-                className="rounded px-3 py-1 text-xs font-semibold"
-                style={{
-                  backgroundColor: cancelingJobId === job.id ? "#F4CCCC" : "#FCE8E6",
-                  color: "#B42318",
-                }}
+                className={`rounded px-3 py-1 text-xs font-semibold text-[#B42318] ${cancelingJobId === job.id ? "bg-[#F4CCCC]" : "bg-[#FCE8E6]"}`}
               >
                 {cancelingJobId === job.id ? "Cancelling..." : "Cancel Job"}
               </button>
@@ -292,7 +284,7 @@ export function JobStatusPanel({
           )}
 
           {exhaustedRetries && (
-            <div className="mt-3 rounded-[2px] border px-3 py-2" style={{ borderColor: "#F4CCCC", backgroundColor: "#FFF4F2" }}>
+            <div className="mt-3 rounded-[2px] border border-[#F4CCCC] bg-[#FFF4F2] px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#B42318]">
                 What to do next
               </p>

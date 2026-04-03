@@ -78,7 +78,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
 
   return (
     <div
-      className="mt-3 p-3"
+      className={`mt-3 rounded-[2px] bg-[#F9F9FF] p-3 ${dragOver ? "border-2 border-primary" : "border border-dashed border-secondary"}`}
       data-testid="audio-upload-panel"
       onDragOver={(e) => {
         e.preventDefault();
@@ -88,26 +88,14 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
       onDrop={(e) => {
         void handleDrop(e);
       }}
-      style={{
-        border: dragOver ? "2px solid #3B276A" : "1px dashed #746EB1",
-        borderRadius: "2px",
-        backgroundColor: "#F9F9FF",
-      }}
     >
       <label
         htmlFor={`audio-upload-${jobId}`}
-        className="flex cursor-pointer items-center justify-center gap-2 text-sm font-medium"
-        style={{
-          color: uploading ? "#777777" : "#517AB7",
-          cursor: uploading ? "not-allowed" : "pointer",
-        }}
+        className={`flex items-center justify-center gap-2 text-sm font-medium ${uploading ? "cursor-not-allowed text-text-muted" : "cursor-pointer text-accent"}`}
       >
         {uploading ? (
           <>
-            <span
-              className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
-              style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
-            />
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
             Uploading {fileName}...
           </>
         ) : (
@@ -125,7 +113,7 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
                 d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
               />
             </svg>
-            <span style={{ color: "#999999", fontWeight: 400 }}>Drag & drop or </span>Upload audio file
+            <span className="font-normal text-[#999999]">Drag & drop or </span>Upload audio file
           </>
         )}
       </label>

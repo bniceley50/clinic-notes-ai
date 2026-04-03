@@ -29,33 +29,14 @@ function FieldRow({
   }
 
   return (
-    <div
-      style={{
-        border: "1px solid #E7E9EC",
-        borderRadius: 2,
-        padding: 12,
-        backgroundColor: "#FFFFFF",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 8,
-        }}
-      >
-        <p
-          className="text-xs font-semibold"
-          style={{ color: "#3B276A", margin: 0 }}
-        >
+    <div className="rounded-[2px] border border-border-subtle bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="m-0 text-xs font-semibold text-primary">
           {label}
         </p>
         <button
           type="button"
-          className="ql-button-secondary"
-          style={{ fontSize: 11, padding: "4px 10px" }}
+          className="ql-button-secondary px-[10px] py-1 text-[11px]"
           onClick={() => void handleCopy()}
         >
           {copied ? "Copied!" : "Copy"}
@@ -64,20 +45,9 @@ function FieldRow({
       <textarea
         value={editedValue}
         onChange={(e) => setEditedValue(e.target.value)}
-        style={{
-          width: "100%",
-          minHeight: 112,
-          border: "1px solid #D7DADF",
-          borderRadius: 2,
-          padding: 10,
-          font: "inherit",
-          lineHeight: "16px",
-          resize: "vertical",
-          backgroundColor: "#FFFFFF",
-          color: "#333333",
-        }}
+        className="min-h-[112px] w-full resize-y rounded-[2px] border border-[#D7DADF] bg-white p-[10px] leading-4 text-[#333333] [font:inherit]"
       />
-      <p style={{ fontSize: 10, color: "#999999", marginTop: 4, marginBottom: 0 }}>
+      <p className="mb-0 mt-1 text-[10px] text-[#999999]">
         AI-generated from the session transcript. Review and edit before entering into the EHR.
       </p>
     </div>
@@ -112,10 +82,7 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
     return (
       <div className="ql-panel" data-testid="carelogic-forms-panel-loading">
         <div className="flex items-center gap-2 text-sm text-secondary">
-          <span
-            className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
-            style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
-          />
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
           Extracting EHR-ready fields...
         </div>
       </div>
@@ -142,28 +109,13 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
   return (
     <div className="ql-grid" data-testid="carelogic-forms-panel">
       <section className="ql-panel">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            padding: 12,
-            borderBottom: "1px solid #E7E9EC",
-          }}
-        >
+        <div className="flex items-center justify-between gap-3 border-b border-border-subtle p-3">
           <div>
-            <p
-              className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: "#517AB7", margin: 0 }}
-            >
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-accent">
               Structured fields
             </p>
             {generatedAt ? (
-              <p
-                className="text-xs"
-                style={{ color: "#666666", marginTop: 6, marginBottom: 0 }}
-              >
+              <p className="mb-0 mt-1.5 text-xs text-[#666666]">
                 Generated {generatedAt}
               </p>
             ) : null}
@@ -180,24 +132,17 @@ export function CareLogicFormsPanel({ jobId, sessionType }: Props) {
           ) : null}
         </div>
         {regenError ? (
-          <p
-            className="ql-alert ql-alert-error"
-            role="alert"
-            style={{ margin: 12 }}
-          >
+          <p className="ql-alert ql-alert-error m-3" role="alert">
             {regenError}
           </p>
         ) : null}
       </section>
       {sections.map((section) => (
         <section key={section.title} className="ql-panel">
-          <div
-            className="border-b px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ borderColor: "#E7E9EC", color: "#517AB7", backgroundColor: "#F9F9F9" }}
-          >
+          <div className="border-b border-border-subtle bg-nav-bg px-4 py-2 text-xs font-bold uppercase tracking-wider text-accent">
             {section.title}
           </div>
-          <div style={{ display: "grid", gap: 12, padding: 12 }}>
+          <div className="grid gap-3 p-3">
             {section.fields.map((field) => (
               <FieldRow
                 key={field.key}

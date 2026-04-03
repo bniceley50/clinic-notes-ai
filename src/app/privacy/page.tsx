@@ -4,10 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 export default function PrivacyPage() {
   return (
     <div className="flex min-h-screen flex-col bg-nav-bg">
-      <div
-        className="flex items-center px-4"
-        style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
-      >
+      <div className="flex h-[32px] items-center bg-primary px-4 text-white">
         <Link href="/login" className="text-xs font-semibold tracking-wide no-underline text-white">
           Clinic Notes AI
         </Link>

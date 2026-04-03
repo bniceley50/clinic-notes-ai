@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif' }}>
+      <body>
         {children}
       </body>
     </html>

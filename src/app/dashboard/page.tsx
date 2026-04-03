@@ -119,12 +119,9 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 280px" }}>
+      <div className="grid grid-cols-[1fr_280px] gap-4">
         <div className="card-ql overflow-hidden">
-          <div
-            className="flex items-center justify-between border-b px-4 py-2"
-            style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
-          >
+          <div className="flex items-center justify-between border-b border-border-subtle bg-nav-bg px-4 py-2">
             <span
               className="text-xs font-bold uppercase tracking-wider text-accent"
             >
@@ -169,10 +166,7 @@ export default async function DashboardPage() {
                     {s.patient_label || "Untitled"}
                   </td>
                   <td>
-                    <span
-                      className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase"
-                      style={{ backgroundColor: "#F0F0F0", color: "#333333" }}
-                    >
+                    <span className="inline-block rounded-[2px] bg-row-alt px-2 py-0.5 text-[10px] font-medium uppercase text-text-body">
                       {s.session_type}
                     </span>
                   </td>
@@ -204,14 +198,7 @@ export default async function DashboardPage() {
 
         <div className="space-y-4">
           <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{
-                backgroundColor: "#F9F9F9",
-                borderColor: "#E7E9EC",
-                color: "#517AB7",
-              }}
-            >
+            <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
               Provider
             </div>
             <table>
@@ -255,14 +242,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{
-                backgroundColor: "#F9F9F9",
-                borderColor: "#E7E9EC",
-                color: "#517AB7",
-              }}
-            >
+            <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
               Quick Actions
             </div>
             <div className="space-y-2 p-3">

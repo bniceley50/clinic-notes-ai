@@ -28,25 +28,19 @@ export function ConsentStatusCard({
     window.location.reload();
   }
 
+  const consentTextClass = hasConsent ? "text-[#2F6F44]" : "text-[#8A4B08]";
+
   return (
     <div className="space-y-4">
       <div className="card-ql overflow-hidden">
-        <div
-          className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-          style={{
-            backgroundColor: "#F9F9F9",
-            borderColor: "#E7E9EC",
-            color: "#517AB7",
-          }}
-        >
+        <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
           Consent Status
         </div>
-        <div className="p-3 text-xs" style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}>
+        <div className={`p-3 text-xs ${consentTextClass}`}>
           <p className="font-semibold">{consentLabel}</p>
           <p
-            className="mt-1"
+            className={`mt-1 ${consentTextClass}`}
             suppressHydrationWarning
-            style={{ color: hasConsent ? "#2F6F44" : "#8A4B08" }}
           >
             {hasConsent && consentTimestamp
               ? `Recorded ${new Date(consentTimestamp).toLocaleString()}`

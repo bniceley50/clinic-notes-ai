@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { SessionRow } from "@/lib/sessions/queries";
 
 const SESSION_STATUS_CHIP: Record<string, string> = {
@@ -16,7 +16,6 @@ type SessionDeleteButtonProps = {
   patientLabel: string | null;
   redirectTo?: string;
   className?: string;
-  style?: CSSProperties;
   children?: ReactNode;
 };
 
@@ -25,7 +24,6 @@ export function SessionDeleteButton({
   patientLabel,
   redirectTo,
   className,
-  style,
   children,
 }: SessionDeleteButtonProps) {
   const [pending, setPending] = useState(false);
@@ -80,7 +78,6 @@ export function SessionDeleteButton({
       onClick={() => void handleDelete()}
       disabled={pending}
       className={className}
-      style={style}
     >
       {pending ? "Deleting..." : children ?? "Delete"}
     </button>
@@ -131,8 +128,7 @@ export function SessionList({
                 </td>
                 <td>
                   <span
-                    className="inline-block rounded-[2px] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                    style={{ backgroundColor: "#F0F0F0", color: "#333333" }}
+                    className="inline-block rounded-[2px] bg-[#F0F0F0] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-[#333333]"
                   >
                     {session.session_type}
                   </span>
@@ -162,11 +158,7 @@ export function SessionList({
                     ) : null}
                     <Link
                       href={`/sessions/${session.id}`}
-                      className="text-xs font-semibold no-underline rounded-[2px] px-3 py-1"
-                      style={{
-                        color: "#517AB7",
-                        border: "1px solid #E7E9EC",
-                      }}
+                      className="rounded-[2px] border border-border-subtle px-3 py-1 text-xs font-semibold text-accent no-underline"
                     >
                       Open
                     </Link>

@@ -130,13 +130,10 @@ export default async function SessionDetailPage({ params }: Props) {
         </span>
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: "300px 1fr" }}>
+      <div className="grid grid-cols-[300px_1fr] gap-4">
         <div className="space-y-4">
           <div className="card-ql overflow-hidden">
-            <div
-              className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
+            <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
               Session
             </div>
             <table>
@@ -239,10 +236,7 @@ export default async function SessionDetailPage({ params }: Props) {
 
           {latestTranscriptJob && latestJobState && shouldShowEhrFields(latestJobState) ? (
             <section className="card-ql overflow-hidden">
-              <div
-                className="border-b px-4 py-3"
-                style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
-              >
+              <div className="border-b border-border-subtle bg-nav-bg px-4 py-3">
                 <p className="ql-kicker">Structured Documentation</p>
                 <h2 className="ql-panel-title">EHR-Ready Fields</h2>
                 <p className="mt-1 text-xs text-text-muted">
@@ -260,10 +254,7 @@ export default async function SessionDetailPage({ params }: Props) {
 
           {latestJobState && shouldShowAdvancedSection(latestJobState) ? (
             <details className="card-ql overflow-hidden">
-              <summary
-                className="cursor-pointer list-none border-b px-4 py-3"
-                style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
-              >
+              <summary className="cursor-pointer list-none border-b border-border-subtle bg-nav-bg px-4 py-3">
                 <div>
                   <p className="ql-kicker">Advanced</p>
                   <h2 className="ql-panel-title">Optional Draft Note</h2>

@@ -11,14 +11,7 @@ type Props = {
 export function ConsentPrompt({ sessionId, onConsented }: Props) {
   return (
     <div className="card-ql overflow-hidden">
-      <div
-        className="border-b px-3 py-2 text-xs font-bold uppercase tracking-wider"
-        style={{
-          backgroundColor: "#F9F9F9",
-          borderColor: "#E7E9EC",
-          color: "#517AB7",
-        }}
-      >
+      <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
         Record Consent
       </div>
       <div className="p-3">

@@ -21,7 +21,7 @@ describe("security headers", () => {
     expect(headerMap.has("Content-Security-Policy")).toBe(false);
   });
 
-  it("builds a nonce-based production CSP without unsafe-inline for scripts", () => {
+  it("builds a nonce-based production CSP without unsafe-inline for scripts or styles", () => {
     const csp = buildContentSecurityPolicy({ isProduction: true, nonce: "abc123" });
 
     expect(csp).toContain("default-src 'self'");
@@ -30,14 +30,17 @@ describe("security headers", () => {
     expect(csp).toContain("connect-src 'self' https://*.supabase.co");
     expect(csp).toContain("https://*.ingest.sentry.io");
     expect(csp).toContain("script-src 'self' 'nonce-abc123'");
+    expect(csp).toContain("style-src 'self'");
     expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(csp).not.toContain("style-src 'self' 'unsafe-inline'");
     expect(csp).not.toContain("'unsafe-eval'");
   });
 
-  it("allows unsafe-eval only outside production to avoid breaking local Next development", () => {
+  it("allows the development-only CSP relaxations needed for local Next development", () => {
     const csp = buildContentSecurityPolicy({ isProduction: false, nonce: "abc123" });
 
     expect(csp).toContain("script-src 'self' 'nonce-abc123' 'unsafe-eval'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
   });
 
   it("can still build the full header set with CSP for middleware-adjacent callers", () => {
