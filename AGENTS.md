@@ -67,9 +67,9 @@ If a change branches into multiple problems: stop, finish the smallest shippable
 
 - **Project name:** Clinic Notes AI
 - **Purpose:** AI-powered clinical documentation tool for small clinics (2-5 providers). Record, transcribe, draft clinical notes, review/edit, and export.
-- **Current milestone:** A (complete)
+- **Current milestone:** Phase 0 complete. Phase 1 org-scoping refactor is the active architectural gate before second-clinic onboarding.
 - **Stack:** Next.js 15 / Supabase / Tailwind / shadcn/ui / Vercel
-- **Repo root (local):** `N:\Clinic Notes AI`
+- **Repo root (local):** `C:\Users\brian\clinic-notes-ai`
 - **Repo root (remote):** `github.com/bniceley50/clinic-notes-ai`
 
 ## 7) Domain Rules and Defaults
@@ -84,7 +84,7 @@ Use these instead of asking.
 
 ### DATA RULES
 - Soft-delete only, never hard-delete patient-related records
-- Notes are append-versioned (keep edit history)
+- Notes are updated in place. Append-versioning was a design aspiration that was not implemented.
 - Transcripts are immutable once created
 - Job status transitions are one-directional: queued -> running -> complete|failed|cancelled
 
@@ -123,10 +123,10 @@ If gate fails: stop, fix only what is required to get gate green, gate again. No
 ## 10) Current Working State
 
 ```
-Current goal: Prepare for Milestone B real AI integration from a stable Milestone A baseline
-Last known good checkpoint: Milestone A complete on main with session CRUD, provider-owned jobs, worker updates, note editing, export flow, and E2E coverage
-Current schema: orgs, profiles, sessions, jobs, transcripts, notes, audit_log; jobs include audio/transcript/draft storage path fields; storage bucket config and migration are present in repo
-Open decisions: None reopened from Milestone A; next implementation milestone is B (real AI pipeline)
+Current goal: Complete Phase 1 org-scoping prerequisites before second-clinic onboarding
+Last known good checkpoint: fix/style-src-phase2-3 includes PR 1 (49fa1e0 - carelogic RLS regression fix) and PR 3 (da739a0 - billing schema infrastructure)
+Current schema: org-scoped public app tables plus server-only billing schema groundwork in repo; use a fresh verification target for future billing applies because clinic-notes-ai-dev is disposable after PR 3 verification artifacts
+Open decisions: Next implementation step is PR 4 session_billing_context resolution logic after manual Supabase dashboard verification that billing is not in exposed schemas
 ```
 
 **Locked decisions (D006–D012):**
@@ -167,8 +167,8 @@ Open decisions: None reopened from Milestone A; next implementation milestone is
 | **C** | Production hardening - errors, loading, mobile, audit, logging |
 | **D** | Polish & launch - search, templates, bulk export, docs |
 
-**Current milestone:** A (complete)
-**Next decision point:** Milestone B execution: wire real Whisper + Claude processing, define kill switch behavior, and keep multi-provider support aligned with locked decisions.
+**Current milestone:** Phase 0 complete. Phase 1 org-scoping refactor is the active architectural gate before second-clinic onboarding.
+**Next decision point:** PR 4 execution: session_billing_context resolution logic after manual Supabase dashboard verification that billing is not in exposed schemas.
 
 ## 12) Multi-Agent Protocol
 
