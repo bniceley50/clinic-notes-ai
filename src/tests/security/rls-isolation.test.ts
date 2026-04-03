@@ -49,6 +49,10 @@ let orgANoteId: string
 let orgBNoteId: string
 let orgATranscriptId: string
 let orgAExtractionId: string
+let orgBTranscriptId: string
+let orgBExtractionId: string
+let orgASoftDeletedTranscriptId: string
+let orgASoftDeletedExtractionId: string
 let orgAStoragePath: string
 
 async function signIn(email: string, password: string): Promise<SupabaseClient> {
@@ -300,9 +304,92 @@ describeIntegration('RLS org isolation', () => {
 
     orgAExtractionId = orgAExtraction.id
 
+    const { data: orgBTranscript, error: orgBTranscriptError } = await admin
+      .from('transcripts')
+      .insert({
+        session_id: orgBSessionId,
+        org_id: orgBOrgId,
+        job_id: orgBJobId,
+        content: 'Org B transcript',
+      })
+      .select('id')
+      .single()
+
+    if (orgBTranscriptError || !orgBTranscript) {
+      throw new Error(`Failed to seed Org B transcript: ${orgBTranscriptError?.message ?? 'unknown error'}`)
+    }
+
+    orgBTranscriptId = orgBTranscript.id
+
+    const { data: orgBExtraction, error: orgBExtractionError } = await admin
+      .from('carelogic_field_extractions')
+      .insert({
+        session_id: orgBSessionId,
+        org_id: orgBOrgId,
+        job_id: orgBJobId,
+        transcript_id: orgBTranscriptId,
+        session_type: 'general',
+        fields: {
+          client_perspective: 'Org B extraction',
+        },
+        generated_by: orgBUserId,
+      })
+      .select('id')
+      .single()
+
+    if (orgBExtractionError || !orgBExtraction) {
+      throw new Error(`Failed to seed Org B extraction: ${orgBExtractionError?.message ?? 'unknown error'}`)
+    }
+
+    orgBExtractionId = orgBExtraction.id
+
+    const { data: orgASoftDeletedTranscript, error: orgASoftDeletedTranscriptError } = await admin
+      .from('transcripts')
+      .insert({
+        session_id: orgAAltSessionId,
+        org_id: orgAOrgId,
+        job_id: orgAAltJobId,
+        content: 'Org A soft-deleted transcript',
+      })
+      .select('id')
+      .single()
+
+    if (orgASoftDeletedTranscriptError || !orgASoftDeletedTranscript) {
+      throw new Error(
+        `Failed to seed soft-deleted transcript: ${orgASoftDeletedTranscriptError?.message ?? 'unknown error'}`,
+      )
+    }
+
+    orgASoftDeletedTranscriptId = orgASoftDeletedTranscript.id
+
+    const { data: orgASoftDeletedExtraction, error: orgASoftDeletedExtractionError } = await admin
+      .from('carelogic_field_extractions')
+      .insert({
+        session_id: orgAAltSessionId,
+        org_id: orgAOrgId,
+        job_id: orgAAltJobId,
+        transcript_id: orgASoftDeletedTranscriptId,
+        session_type: 'general',
+        fields: {
+          client_perspective: 'Soft-deleted extraction',
+        },
+        generated_by: orgAUserId,
+        deleted_at: '2026-04-03T12:00:00.000Z',
+      })
+      .select('id')
+      .single()
+
+    if (orgASoftDeletedExtractionError || !orgASoftDeletedExtraction) {
+      throw new Error(
+        `Failed to seed soft-deleted extraction: ${orgASoftDeletedExtractionError?.message ?? 'unknown error'}`,
+      )
+    }
+
+    orgASoftDeletedExtractionId = orgASoftDeletedExtraction.id
+
     const { error: uploadError } = await admin.storage
       .from('audio')
-      .upload(orgAStoragePath, new Blob(['audio-test-bytes']), {
+      .upload(orgAStoragePath, new Blob(['audio-test-bytes'], { type: 'audio/webm' }), {
         contentType: 'audio/webm',
         upsert: true,
       })
@@ -461,6 +548,16 @@ describeIntegration('RLS org isolation', () => {
     expect(data).toEqual([])
   })
 
+  it('A cross-tenant provider cannot read another tenant\'s stored CareLogic extraction row', async () => {
+    const { data, error } = await orgAClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgBExtractionId)
+
+    expect(error).toBeNull()
+    expect(data).toEqual([])
+  })
+
   it('A provider cannot rebind their note to a different session/job via direct Supabase UPDATE', async () => {
     const { data, error } = await orgAClient
       .from('notes')
@@ -529,5 +626,33 @@ describeIntegration('RLS org isolation', () => {
         generated_by: orgAUserId,
       } satisfies ExtractionRow,
     ])
+  })
+
+  it('Soft-deleted CareLogic extraction rows stay hidden from both owners and same-org admins', async () => {
+    const { data: ownerData, error: ownerError } = await orgAClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgASoftDeletedExtractionId)
+
+    expect(ownerError).toBeNull()
+    expect(ownerData).toEqual([])
+
+    const { error: roleError } = await admin
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('user_id', orgBUserId)
+      .eq('org_id', orgAOrgId)
+
+    if (roleError) {
+      throw new Error(`Failed to promote same-org user to admin for soft-delete test: ${roleError.message}`)
+    }
+
+    const { data: adminData, error: adminError } = await orgBClient
+      .from('carelogic_field_extractions')
+      .select('id, session_id, org_id, job_id, transcript_id, generated_by')
+      .eq('id', orgASoftDeletedExtractionId)
+
+    expect(adminError).toBeNull()
+    expect(adminData).toEqual([])
   })
 })
