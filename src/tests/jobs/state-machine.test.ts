@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  mockGetJobById,
-  mockClaimJobForProcessing,
-  mockUpdateClaimedJobWorkerFields,
+  mockGetGlobalJobById,
+  mockClaimJobForProcessingGlobally,
+  mockUpdateClaimedJobWorkerFieldsForOrg,
   mockDownloadAudioForJob,
   mockUploadTranscript,
   mockTranscribeAudioChunked,
@@ -21,9 +21,9 @@ const {
   mockFrom,
   mockCreateServiceClient,
 } = vi.hoisted(() => ({
-  mockGetJobById: vi.fn(),
-  mockClaimJobForProcessing: vi.fn(),
-  mockUpdateClaimedJobWorkerFields: vi.fn(),
+  mockGetGlobalJobById: vi.fn(),
+  mockClaimJobForProcessingGlobally: vi.fn(),
+  mockUpdateClaimedJobWorkerFieldsForOrg: vi.fn(),
   mockDownloadAudioForJob: vi.fn(),
   mockUploadTranscript: vi.fn(),
   mockTranscribeAudioChunked: vi.fn(),
@@ -60,13 +60,13 @@ const {
 }));
 
 vi.mock("../../lib/jobs/queries", () => ({
-  getJobById: mockGetJobById,
-  claimJobForProcessing: mockClaimJobForProcessing,
-  updateClaimedJobWorkerFields: mockUpdateClaimedJobWorkerFields,
+  getGlobalJobById: mockGetGlobalJobById,
+  claimJobForProcessingGlobally: mockClaimJobForProcessingGlobally,
+  updateClaimedJobWorkerFieldsForOrg: mockUpdateClaimedJobWorkerFieldsForOrg,
 }));
 
 vi.mock("../../lib/storage/audio-download", () => ({
-  downloadAudioForJob: mockDownloadAudioForJob,
+  downloadAudioBlobGlobally: mockDownloadAudioForJob,
 }));
 
 vi.mock("../../lib/storage/transcript", () => ({
@@ -188,14 +188,14 @@ describe("job state machine", () => {
 
     mockWriteAuditLog.mockResolvedValue(undefined);
 
-    mockUpdateClaimedJobWorkerFields.mockResolvedValue({
+    mockUpdateClaimedJobWorkerFieldsForOrg.mockResolvedValue({
       data: { id: "job-1" },
       error: null,
     });
   });
 
   it("a claimed job completes after transcription and threads run_token through fenced writes", async () => {
-    mockClaimJobForProcessing.mockResolvedValue({
+    mockClaimJobForProcessingGlobally.mockResolvedValue({
       data: makeClaimedJob(),
       error: null,
     });
@@ -203,7 +203,7 @@ describe("job state machine", () => {
     const result = await processJob("job-1");
 
     expect(result).toEqual({ success: true, error: null });
-    expect(mockClaimJobForProcessing).toHaveBeenCalledWith("job-1", 300);
+    expect(mockClaimJobForProcessingGlobally).toHaveBeenCalledWith("job-1", 300);
     expect(mockDownloadAudioForJob).toHaveBeenCalledWith(baseJob.audio_storage_path);
     expect(mockTranscribeAudioChunked).toHaveBeenCalledWith(
       Buffer.from("audio-bytes"),
@@ -229,8 +229,9 @@ describe("job state machine", () => {
       action: "audio.sent_to_vendor",
       vendor: "openai",
     });
-    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenNthCalledWith(
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).toHaveBeenNthCalledWith(
       1,
+      "org-1",
       "job-1",
       "run-token-1",
       {
@@ -238,7 +239,8 @@ describe("job state machine", () => {
         progress: 29,
       },
     );
-    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenLastCalledWith(
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).toHaveBeenLastCalledWith(
+      "org-1",
       "job-1",
       "run-token-1",
       {
@@ -254,7 +256,7 @@ describe("job state machine", () => {
   });
 
   it("returns early when the job claim fails without side effects", async () => {
-    mockClaimJobForProcessing.mockResolvedValue({
+    mockClaimJobForProcessingGlobally.mockResolvedValue({
       data: null,
       error: null,
     });
@@ -264,11 +266,11 @@ describe("job state machine", () => {
     expect(result).toEqual({ success: true, error: null, alreadyRunning: true });
     expect(mockDownloadAudioForJob).not.toHaveBeenCalled();
     expect(mockTranscribeAudioChunked).not.toHaveBeenCalled();
-    expect(mockUpdateClaimedJobWorkerFields).not.toHaveBeenCalled();
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).not.toHaveBeenCalled();
   });
 
   it("transient failures requeue the claimed job and clear lease metadata", async () => {
-    mockClaimJobForProcessing.mockResolvedValue({
+    mockClaimJobForProcessingGlobally.mockResolvedValue({
       data: makeClaimedJob({ attempt_count: 1 }),
       error: null,
     });
@@ -280,7 +282,8 @@ describe("job state machine", () => {
     const result = await processJob("job-1");
 
     expect(result).toEqual({ success: false, error: "Failed to download audio" });
-    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledWith(
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).toHaveBeenCalledWith(
+      "org-1",
       "job-1",
       "run-token-1",
       {
@@ -296,7 +299,7 @@ describe("job state machine", () => {
   });
 
   it("terminal failures mark the job failed and clear lease metadata", async () => {
-    mockClaimJobForProcessing.mockResolvedValue({
+    mockClaimJobForProcessingGlobally.mockResolvedValue({
       data: makeClaimedJob({ attempt_count: 3 }),
       error: null,
     });
@@ -308,7 +311,8 @@ describe("job state machine", () => {
     const result = await processJob("job-1");
 
     expect(result).toEqual({ success: false, error: "Failed to download audio" });
-    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledWith(
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).toHaveBeenCalledWith(
+      "org-1",
       "job-1",
       "run-token-1",
       {
@@ -323,11 +327,11 @@ describe("job state machine", () => {
   });
 
   it("returns claim lost when a stale run_token prevents a worker write", async () => {
-    mockClaimJobForProcessing.mockResolvedValue({
+    mockClaimJobForProcessingGlobally.mockResolvedValue({
       data: makeClaimedJob(),
       error: null,
     });
-    mockUpdateClaimedJobWorkerFields.mockResolvedValueOnce({
+    mockUpdateClaimedJobWorkerFieldsForOrg.mockResolvedValueOnce({
       data: null,
       error: null,
     });
@@ -335,11 +339,11 @@ describe("job state machine", () => {
     const result = await processJob("job-1");
 
     expect(result).toEqual({ success: false, error: "Job claim lost" });
-    expect(mockUpdateClaimedJobWorkerFields).toHaveBeenCalledTimes(1);
+    expect(mockUpdateClaimedJobWorkerFieldsForOrg).toHaveBeenCalledTimes(1);
   });
 
   it("generateNoteForJob remains callable independently after transcription", async () => {
-    mockGetJobById.mockResolvedValue({
+    mockGetGlobalJobById.mockResolvedValue({
       ...baseJob,
       status: "complete",
       transcript_storage_path: "org-1/session-1/job-1/transcript.txt",

@@ -6,7 +6,7 @@ const {
   mockListExpiredRunningJobs,
   mockRequeueStaleLeasedJob,
   mockCheckRateLimit,
-  mockCleanupSoftDeletedArtifacts,
+  mockCleanupSoftDeletedArtifactsGlobally,
   mockWorkerLimit,
   mockCaptureCheckIn,
   mockFlush,
@@ -16,7 +16,7 @@ const {
   mockListExpiredRunningJobs: vi.fn(),
   mockRequeueStaleLeasedJob: vi.fn(),
   mockCheckRateLimit: vi.fn(),
-  mockCleanupSoftDeletedArtifacts: vi.fn(),
+  mockCleanupSoftDeletedArtifactsGlobally: vi.fn(),
   mockWorkerLimit: { name: "worker-limit" },
   mockCaptureCheckIn: vi.fn(() => "check-in-1"),
   mockFlush: vi.fn().mockResolvedValue(true),
@@ -27,13 +27,13 @@ vi.mock("@/lib/config", () => ({
 }));
 
 vi.mock("@/lib/jobs/queries", () => ({
-  listQueuedJobs: mockListQueuedJobs,
-  listExpiredRunningLeasedJobs: mockListExpiredRunningJobs,
-  requeueStaleLeasedJob: mockRequeueStaleLeasedJob,
+  listQueuedJobsGlobally: mockListQueuedJobs,
+  listExpiredRunningLeasedJobsGlobally: mockListExpiredRunningJobs,
+  requeueStaleLeasedJobForOrg: mockRequeueStaleLeasedJob,
 }));
 
 vi.mock("@/lib/storage/cleanup", () => ({
-  cleanupSoftDeletedArtifacts: mockCleanupSoftDeletedArtifacts,
+  cleanupSoftDeletedArtifactsGlobally: mockCleanupSoftDeletedArtifactsGlobally,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -86,7 +86,7 @@ describe("GET /api/jobs/runner", () => {
       data: null,
       error: null,
     });
-    mockCleanupSoftDeletedArtifacts.mockResolvedValue({
+    mockCleanupSoftDeletedArtifactsGlobally.mockResolvedValue({
       cleaned: 0,
       error: null,
     });
@@ -99,7 +99,7 @@ describe("GET /api/jobs/runner", () => {
 
   it("requeues expired running jobs before dispatching work", async () => {
     mockListExpiredRunningJobs.mockResolvedValue({
-      data: [{ id: "expired-job-1" }],
+      data: [{ id: "expired-job-1", org_id: "org-1" }],
       error: null,
     });
     mockRequeueStaleLeasedJob.mockResolvedValue({
@@ -112,7 +112,7 @@ describe("GET /api/jobs/runner", () => {
 
     expect(response.status).toBe(200);
     expect(mockListExpiredRunningJobs).toHaveBeenCalled();
-    expect(mockRequeueStaleLeasedJob).toHaveBeenCalledWith("expired-job-1");
+    expect(mockRequeueStaleLeasedJob).toHaveBeenCalledWith("org-1", "expired-job-1");
     expect(mockCheckRateLimit).toHaveBeenCalledWith(mockWorkerLimit, "worker:runner");
     expect(mockCaptureCheckIn).toHaveBeenNthCalledWith(
       1,
@@ -142,7 +142,7 @@ describe("GET /api/jobs/runner", () => {
         method: "POST",
       }),
     );
-    expect(mockCleanupSoftDeletedArtifacts).toHaveBeenCalledTimes(1);
+    expect(mockCleanupSoftDeletedArtifactsGlobally).toHaveBeenCalledTimes(1);
     expect(payload).toEqual({ processed: 1 });
   });
 

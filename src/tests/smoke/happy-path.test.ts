@@ -22,18 +22,18 @@ vi.mock("@/lib/audit", () => ({ writeAuditLog: vi.fn(async () => undefined) }));
 vi.mock("@/lib/logger", () => ({ withLogging: <T>(handler: T) => handler }));
 vi.mock("@/lib/storage/audio", () => ({
   buildAudioStoragePath: ({ orgId, sessionId, jobId, fileName }: { orgId: string; sessionId: string; jobId: string; fileName: string }) => `${orgId}/${sessionId}/${jobId}/recording.${fileName.split(".").pop() ?? "webm"}`,
-  finalizeAudioUploadForJob: vi.fn(async ({ jobId, storagePath }: { jobId: string; storagePath: string }) => {
-    const { error } = await admin.from("jobs").update({ audio_storage_path: storagePath, updated_at: new Date().toISOString() }).eq("id", jobId);
+  finalizeJobAudioUploadForOrg: vi.fn(async ({ orgId, sessionId, jobId, storagePath }: { orgId: string; sessionId: string; jobId: string; storagePath: string }) => {
+    const { error } = await admin.from("jobs").update({ audio_storage_path: storagePath, updated_at: new Date().toISOString() }).eq("org_id", orgId).eq("session_id", sessionId).eq("id", jobId);
     return { storagePath: error ? null : storagePath, error: error?.message ?? null };
   }),
 }));
-vi.mock("@/lib/storage/audio-download", () => ({ downloadAudioForJob: vi.fn(async () => ({ data: new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: "audio/webm" }), error: null })) }));
+vi.mock("@/lib/storage/audio-download", () => ({ downloadAudioBlobGlobally: vi.fn(async () => ({ data: new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: "audio/webm" }), error: null })) }));
 vi.mock("@/lib/ai/whisper", () => ({ transcribeAudioChunked: vi.fn(async () => ({ text: "Client reports improved mood and better sleep.", error: null })) }));
 vi.mock("@/lib/storage/transcript", () => ({ uploadTranscript: vi.fn(async ({ orgId, sessionId, jobId }: { orgId: string; sessionId: string; jobId: string }) => ({ storagePath: `${orgId}/${sessionId}/${jobId}/transcript.txt`, error: null })) }));
 vi.mock("@/lib/config", async () => ({ ...(await vi.importActual<typeof import("@/lib/config")>("@/lib/config")), anthropicApiKey: () => "test-anthropic-key", aiRealApisEnabled: () => true }));
 
 import { createSession, softDeleteSession } from "@/lib/sessions/queries";
-import { createJob, getJobById } from "@/lib/jobs/queries";
+import { createJob, getGlobalJobById } from "@/lib/jobs/queries";
 import { processJob } from "@/lib/jobs/processor";
 import { POST as postUploadComplete } from "@/app/api/jobs/[id]/upload-complete/route";
 import { GET as getCarelogicFields } from "@/app/api/jobs/[id]/carelogic-fields/route";
@@ -78,7 +78,7 @@ describeSmoke("smoke happy path", () => {
     const processed = await processJob(createdJob.data!.id);
     expect(processed).toEqual({ success: true, error: null });
 
-    const refreshedJob = await getJobById(createdJob.data!.id);
+    const refreshedJob = await getGlobalJobById(createdJob.data!.id);
     expect(refreshedJob?.status).toBe("complete");
     expect(refreshedJob?.transcript_storage_path).toBeTruthy();
 

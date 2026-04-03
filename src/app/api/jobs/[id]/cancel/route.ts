@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { writeAuditLog } from "@/lib/audit";
-import { getMyJob, updateJobWorkerFields } from "@/lib/jobs/queries";
+import { getMyJob, updateJobWorkerFieldsForOrg } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -38,7 +38,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     );
   }
 
-  const { data, error } = await updateJobWorkerFields(id, {
+  const { data, error } = await updateJobWorkerFieldsForOrg(result.user.orgId, id, {
     status: "cancelled",
     stage: "cancelled",
     error_message: "Cancelled by user",

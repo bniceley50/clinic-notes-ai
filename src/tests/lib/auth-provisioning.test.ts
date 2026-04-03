@@ -87,9 +87,9 @@ vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: mockCreateServiceClient,
 }));
 
-import { resolveUserProfile } from "@/lib/auth/provisioning";
+import { resolveUserProfileGlobally } from "@/lib/auth/provisioning";
 
-describe("resolveUserProfile", () => {
+describe("resolveUserProfileGlobally", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsDevLoginAllowed.mockReturnValue(false);
@@ -117,7 +117,7 @@ describe("resolveUserProfile", () => {
       message: "duplicate key value violates unique constraint",
     };
 
-    const result = await resolveUserProfile({
+    const result = await resolveUserProfileGlobally({
       id: "user-1",
       email: "clinician@example.com",
     } as never);
@@ -150,7 +150,7 @@ describe("resolveUserProfile", () => {
       message: "duplicate key value violates unique constraint",
     };
 
-    const result = await resolveUserProfile({
+    const result = await resolveUserProfileGlobally({
       id: "user-1",
       email: "dev@example.com",
     } as never);
@@ -185,7 +185,7 @@ describe("resolveUserProfile", () => {
       message: "write failed",
     };
 
-    const result = await resolveUserProfile({
+    const result = await resolveUserProfileGlobally({
       id: "user-1",
       email: "clinician@example.com",
     } as never);

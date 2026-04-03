@@ -197,10 +197,10 @@ export async function getJobForOrg(
 }
 
 /**
- * Fetch a job by ID without ownership check. Used by the worker
- * endpoint to validate transitions before applying updates.
+ * Explicit global maintenance lookup. Use only from token-gated
+ * worker/runner/processor paths that are not acting on behalf of a user.
  */
-export async function getJobById(
+export async function getGlobalJobById(
   jobId: string,
 ): Promise<JobRow | null> {
   const db = createServiceClient();
@@ -216,7 +216,7 @@ export async function getJobById(
   return data as JobRow;
 }
 
-export async function listQueuedJobs(): Promise<{
+export async function listQueuedJobsGlobally(): Promise<{
   data: JobRow[];
   error: string | null;
 }> {
@@ -237,7 +237,7 @@ export async function listQueuedJobs(): Promise<{
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
-export async function listExpiredRunningLeasedJobs(): Promise<{
+export async function listExpiredRunningLeasedJobsGlobally(): Promise<{
   data: JobRow[];
   error: string | null;
 }> {
@@ -258,7 +258,7 @@ export async function listExpiredRunningLeasedJobs(): Promise<{
   return { data: (data ?? []) as JobRow[], error: null };
 }
 
-export async function claimJobForProcessing(
+export async function claimJobForProcessingGlobally(
   jobId: string,
   leaseDurationSeconds: number,
 ): Promise<{ data: JobRow | null; error: string | null }> {
@@ -278,18 +278,18 @@ export async function claimJobForProcessing(
 }
 
 /**
- * Update worker-owned fields on a job. Only callable from the
- * backend worker endpoint — never from browser code.
+ * Update worker-owned fields on a job after the caller has already
+ * established the org boundary from trusted context.
  */
-export async function updateJobWorkerFields(
+export async function updateJobWorkerFieldsForOrg(
+  orgId: string,
   jobId: string,
   fields: Record<string, unknown>,
 ): Promise<{ data: JobRow | null; error: string | null }> {
-  const db = createServiceClient();
-
-  const { data, error } = await db
+  const { data, error } = await createServiceClient()
     .from("jobs")
     .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("org_id", orgId)
     .eq("id", jobId)
     .is("deleted_at", null)
     .select(JOB_COLUMNS)
@@ -302,16 +302,16 @@ export async function updateJobWorkerFields(
   return { data: data as JobRow, error: null };
 }
 
-export async function updateClaimedJobWorkerFields(
+export async function updateClaimedJobWorkerFieldsForOrg(
+  orgId: string,
   jobId: string,
   runToken: string,
   fields: Record<string, unknown>,
 ): Promise<{ data: JobRow | null; error: string | null }> {
-  const db = createServiceClient();
-
-  const { data, error } = await db
+  const { data, error } = await createServiceClient()
     .from("jobs")
     .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("org_id", orgId)
     .eq("id", jobId)
     .eq("run_token", runToken)
     .is("deleted_at", null)
@@ -325,12 +325,11 @@ export async function updateClaimedJobWorkerFields(
   return { data: (data ?? null) as JobRow | null, error: null };
 }
 
-export async function requeueStaleLeasedJob(
+export async function requeueStaleLeasedJobForOrg(
+  orgId: string,
   jobId: string,
 ): Promise<{ data: JobRow | null; error: string | null }> {
-  const db = createServiceClient();
-
-  const { data, error } = await db
+  const { data, error } = await createServiceClient()
     .from("jobs")
     .update({
       status: "queued",
@@ -340,6 +339,7 @@ export async function requeueStaleLeasedJob(
       run_token: null,
       updated_at: new Date().toISOString(),
     })
+    .eq("org_id", orgId)
     .eq("id", jobId)
     .eq("status", "running")
     .is("deleted_at", null)

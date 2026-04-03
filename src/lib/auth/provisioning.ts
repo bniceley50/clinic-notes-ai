@@ -6,7 +6,7 @@ import type { SessionRole } from "@/lib/auth/types";
 export type ProvisioningErrorCode = "no_invite" | "bootstrap_failed";
 const PG_UNIQUE_VIOLATION = "23505";
 
-async function readExistingProfile(
+async function readExistingProfileGlobally(
   admin: ReturnType<typeof createServiceClient>,
   userId: string,
 ) {
@@ -19,10 +19,16 @@ async function readExistingProfile(
   return data ?? null;
 }
 
-export async function resolveUserProfile(user: User) {
+/**
+ * Explicit global provisioning flow.
+ *
+ * This lookup runs before an org-scoped session exists, so invite/profile
+ * resolution intentionally uses service-role access across orgs.
+ */
+export async function resolveUserProfileGlobally(user: User) {
   const admin = createServiceClient();
 
-  const profile = await readExistingProfile(admin, user.id);
+  const profile = await readExistingProfileGlobally(admin, user.id);
   if (profile) {
     return {
       orgId: profile.org_id,
@@ -58,7 +64,7 @@ export async function resolveUserProfile(user: User) {
 
     if (profileError) {
       if (profileError.code === PG_UNIQUE_VIOLATION) {
-        const raceProfile = await readExistingProfile(admin, user.id);
+        const raceProfile = await readExistingProfileGlobally(admin, user.id);
         if (raceProfile) {
           return {
             orgId: raceProfile.org_id,
@@ -110,7 +116,7 @@ export async function resolveUserProfile(user: User) {
 
   if (profileError) {
     if (profileError.code === PG_UNIQUE_VIOLATION) {
-      const raceProfile = await readExistingProfile(admin, user.id);
+      const raceProfile = await readExistingProfileGlobally(admin, user.id);
       if (raceProfile) {
         return {
           orgId: raceProfile.org_id,

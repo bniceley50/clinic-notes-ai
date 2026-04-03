@@ -2,13 +2,13 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  claimJobForProcessing,
-  getJobById,
-  updateClaimedJobWorkerFields,
+  claimJobForProcessingGlobally,
+  getGlobalJobById,
+  updateClaimedJobWorkerFieldsForOrg,
   type JobNoteType,
   type JobRow,
 } from "@/lib/jobs/queries";
-import { downloadAudioForJob } from "@/lib/storage/audio-download";
+import { downloadAudioBlobGlobally } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudioChunked } from "@/lib/ai/whisper";
 import { generateNote } from "@/lib/ai/claude";
@@ -38,11 +38,17 @@ function clearedClaimFields() {
 }
 
 async function updateClaimedJob(
+  orgId: string,
   jobId: string,
   runToken: string,
   fields: Record<string, unknown>,
 ): Promise<{ data: JobRow | null; error: string | null }> {
-  const updated = await updateClaimedJobWorkerFields(jobId, runToken, fields);
+  const updated = await updateClaimedJobWorkerFieldsForOrg(
+    orgId,
+    jobId,
+    runToken,
+    fields,
+  );
   if (updated.error) {
     return { data: null, error: updated.error };
   }
@@ -56,7 +62,7 @@ async function updateClaimedJob(
 
 async function failJob(job: JobRow, runToken: string, error: string): Promise<ProcessResult> {
   const terminal = job.attempt_count >= MAX_PROCESS_ATTEMPTS;
-  const failed = await updateClaimedJob(job.id, runToken, {
+  const failed = await updateClaimedJob(job.org_id, job.id, runToken, {
     ...(terminal
       ? {
           status: "failed",
@@ -81,7 +87,7 @@ async function failJob(job: JobRow, runToken: string, error: string): Promise<Pr
 
 export async function generateNoteForJob(jobId: string): Promise<ProcessResult> {
   try {
-    const job = await getJobById(jobId);
+    const job = await getGlobalJobById(jobId);
 
     if (!job) {
       return { success: false, error: "Job not found" };
@@ -152,7 +158,10 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
   let runToken: string | null = null;
 
   try {
-    const claimed = await claimJobForProcessing(jobId, PROCESSING_LEASE_SECONDS);
+    const claimed = await claimJobForProcessingGlobally(
+      jobId,
+      PROCESSING_LEASE_SECONDS,
+    );
     if (claimed.error) {
       return { success: false, error: claimed.error };
     }
@@ -170,7 +179,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(job, claimedRunToken, "No audio uploaded");
     }
 
-    const downloaded = await downloadAudioForJob(job.audio_storage_path);
+    const downloaded = await downloadAudioBlobGlobally(job.audio_storage_path);
     if (downloaded.error || !downloaded.data) {
       return await failJob(job, claimedRunToken, downloaded.error ?? "Failed to download audio");
     }
@@ -192,7 +201,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       transcriptionFilename,
       async (chunkIndex, totalChunks) => {
         const progress = Math.round(10 + (chunkIndex / totalChunks) * 38);
-        const updated = await updateClaimedJob(jobId, claimedRunToken, {
+        const updated = await updateClaimedJob(job.org_id, jobId, claimedRunToken, {
           stage: "transcribing",
           progress,
         });
@@ -235,7 +244,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return await failJob(job, claimedRunToken, transcriptRow.error ?? "Failed to store transcript");
     }
 
-    const completed = await updateClaimedJob(jobId, claimedRunToken, {
+    const completed = await updateClaimedJob(job.org_id, jobId, claimedRunToken, {
       status: "complete",
       stage: "complete",
       progress: 100,

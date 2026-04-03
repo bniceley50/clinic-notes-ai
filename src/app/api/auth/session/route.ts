@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSessionCookie } from "@/lib/auth/session";
-import { resolveUserProfile } from "@/lib/auth/provisioning";
+import { resolveUserProfileGlobally } from "@/lib/auth/provisioning";
 import { writeAuditLog } from "@/lib/audit";
 import { authLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/config";
@@ -38,7 +38,7 @@ export const POST = withLogging(async (request: NextRequest) => {
     );
   }
 
-  const resolved = await resolveUserProfile(userData.user);
+  const resolved = await resolveUserProfileGlobally(userData.user);
 
   if (resolved.errorCode === "no_invite") {
     return NextResponse.json({ error: "no_invite" }, { status: 403 });

@@ -21,7 +21,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
-import { uploadAudioForJob } from "@/lib/storage/audio";
+import { uploadJobAudioForOrg } from "@/lib/storage/audio";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
@@ -114,7 +114,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     );
   }
 
-  const { storagePath, error: uploadError } = await uploadAudioForJob({
+  const { storagePath, error: uploadError } = await uploadJobAudioForOrg({
     orgId: user.orgId,
     sessionId: job.session_id,
     jobId: job.id,

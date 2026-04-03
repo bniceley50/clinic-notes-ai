@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
-import { createSignedAudioUpload } from "@/lib/storage/audio";
+import { createSignedAudioUploadForOrg } from "@/lib/storage/audio";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
 
@@ -61,7 +61,7 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     );
   }
 
-  const { path, token, error } = await createSignedAudioUpload({
+  const { path, token, error } = await createSignedAudioUploadForOrg({
     orgId: user.orgId,
     sessionId: job.session_id,
     jobId: job.id,

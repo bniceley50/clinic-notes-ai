@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  mockGetJobById,
-  mockUpdateJobWorkerFields,
+  mockGetGlobalJobById,
+  mockUpdateJobWorkerFieldsForOrg,
   mockBuildStubTranscript,
   mockEnsureTranscriptsBucket,
   mockWriteAuditLog,
@@ -11,8 +11,8 @@ const {
   mockSessionSingle,
   mockProfileSingle,
 } = vi.hoisted(() => ({
-  mockGetJobById: vi.fn(),
-  mockUpdateJobWorkerFields: vi.fn(),
+  mockGetGlobalJobById: vi.fn(),
+  mockUpdateJobWorkerFieldsForOrg: vi.fn(),
   mockBuildStubTranscript: vi.fn(),
   mockEnsureTranscriptsBucket: vi.fn(),
   mockWriteAuditLog: vi.fn(),
@@ -23,8 +23,8 @@ const {
 }));
 
 vi.mock("../../lib/jobs/queries", () => ({
-  getJobById: mockGetJobById,
-  updateJobWorkerFields: mockUpdateJobWorkerFields,
+  getGlobalJobById: mockGetGlobalJobById,
+  updateJobWorkerFieldsForOrg: mockUpdateJobWorkerFieldsForOrg,
 }));
 
 vi.mock("../../lib/jobs/storage", () => ({
@@ -115,14 +115,14 @@ describe("stub transcript-only pipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    mockGetJobById
+    mockGetGlobalJobById
       .mockResolvedValueOnce(baseJob)
       .mockResolvedValueOnce({
         ...baseJob,
         status: "running",
         attempt_count: 1,
       });
-    mockUpdateJobWorkerFields
+    mockUpdateJobWorkerFieldsForOrg
       .mockResolvedValueOnce({ data: { id: "job-1" }, error: null })
       .mockResolvedValueOnce({ data: { id: "job-1" }, error: null });
     mockSessionSingle.mockResolvedValue({
