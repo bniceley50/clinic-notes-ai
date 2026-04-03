@@ -5,6 +5,7 @@
 fix/style-src-phase2-3
 
 ## Latest Commits
+- 202604031330 pending: billing.em_scoring_run enum extension (PR 4a)
 - da739a0 feat: add billing schema infrastructure (PR 3)
 - 49fa1e0 fix: tighten carelogic extraction reads (PR 1)
 
@@ -31,3 +32,4 @@ PR 4 - session_billing_context resolution logic
 ## Governance Notes
 - AGENTS.md updated this PR: fixed repo root, milestone framing, note behavior; retained soft-delete truth because the prompt's hard-cascade claim conflicts with current code and decisions
 - SESSION.md created this PR
+- PR 4a widens billing.em_scoring_run to support status = invalidated and source_event = addon_state_changed
