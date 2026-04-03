@@ -361,3 +361,68 @@ local examples, deployment templates, cookie expiry, and Redis revocation TTL.
 - Clinicians may need to re-authenticate during longer workdays
 - Revisit after pilot usage data if the shorter TTL creates material workflow
   friction
+
+---
+
+## D-BILLING-1: Billing Schema Is Server-Only, Non-Exposed, and Uses org_id
+
+**Date:** 2026-04-03
+**Status:** Accepted
+
+### Decision
+- All billing infrastructure lives in the `billing` schema, not `public`
+- The `billing` schema is server-only for Phase 1 infrastructure work and must
+  not be exposed through PostgREST or the Supabase Data API
+- Billing tables, indexes, triggers, and RLS policies use the repo's existing
+  `org_id` tenancy vocabulary; do not introduce a parallel `tenant_id`
+  convention
+
+### Consequences
+- `supabase/config.toml` must keep `billing` out of `[api].schemas`
+- Hosted Supabase exposure settings still require manual verification outside
+  the repo
+- Future billing work must join against `public.orgs(id)` and existing org-based
+  helper functions instead of inventing a second tenancy model
+
+---
+
+## D-BILLING-2: Billing Audit Tables Are Append-Only at the DB Layer
+
+**Date:** 2026-04-03
+**Status:** Accepted
+
+### Decision
+- `billing.em_scoring_run`, `billing.em_model_result`,
+  `billing.em_clinician_decision`, and `billing.em_export_ledger` are
+  append-only from day one
+- Append-only enforcement is implemented in the database with shared mutation-
+  blocking triggers plus explicit `REVOKE UPDATE, DELETE, TRUNCATE` statements
+  for `service_role`
+
+### Consequences
+- Application code must model corrections as new rows, not edits in place
+- UI convenience reads should come from derived queries or views, never by
+  mutating audit history
+- Future migrations must preserve DB-level immutability rather than relying on
+  app convention or RLS alone
+
+---
+
+## D-BILLING-3: Billing Context Freezes After First Scoring Reference
+
+**Date:** 2026-04-03
+**Status:** Accepted
+
+### Decision
+- `billing.session_billing_context` is mutable only until the first
+  `billing.em_scoring_run` references it
+- Once referenced, that billing-context row is frozen by a DB trigger
+- Corrections require a new `session_billing_context` row; existing referenced
+  rows are not edited in place
+
+### Consequences
+- Future scoring runs must point to the intended billing-context row explicitly
+- Schema design must allow multiple context rows over time for a single session
+  when corrections are required
+- Encounter-scoped billing provenance stays auditable even when coding inputs
+  are corrected later

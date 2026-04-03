@@ -10,6 +10,8 @@ enabled = true
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
+# Keep `billing` out of this list. Billing tables are server-only and must not be exposed through
+# PostgREST or the hosted Data API from repo config alone.
 schemas = ["public", "graphql_public"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
