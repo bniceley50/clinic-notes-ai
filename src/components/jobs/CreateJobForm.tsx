@@ -35,6 +35,12 @@ const NOTE_TYPE_LABELS: Record<NoteType, string> = {
   girp: "GIRP",
 };
 
+const AUDIO_MODE_BUTTON_BASE_CLASS = "rounded border border-primary px-3 py-1 text-xs font-semibold";
+const AUDIO_MODE_BUTTON_CLASS = {
+  active: `${AUDIO_MODE_BUTTON_BASE_CLASS} bg-primary text-white`,
+  inactive: `${AUDIO_MODE_BUTTON_BASE_CLASS} bg-border-subtle text-accent`,
+} as const;
+
 type CreateJobSuccess = {
   job: JobSnapshot;
 };
@@ -253,8 +259,7 @@ export function CreateJobForm({
           <div>
             <label
               htmlFor="advanced_note_type"
-              className="mb-1 block text-xs font-semibold"
-              style={{ color: "#517AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}
+              className="mb-1 block text-xs font-semibold uppercase tracking-[0.05em] text-accent"
             >
               Note Type
             </label>
@@ -265,8 +270,7 @@ export function CreateJobForm({
               value={noteType}
               onChange={(event) => setNoteType(event.target.value as NoteType)}
               disabled={pending || !canGenerateNote}
-              className="input-ql disabled:opacity-50"
-              style={{ minWidth: "160px" }}
+              className="input-ql min-w-[160px] disabled:opacity-50"
             >
               {NOTE_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -378,22 +382,14 @@ export function CreateJobForm({
                 <button
                   type="button"
                   onClick={() => setAudioMode("record")}
-                  className="rounded px-3 py-1 text-xs font-semibold"
-                  style={{
-                    backgroundColor: audioMode === "record" ? "#3B276A" : "#E7E9EC",
-                    color: audioMode === "record" ? "#FFFFFF" : "#517AB7",
-                  }}
+                  className={audioMode === "record" ? AUDIO_MODE_BUTTON_CLASS.active : AUDIO_MODE_BUTTON_CLASS.inactive}
                 >
                   Record
                 </button>
                 <button
                   type="button"
                   onClick={() => setAudioMode("upload")}
-                  className="rounded px-3 py-1 text-xs font-semibold"
-                  style={{
-                    backgroundColor: audioMode === "upload" ? "#3B276A" : "#E7E9EC",
-                    color: audioMode === "upload" ? "#FFFFFF" : "#517AB7",
-                  }}
+                  className={audioMode === "upload" ? AUDIO_MODE_BUTTON_CLASS.active : AUDIO_MODE_BUTTON_CLASS.inactive}
                 >
                   Upload file
                 </button>

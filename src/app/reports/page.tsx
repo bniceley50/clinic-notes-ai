@@ -11,14 +11,19 @@ const SESSION_STATUS_CHIP: Record<string, string> = {
   archived:  "chip-cancelled",
 };
 
-// Simple bar: value out of max, rendered as CSS width %
+const MINI_BAR_CLASS: Record<string, string> = {
+  "#517AB7": "[&::-moz-progress-bar]:bg-accent [&::-webkit-progress-value]:bg-accent",
+};
+
 function MiniBar({ value, max, color = "#517AB7" }: { value: number; max: number; color?: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 rounded-[2px] bg-[#E7E9EC]">
-        <div className="h-2 rounded-[2px]" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
+      <progress
+        className={`h-2 flex-1 overflow-hidden rounded-[2px] [&::-webkit-progress-bar]:bg-border-subtle ${MINI_BAR_CLASS[color] ?? MINI_BAR_CLASS["#517AB7"]}`}
+        value={pct}
+        max={100}
+      />
       <span className="text-xs w-6 text-right text-text-muted">{value}</span>
     </div>
   );
@@ -81,14 +86,11 @@ export default async function ReportsPage() {
       </div>
 
       {/* Two-column: table + breakdown charts */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 240px" }}>
+      <div className="grid grid-cols-[1fr_240px] gap-4">
 
         {/* Main sessions table */}
         <div className="card-ql overflow-hidden">
-          <div
-            className="flex items-center justify-between px-4 py-2 border-b"
-            style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC" }}
-          >
+          <div className="flex items-center justify-between border-b border-border-subtle bg-nav-bg px-4 py-2">
             <span className="text-xs font-bold uppercase tracking-wider text-accent">
               Session Activity
             </span>
@@ -121,7 +123,7 @@ export default async function ReportsPage() {
                     {s.patient_label || "Untitled"}
                   </td>
                   <td>
-                    <span className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase" style={{ backgroundColor: "#F0F0F0", color: "#333333" }}>
+                    <span className="inline-block rounded-[2px] bg-row-alt px-2 py-0.5 text-[10px] font-medium uppercase text-text-body">
                       {s.session_type}
                     </span>
                   </td>
@@ -152,10 +154,7 @@ export default async function ReportsPage() {
 
           {/* By session type */}
           <div className="card-ql overflow-hidden">
-            <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
+            <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
               By Type
             </div>
             <div className="p-3 space-y-2">
@@ -178,10 +177,7 @@ export default async function ReportsPage() {
 
           {/* By status */}
           <div className="card-ql overflow-hidden">
-            <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wider border-b"
-              style={{ backgroundColor: "#F9F9F9", borderColor: "#E7E9EC", color: "#517AB7" }}
-            >
+            <div className="border-b border-border-subtle bg-nav-bg px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent">
               By Status
             </div>
             <div className="p-3 space-y-1.5">

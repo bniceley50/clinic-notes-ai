@@ -19,13 +19,8 @@ export function TranscriptViewer({ transcript }: Props) {
       </div>
 
       <pre
-        className="ql-note-copy"
+        className="ql-note-copy mt-[10px] whitespace-pre-wrap [font-family:inherit]"
         data-testid="session-transcript-content"
-        style={{
-          marginTop: 10,
-          whiteSpace: "pre-wrap",
-          fontFamily: "inherit",
-        }}
       >
         {transcript}
       </pre>

@@ -28,6 +28,13 @@ type SavePayload = {
   };
 };
 
+function noteTabClass(isActive: boolean): string {
+  return [
+    "rounded-[2px] border border-primary px-[14px] py-[6px] text-xs font-semibold",
+    isActive ? "bg-primary text-white" : "bg-white text-primary",
+  ].join(" ");
+}
+
 export function NoteWorkspace({
   sessionId,
   noteId,
@@ -150,39 +157,11 @@ export function NoteWorkspace({
   return (
     <div className="ql-grid">
       <section className="ql-panel" data-testid="note-workspace">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              style={activeTab === "draft"
-                ? {
-                    backgroundColor: "#3B276A",
-                    color: "#FFFFFF",
-                    border: "1px solid #3B276A",
-                    borderRadius: 2,
-                    padding: "6px 14px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }
-                : {
-                    backgroundColor: "#FFFFFF",
-                    color: "#3B276A",
-                    border: "1px solid #3B276A",
-                    borderRadius: 2,
-                    padding: "6px 14px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+              className={noteTabClass(activeTab === "draft")}
               onClick={() => setActiveTab("draft")}
               data-testid="note-tab-draft"
             >
@@ -190,27 +169,7 @@ export function NoteWorkspace({
             </button>
             <button
               type="button"
-              style={activeTab === "ehrFields"
-                ? {
-                    backgroundColor: "#3B276A",
-                    color: "#FFFFFF",
-                    border: "1px solid #3B276A",
-                    borderRadius: 2,
-                    padding: "6px 14px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }
-                : {
-                    backgroundColor: "#FFFFFF",
-                    color: "#3B276A",
-                    border: "1px solid #3B276A",
-                    borderRadius: 2,
-                    padding: "6px 14px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+              className={noteTabClass(activeTab === "ehrFields")}
               onClick={() => setActiveTab("ehrFields")}
               data-testid="note-tab-ehr-fields"
             >
@@ -219,13 +178,13 @@ export function NoteWorkspace({
           </div>
         </div>
 
-        <div style={{ display: activeTab === "draft" ? "block" : "none" }}>
-            <div className="ql-copy-row" style={{ marginTop: 12 }}>
+        <div className={activeTab === "draft" ? "block" : "hidden"}>
+            <div className="ql-copy-row mt-3">
               <div>
                 <p className="ql-kicker">Draft Controls</p>
                 <h2 className="ql-panel-title">Edit and Export</h2>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="ql-button-secondary"
@@ -268,14 +227,7 @@ export function NoteWorkspace({
             </div>
 
             <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                color: "var(--ql-text-muted)",
-                fontSize: 11,
-              }}
+              className="mt-[10px] flex flex-wrap gap-3 text-[11px] text-text-muted"
             >
               <span data-testid="note-save-state">
                 {dirty ? "Unsaved changes" : "All changes saved"}
@@ -284,13 +236,13 @@ export function NoteWorkspace({
             </div>
 
             {error ? (
-              <p className="ql-alert ql-alert-error" role="alert" style={{ marginTop: 8 }}>
+              <p className="ql-alert ql-alert-error mt-2" role="alert">
                 {error}
               </p>
             ) : null}
 
             {mode === "edit" ? (
-              <div style={{ marginTop: 12 }}>
+              <div className="mt-3">
                 <label className="ql-label" htmlFor="note-editor">
                   Note Content
                 </label>
@@ -299,34 +251,18 @@ export function NoteWorkspace({
                   value={draftContent}
                   onChange={(event) => setDraftContent(event.target.value)}
                   data-testid="note-editor"
-                  style={{
-                    width: "100%",
-                    minHeight: 320,
-                    border: "1px solid var(--ql-border)",
-                    borderRadius: 2,
-                    padding: 10,
-                    font: "inherit",
-                    lineHeight: "16px",
-                    background: "#fff",
-                    color: "var(--ql-text)",
-                    resize: "vertical",
-                  }}
+                  className="min-h-[320px] w-full resize-y rounded-[2px] border border-border-subtle bg-white p-[10px] leading-4 text-text-body [font:inherit]"
                 />
               </div>
             ) : (
-              <p className="ql-subtitle" style={{ marginTop: 12 }}>
+              <p className="ql-subtitle mt-3">
                 Previewing the current note content. Switch to edit mode to revise the
                 draft before copying or export.
               </p>
             )}
         </div>
 
-        <div
-          style={{
-            display: activeTab === "ehrFields" ? "block" : "none",
-            marginTop: 12,
-          }}
-        >
+        <div className={`${activeTab === "ehrFields" ? "block" : "hidden"} mt-3`}>
           <EhrFieldsPanel jobId={jobId} sessionType={sessionType} />
         </div>
       </section>

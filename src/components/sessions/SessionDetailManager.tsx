@@ -90,14 +90,14 @@ export function SessionDetailManager({
       </div>
 
       {error ? (
-        <div className="ql-alert ql-alert-error" style={{ marginTop: 10 }}>
+        <div className="ql-alert ql-alert-error mt-[10px]">
           {error}
         </div>
       ) : null}
 
-      <form action={handleUpdate} className="ql-grid" style={{ marginTop: 10 }}>
+      <form action={handleUpdate} className="ql-grid mt-[10px]">
         <div className="ql-filter-row">
-          <div className="ql-field" style={{ minWidth: 220, flex: "1 1 220px" }}>
+          <div className="ql-field min-w-[220px] flex-[1_1_220px]">
             <label htmlFor="patient_label" className="ql-label">
               Patient Label
             </label>
@@ -108,7 +108,7 @@ export function SessionDetailManager({
               className="ql-input"
             />
           </div>
-          <div className="ql-field" style={{ width: 150 }}>
+          <div className="ql-field w-[150px]">
             <label htmlFor="status" className="ql-label">
               Status
             </label>
@@ -126,7 +126,7 @@ export function SessionDetailManager({
         </div>
 
         <div className="ql-copy-row">
-          <div className="ql-meta-grid" style={{ flex: "1 1 auto" }}>
+          <div className="ql-meta-grid flex-[1_1_auto]">
             <div className="ql-meta-item">
               <div className="ql-meta-label">Created</div>
               <div className="ql-meta-value">
@@ -152,7 +152,7 @@ export function SessionDetailManager({
               <div className="ql-meta-value ql-mono">{session.id}</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="flex flex-wrap gap-2">
             <button type="submit" className="ql-button" disabled={pending}>
               {pending ? "Saving..." : "Save Changes"}
             </button>

@@ -14,6 +14,13 @@ type AudioUrlResponse = {
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
+const PLAYER_MESSAGE_CLASS = "rounded border border-border-subtle px-3 py-2 text-xs text-text-muted";
+const PLAYER_ERROR_CLASS = "rounded border border-[#F4CCCC] px-3 py-2 text-xs text-[#B42318]";
+const PLAYER_SURFACE_CLASS = "rounded border border-border-subtle bg-white";
+const PLAYER_PRIMARY_BUTTON_CLASS = "rounded bg-primary px-3 py-1 text-xs font-semibold text-white";
+const PLAYER_SECONDARY_BUTTON_CLASS = "rounded bg-border-subtle px-2 py-1 text-xs font-semibold text-accent";
+const PLAYER_SPEED_SELECT_CLASS = "rounded border border-[#D6DADE] bg-white px-2 py-1 text-xs";
+
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
 
@@ -200,7 +207,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
 
   if (loading) {
     return (
-      <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: "#E7E9EC", color: "#777777" }}>
+      <div className={PLAYER_MESSAGE_CLASS}>
         Loading audio...
       </div>
     );
@@ -208,7 +215,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
 
   if (error || !signedUrl) {
     return (
-      <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: "#F4CCCC", color: "#B42318" }}>
+      <div className={PLAYER_ERROR_CLASS}>
         {error || "No audio available"}
       </div>
     );
@@ -216,8 +223,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
 
   return (
     <div
-      className={`rounded border ${compact ? "px-3 py-2" : "p-4"}`}
-      style={{ borderColor: "#E7E9EC", backgroundColor: "#FFFFFF" }}
+      className={`${PLAYER_SURFACE_CLASS} ${compact ? "px-3 py-2" : "p-4"}`}
     >
       <audio ref={audioRef} preload="metadata" src={signedUrl} />
 
@@ -226,8 +232,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
           <button
             type="button"
             onClick={() => void togglePlayback()}
-            className="rounded px-3 py-1 text-xs font-semibold"
-            style={{ backgroundColor: "#3B276A", color: "#FFFFFF" }}
+            className={PLAYER_PRIMARY_BUTTON_CLASS}
             aria-label={isPlaying ? "Pause recording" : "Play recording"}
           >
             {isPlaying ? "Pause" : "Play"}
@@ -235,8 +240,7 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
           <button
             type="button"
             onClick={() => skipBy(-10)}
-            className="rounded px-2 py-1 text-xs font-semibold"
-            style={{ backgroundColor: "#E7E9EC", color: "#517AB7" }}
+            className={PLAYER_SECONDARY_BUTTON_CLASS}
             aria-label="Skip back 10 seconds"
           >
             -10s
@@ -244,20 +248,18 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
           <button
             type="button"
             onClick={() => skipBy(10)}
-            className="rounded px-2 py-1 text-xs font-semibold"
-            style={{ backgroundColor: "#E7E9EC", color: "#517AB7" }}
+            className={PLAYER_SECONDARY_BUTTON_CLASS}
             aria-label="Skip forward 10 seconds"
           >
             +10s
           </button>
           {!compact && (
-            <label className="flex items-center gap-2 text-xs text-[#555555]">
+            <label className="flex items-center gap-2 text-xs text-text-body">
               <span>Speed</span>
               <select
                 value={playbackRate}
                 onChange={(event) => setPlaybackRate(Number(event.target.value))}
-                className="rounded border px-2 py-1 text-xs"
-                style={{ borderColor: "#D6DADE", backgroundColor: "#FFFFFF" }}
+                className={PLAYER_SPEED_SELECT_CLASS}
                 aria-label="Playback speed"
               >
                 {SPEED_OPTIONS.map((speed) => (

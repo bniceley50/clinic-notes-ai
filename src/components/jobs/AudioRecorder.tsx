@@ -9,6 +9,16 @@ type Props = {
   onUploaded: (storagePath: string) => void;
 };
 
+const RECORDER_PANEL_CLASS = "mt-3 space-y-2 rounded-[2px] border border-dashed border-secondary bg-[#F9F9FF] p-3";
+const RECORDER_STATE_CLASS = {
+  paused: "text-secondary",
+  recording: "text-alert",
+} as const;
+const RECORDER_DOT_CLASS = {
+  paused: "bg-secondary",
+  recording: "bg-alert",
+} as const;
+
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, "0");
   const s = (seconds % 60).toString().padStart(2, "0");
@@ -39,15 +49,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
   }, [blob, jobId, onUploaded, reset]);
 
   return (
-    <div
-      className="mt-3 p-3"
-      data-testid="audio-recorder-panel"
-      style={{
-        border: "1px dashed #746EB1",
-        borderRadius: "2px",
-        backgroundColor: "#F9F9FF",
-      }}
-    >
+    <div className={RECORDER_PANEL_CLASS} data-testid="audio-recorder-panel">
       {state === "idle" && (
         <div className="space-y-2">
           <button
@@ -79,10 +81,9 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
       {(state === "recording" || state === "paused") && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 text-sm font-medium" style={{ color: state === "paused" ? "#746EB1" : "#CC2200" }}>
+            <span className={`flex items-center gap-2 text-sm font-medium ${RECORDER_STATE_CLASS[state]}`}>
               <span
-                className={`h-2 w-2 rounded-full ${state === "recording" ? "animate-pulse" : ""}`}
-                style={{ backgroundColor: state === "paused" ? "#746EB1" : "#CC2200" }}
+                className={`h-2 w-2 rounded-full ${RECORDER_DOT_CLASS[state]} ${state === "recording" ? "animate-pulse" : ""}`}
               />
               {state === "paused" ? `Paused ${formatElapsed(elapsed)}` : `Recording ${formatElapsed(elapsed)}`}
             </span>
@@ -90,24 +91,21 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
               {state === "recording" ? (
                 <button
                   onClick={pause}
-                  className="rounded px-3 py-1 text-xs font-semibold"
-                  style={{ backgroundColor: "#E7E9EC", color: "#517AB7" }}
+                  className="rounded bg-border-subtle px-3 py-1 text-xs font-semibold text-accent"
                 >
                   Pause
                 </button>
               ) : (
                 <button
                   onClick={resume}
-                  className="rounded px-3 py-1 text-xs font-semibold"
-                  style={{ backgroundColor: "#3B276A", color: "#FFFFFF" }}
+                  className="rounded bg-primary px-3 py-1 text-xs font-semibold text-white"
                 >
                   Resume
                 </button>
               )}
               <button
                 onClick={stop}
-                className="rounded px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: "#CC2200", color: "#FFFFFF" }}
+                className="rounded bg-alert px-3 py-1 text-xs font-semibold text-white"
               >
                 Stop
               </button>
@@ -121,10 +119,7 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
 
       {state === "stopped" && (
         <div className="flex items-center justify-center gap-2 text-sm text-secondary">
-          <span
-            className="h-3.5 w-3.5 rounded-full border-2 animate-spin"
-            style={{ borderColor: "#746EB1", borderTopColor: "transparent" }}
-          />
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
           Finalizing and uploading recording...
         </div>
       )}

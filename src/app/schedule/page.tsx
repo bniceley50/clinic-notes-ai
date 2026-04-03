@@ -77,10 +77,11 @@ export default async function SchedulePage() {
           return (
             <div key={dateKey} className="card-ql overflow-hidden">
               <div
-                className="flex items-center gap-3 px-4 py-2 border-b"
-                style={{ backgroundColor: isToday ? "#EEF2FF" : "#F9F9F9", borderColor: "#E7E9EC" }}
+                className={`flex items-center gap-3 border-b border-border-subtle px-4 py-2 ${
+                  isToday ? "bg-[#EEF2FF]" : "bg-nav-bg"
+                }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: isToday ? "#3B276A" : "#517AB7" }}>
+                <span className={`text-xs font-bold uppercase tracking-wider ${isToday ? "text-primary" : "text-accent"}`}>
                   {dateLabel}
                 </span>
                 {isToday && (
@@ -95,7 +96,7 @@ export default async function SchedulePage() {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: "90px" }}>Time</th>
+                    <th className="w-[90px]">Time</th>
                     <th>Patient</th>
                     <th>Type</th>
                     <th>Status</th>
@@ -108,7 +109,7 @@ export default async function SchedulePage() {
                       <td className="text-xs font-mono text-text-muted">{formatTime(s.created_at)}</td>
                       <td className="text-xs font-semibold text-text-dark">{s.patient_label || "Untitled"}</td>
                       <td>
-                        <span className="inline-block rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase" style={{ backgroundColor: "#F0F0F0", color: "#333333" }}>
+                        <span className="inline-block rounded-[2px] bg-row-alt px-2 py-0.5 text-[10px] font-medium uppercase text-text-body">
                           {s.session_type}
                         </span>
                       </td>

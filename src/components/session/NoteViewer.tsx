@@ -142,10 +142,7 @@ export function NoteViewer({
     <div className="card-ql" data-testid="clinical-note-viewer">
 
       {/* ── Header bar ──────────────────────────────────── */}
-      <div
-        className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ borderColor: "#E7E9EC", backgroundColor: "#F9F9F9" }}
-      >
+      <div className="flex items-center justify-between border-b border-border-subtle bg-nav-bg px-4 py-2">
         <div className="flex items-center gap-2">
           <span
             className="text-xs font-bold uppercase tracking-wider text-accent"
@@ -181,14 +178,7 @@ export function NoteViewer({
 
       {/* ── Unreviewed warning ──────────────────────────── */}
       {showWarning && !reviewed && (
-        <div
-          className="flex items-center justify-between px-4 py-2 text-xs font-medium"
-          style={{
-            backgroundColor: "#FFF8E7",
-            borderBottom: "1px solid #CCCCB4",
-            color: "#3B276A",
-          }}
-        >
+        <div className="flex items-center justify-between border-b border-[#CCCCB4] bg-[#FFF8E7] px-4 py-2 text-xs font-medium text-primary">
           <span>
             ⚠ Copied before review. Verify all content in your EHR before signing.
           </span>
@@ -210,22 +200,17 @@ export function NoteViewer({
             <div key={section.heading}>
               {/* Section header strip */}
               <div
-                className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider"
-                style={{ backgroundColor: "#EEF2FF", color: "#517AB7" }}
+                className="bg-[#EEF2FF] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-accent"
               >
                 {section.heading}
               </div>
               {/* Section body */}
               <div className="px-4 py-3">
                 <pre
-                  className="whitespace-pre-wrap text-sm leading-relaxed m-0"
-                  style={{
-                    fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
-                    color: "#333333",
-                  }}
+                  className="m-0 whitespace-pre-wrap text-sm leading-relaxed [font-family:Arial,Helvetica_Neue,Helvetica,sans-serif] text-[#333333]"
                 >
                   {section.body || (
-                    <span style={{ color: "#777777", fontStyle: "italic" }}>
+                    <span className="text-text-muted italic">
                       (empty)
                     </span>
                   )}
@@ -242,10 +227,7 @@ export function NoteViewer({
       )}
 
       {/* ── Footer watermark ────────────────────────────── */}
-      <div
-        className="border-t px-4 py-2 text-[10px]"
-        style={{ borderColor: "#E7E9EC", color: "#777777" }}
-      >
+      <div className="border-t border-border-subtle px-4 py-2 text-[10px] text-text-muted">
         AI-GENERATED — REVIEW REQUIRED before pasting into your EHR.
         Clinician signature constitutes acceptance of content.
       </div>

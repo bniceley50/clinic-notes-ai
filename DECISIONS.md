@@ -300,15 +300,15 @@ fencing, and a `tools/prompts/` template library.
 
 ---
 
-## D015 — CSP Hardening: Nonce-Based script-src, Deferred style-src
+## D015 — CSP Hardening: Nonce-Based script-src and Class-Based style-src
 
 Date: 2026-03-31
 Status: Accepted
 
 ### Context
 ZAP security scan (2026-03-31) confirmed that the production CSP in
-src/lib/security/headers.ts explicitly allows script-src 'unsafe-inline'
-and style-src 'unsafe-inline'. Both are real findings, not scanner noise.
+  src/lib/security/headers.ts explicitly allowed script-src 'unsafe-inline'
+  and style-src 'unsafe-inline'. Both were real findings, not scanner noise.
 
 No app-authored inline scripts exist in the codebase. However, Next.js App
 Router emits framework-generated inline scripts for hydration and runtime
@@ -319,22 +319,19 @@ headers to request-scoped middleware generation.
 ### Decision
 1. Harden script-src to nonce-based CSP by moving CSP generation out of
    next.config.ts static headers and into per-request middleware.
-2. Explicitly retain style-src 'unsafe-inline' as a temporary tradeoff.
-   The UI currently uses many inline React style={...} props (confirmed in
-   LoginPageClient.tsx and nearby). This is not incomplete work — it is a
-   deliberate deferral pending an inline-style refactor.
-3. Track the style-src cleanup as a separate future task.
+  2. Remove production style-src 'unsafe-inline' after converting the UI to
+     class-based styling for all app-authored components.
+  3. Retain a development-only style-src 'unsafe-inline' fallback to avoid
+     breaking local Next.js tooling while iterating.
 
 ### Consequences
-- CSP is intentionally asymmetric post-implementation: script-src is
-  nonce-hardened, style-src retains 'unsafe-inline'
-- headers.ts will lose script-src 'unsafe-inline'
-- next.config.ts static CSP header for script-src will be removed
-- Middleware must generate and attach a fresh nonce on every request
-- The nonce must be passed to the Next.js runtime so framework-generated
-  scripts receive it
-- Future readers seeing style-src 'unsafe-inline' in headers.ts should
-  reference this entry before treating it as unfinished work
+  - Production CSP is now nonce-hardened for scripts and class-based for styles
+  - headers.ts will lose production script-src and style-src 'unsafe-inline'
+  - next.config.ts static CSP header for script-src will be removed
+  - Middleware must generate and attach a fresh nonce on every request
+  - The nonce must be passed to the Next.js runtime so framework-generated
+    scripts receive it
+  - Development CSP still allows inline styles to keep local tooling stable
 
 ### Related
 - ZAP scan report: 2026-03-31

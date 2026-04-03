@@ -41,9 +41,12 @@ export function buildContentSecurityPolicy({
     scriptSrc.push("'unsafe-eval'");
   }
 
-  // style-src retains 'unsafe-inline' as a deliberate temporary tradeoff.
-  // The UI uses many inline React style={...} props (e.g. layout.tsx, LoginPageClient.tsx).
-  // This is not incomplete work — see DECISIONS.md D015 before changing.
+  const styleSrc = isProduction
+    ? ["'self'"]
+    : ["'self'", "'unsafe-inline'"];
+
+  // Production style-src is now class-based and no longer relies on inline style attributes.
+  // Development keeps 'unsafe-inline' to avoid local Next.js tooling regressions while iterating.
   const directives = [
     `default-src 'self'`,
     `base-uri 'self'`,
@@ -64,7 +67,7 @@ export function buildContentSecurityPolicy({
     ])}`,
     `object-src 'none'`,
     `script-src ${joinSources(scriptSrc)}`,
-    `style-src 'self' 'unsafe-inline'`,
+    `style-src ${joinSources(styleSrc)}`,
     `connect-src ${joinSources([
       "'self'",
       ...SUPABASE_ORIGINS,

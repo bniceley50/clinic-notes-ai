@@ -65,31 +65,18 @@ export function ConsentGate({
   }
 
   return (
-    <div
-      className="mt-3 p-4 space-y-4"
-      style={{
-        border: "1px solid #F2C078",
-        borderRadius: "2px",
-        backgroundColor: "#FFF6E8",
-      }}
-    >
-      <p
-        className="text-sm font-semibold text-[#8A4B08]"
-      >
+    <div className="mt-3 space-y-4 rounded-[2px] border border-[#F2C078] bg-[#FFF6E8] p-4">
+      <p className="text-sm font-semibold text-[#8A4B08]">
         Patient Consent Required
       </p>
 
-      <p
-        className="text-xs text-[#8A4B08]"
-      >
+      <p className="text-xs text-[#8A4B08]">
         Before recording, confirm that the patient has verbally consented to
         AI-assisted documentation. Audio will be processed by OpenAI
         (transcription) and Anthropic (EHR field extraction and optional notes).
       </p>
 
-      <label
-        className="flex items-start gap-2 text-xs cursor-pointer text-[#8A4B08]"
-      >
+      <label className="flex cursor-pointer items-start gap-2 text-xs text-[#8A4B08]">
         <input
           type="checkbox"
           checked={part2Applicable}
@@ -103,15 +90,7 @@ export function ConsentGate({
       </label>
 
       {part2Applicable && (
-        <div
-          className="p-3 text-xs space-y-1"
-          style={{
-            border: "1px solid #E5B25C",
-            borderRadius: "2px",
-            backgroundColor: "#FDEBC8",
-            color: "#7A4308",
-          }}
-        >
+        <div className="space-y-1 rounded-[2px] border border-[#E5B25C] bg-[#FDEBC8] p-3 text-xs text-[#7A4308]">
           <p className="font-semibold">42 CFR Part 2 Disclosure</p>
           <p>
             The patient has been informed that their substance use disorder
@@ -154,12 +133,7 @@ export function ConsentGate({
           type="button"
           onClick={() => void handleConfirm()}
           disabled={submitting}
-          className="flex-1 px-3 py-2 text-xs font-medium disabled:opacity-50"
-          style={{
-            backgroundColor: "#3B276A",
-            color: "#FFFFFF",
-            borderRadius: "2px",
-          }}
+          className="flex-1 rounded-[2px] bg-primary px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
         >
           {submitting ? "Recording consent..." : "Patient has consented - continue"}
         </button>
@@ -168,13 +142,7 @@ export function ConsentGate({
           type="button"
           onClick={handleDeclined}
           disabled={submitting}
-          className="px-3 py-2 text-xs"
-          style={{
-            border: "1px solid #D7DADF",
-            borderRadius: "2px",
-            color: "#555555",
-            backgroundColor: "#FFFFFF",
-          }}
+          className="rounded-[2px] border border-[#D7DADF] bg-white px-3 py-2 text-xs text-text-body"
         >
           Patient declined
         </button>

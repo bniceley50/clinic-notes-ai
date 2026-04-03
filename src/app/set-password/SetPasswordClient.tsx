@@ -172,10 +172,7 @@ export function SetPasswordClient() {
     <main
       className="flex min-h-screen flex-col items-center justify-center bg-nav-bg"
     >
-      <div
-        className="fixed top-0 left-0 right-0 flex items-center px-4"
-        style={{ height: "32px", backgroundColor: "#3B276A", color: "#ffffff" }}
-      >
+      <div className="fixed top-0 left-0 right-0 flex h-[32px] items-center bg-primary px-4 text-white">
         <span className="text-xs font-semibold tracking-wide">Clinic Notes AI</span>
       </div>
 
@@ -196,10 +193,7 @@ export function SetPasswordClient() {
           </div>
         </div>
 
-        <div
-          className="border-t text-xs font-bold uppercase tracking-wider pt-4"
-          style={{ borderColor: "#E7E9EC", color: "#517AB7" }}
-        >
+        <div className="border-t border-border-subtle pt-4 text-xs font-bold uppercase tracking-wider text-accent">
           Password Setup
         </div>
 

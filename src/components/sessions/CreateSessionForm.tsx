@@ -45,12 +45,7 @@ export function CreateSessionForm() {
         <div>
           <label
             htmlFor="patient_label"
-            className="mb-1 block text-xs font-semibold"
-            style={{
-              color: "#517AB7",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
+            className="mb-1 block text-xs font-semibold uppercase tracking-[0.05em] text-accent"
           >
             Patient Identifier
           </label>
@@ -83,12 +78,7 @@ export function CreateSessionForm() {
         <div>
           <label
             htmlFor="session_type"
-            className="mb-1 block text-xs font-semibold"
-            style={{
-              color: "#517AB7",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
+            className="mb-1 block text-xs font-semibold uppercase tracking-[0.05em] text-accent"
           >
             Session Type
           </label>

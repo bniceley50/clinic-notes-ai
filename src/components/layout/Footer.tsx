@@ -9,13 +9,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer
-      className="w-full border-t px-6 py-4"
-      style={{
-        backgroundColor: "#F9F9F9",
-        borderColor: "#E7E9EC",
-      }}
-    >
+    <footer className="w-full border-t border-border-subtle bg-nav-bg px-6 py-4">
       <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
         <p className="text-[11px] text-text-muted">
           &copy; {year} Niceley AI Consulting LLC. All rights reserved.
