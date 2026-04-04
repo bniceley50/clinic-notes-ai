@@ -12,6 +12,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { jsonNoStore } from "@/lib/http/response";
+import { serializeJobForClient } from "@/lib/jobs/serialize-job-for-client";
 import { getMyJob } from "@/lib/jobs/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { withLogging } from "@/lib/logger";
@@ -36,17 +37,5 @@ export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) =
     return jsonNoStore({ error: "Not found" }, { status: 404 });
   }
 
-  return jsonNoStore({
-    id: job.id,
-    session_id: job.session_id,
-    status: job.status,
-    stage: job.stage,
-    progress: job.progress,
-    note_type: job.note_type,
-    attempt_count: job.attempt_count,
-    error_message: job.error_message,
-    audio_storage_path: job.audio_storage_path,
-    created_at: job.created_at,
-    updated_at: job.updated_at,
-  });
+  return jsonNoStore(serializeJobForClient(job));
 });

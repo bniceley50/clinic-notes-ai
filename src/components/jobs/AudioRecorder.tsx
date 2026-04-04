@@ -6,7 +6,7 @@ import { uploadAudioForJobDirect } from "@/lib/storage/audio-upload-client";
 
 type Props = {
   jobId: string;
-  onUploaded: (storagePath: string) => void;
+  onUploaded: () => void;
 };
 
 const RECORDER_PANEL_CLASS = "mt-3 space-y-2 rounded-[2px] border border-dashed border-secondary bg-[#F9F9FF] p-3";
@@ -37,8 +37,8 @@ export function AudioRecorder({ jobId, onUploaded }: Props) {
     const file = new File([blob], "recording.webm", { type: blob.type || "audio/webm" });
 
     uploadAudioForJobDirect(jobId, file)
-      .then((storagePath) => {
-        onUploaded(storagePath);
+      .then(() => {
+        onUploaded();
       })
       .catch((uploadError: unknown) => {
         const msg = uploadError instanceof Error ? uploadError.message : "Upload failed";

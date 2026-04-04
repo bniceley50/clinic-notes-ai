@@ -1,15 +1,19 @@
 import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { processJob } from "@/lib/jobs/processor";
 import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const expectedToken = process.env.JOBS_RUNNER_TOKEN;
   const authorization = request.headers.get("authorization");
   const expectedHeader = expectedToken ? `Bearer ${expectedToken}` : null;
@@ -32,8 +36,21 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
     );
   }
 
+  logError({
+    code: ErrorCodes.JOB_PROCESS_FAILED,
+    message: "Job processing failed",
+    cause: result.error,
+    jobId,
+  });
+
   return NextResponse.json(
-    { job_id: jobId, error: result.error },
+    {
+      error: {
+        code: ErrorCodes.JOB_PROCESS_FAILED,
+        message: "Job processing failed.",
+      },
+      job_id: jobId,
+    },
     { status: 500 },
   );
 });

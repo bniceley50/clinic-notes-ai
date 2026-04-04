@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { jsonNoStore } from "@/lib/http/response";
 import { getMySession } from "@/lib/sessions/queries";
 import {
@@ -9,10 +10,11 @@ import {
   JOB_NOTE_TYPES,
   type JobNoteType,
 } from "@/lib/jobs/queries";
+import { serializeJobForClient } from "@/lib/jobs/serialize-job-for-client";
 import { createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
@@ -46,7 +48,7 @@ export const GET = withLogging(async (request: NextRequest) => {
     );
   }
 
-  return jsonNoStore({ jobs: data });
+  return jsonNoStore({ jobs: data.map(serializeJobForClient) });
 });
 
 export const POST = withLogging(async (request: NextRequest) => {
@@ -116,7 +118,12 @@ export const POST = withLogging(async (request: NextRequest) => {
   const active = await getActiveJobForSession(result.user, sessionId);
   if (active.error) {
     return jsonNoStore(
-      { error: "Failed to check active jobs" },
+      {
+        error: {
+          code: ErrorCodes.JOB_CREATE_FAILED,
+          message: "Unable to create job.",
+        },
+      },
       { status: 500 },
     );
   }
@@ -124,9 +131,12 @@ export const POST = withLogging(async (request: NextRequest) => {
   if (active.data) {
     return jsonNoStore(
       {
-        error:
-          "This session already has an active job. Wait for it to finish or cancel it first.",
-        job: active.data,
+        error: {
+          code: ErrorCodes.JOB_CREATE_FAILED,
+          message:
+            "This session already has an active job. Wait for it to finish or cancel it first.",
+        },
+        job: serializeJobForClient(active.data),
       },
       { status: 409 },
     );
@@ -138,10 +148,28 @@ export const POST = withLogging(async (request: NextRequest) => {
   });
 
   if (error || !data) {
-    const status = error?.includes("active job") ? 409 : 500;
+    const isConflict = error?.includes("active job");
+    if (!isConflict) {
+      logError({
+        code: ErrorCodes.JOB_CREATE_FAILED,
+        message: "Job creation failed",
+        cause: error,
+        orgId: result.user.orgId,
+        userId: result.user.userId,
+        sessionId,
+      });
+    }
+
     return jsonNoStore(
-      { error: error ?? "Failed to create job" },
-      { status },
+      {
+        error: {
+          code: ErrorCodes.JOB_CREATE_FAILED,
+          message: isConflict
+            ? "This session already has an active job. Wait for it to finish or cancel it first."
+            : "Unable to create job.",
+        },
+      },
+      { status: isConflict ? 409 : 500 },
     );
   }
 
@@ -155,5 +183,5 @@ export const POST = withLogging(async (request: NextRequest) => {
     metadata: { note_type: noteType },
   });
 
-  return jsonNoStore({ job: data }, { status: 201 });
+  return jsonNoStore({ job: serializeJobForClient(data) }, { status: 201 });
 });

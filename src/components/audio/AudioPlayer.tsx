@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { readErrorMessage } from "@/lib/errors/codes";
 
 type AudioPlayerProps = {
   jobId: string;
@@ -53,15 +54,11 @@ export function AudioPlayer({ jobId, compact = false }: AudioPlayerProps) {
         const response = await fetch(`/api/jobs/${jobId}/audio-url`);
         const payload = (await response.json().catch(() => null)) as
           | AudioUrlResponse
-          | { error?: string }
           | null;
 
         if (!response.ok || !payload || !("url" in payload)) {
           if (!cancelled) {
-            setError(
-              (payload && "error" in payload && payload.error) ||
-                "No audio available",
-            );
+            setError(readErrorMessage(payload) ?? "No audio available");
           }
           return;
         }

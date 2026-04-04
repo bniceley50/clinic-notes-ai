@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { getMyJob } from "@/lib/jobs/queries";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 import { apiLimit, checkRateLimit, getIdentifier } from "@/lib/rate-limit";
 import { getSignedAudioUrlForOrg } from "@/lib/storage/audio";
 
@@ -13,7 +14,10 @@ function deriveDownloadName(storagePath: string): string {
 }
 
 export const GET = withLogging(
-  async (request: NextRequest, ctx: RouteContext) => {
+  async (
+    request: NextRequest,
+    ctx: RouteContext,
+  ) => {
     const result = await loadCurrentUser();
 
     if (result.status !== "authenticated") {
@@ -45,12 +49,22 @@ export const GET = withLogging(
         filename: deriveDownloadName(job.audio_storage_path),
       });
     } catch (signedUrlError) {
+      logError({
+        code: ErrorCodes.AUDIO_URL_SIGN_FAILED,
+        message: "Audio URL signing failed",
+        cause: signedUrlError,
+        jobId: job.id,
+        sessionId: job.session_id,
+        orgId: result.user.orgId,
+        userId: result.user.userId,
+      });
+
       return NextResponse.json(
         {
-          error:
-            signedUrlError instanceof Error
-              ? signedUrlError.message
-              : "Failed to generate audio URL",
+          error: {
+            code: ErrorCodes.AUDIO_URL_SIGN_FAILED,
+            message: "Unable to generate audio URL.",
+          },
         },
         { status: 500 },
       );

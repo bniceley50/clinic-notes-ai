@@ -38,6 +38,7 @@ vi.mock("@/lib/config", () => ({
 
 vi.mock("@/lib/logger", () => ({
   withLogging: (handler: (...args: unknown[]) => unknown) => handler,
+  logError: vi.fn(),
 }));
 
 import { POST } from "../../app/api/jobs/[id]/trigger/route";
@@ -109,7 +110,10 @@ describe("POST /api/jobs/[id]/trigger", () => {
 
     expect(response.status).toBe(500);
     expect(payload).toEqual({
-      error: "Failed to start processing",
+      error: {
+        code: "JOB_TRIGGER_FAILED",
+        message: "Unable to trigger job.",
+      },
     });
     expect(mockWriteAuditLog).not.toHaveBeenCalled();
   });
@@ -131,7 +135,10 @@ describe("POST /api/jobs/[id]/trigger", () => {
 
     expect(response.status).toBe(500);
     expect(payload).toEqual({
-      error: "Worker unavailable",
+      error: {
+        code: "JOB_TRIGGER_FAILED",
+        message: "Worker unavailable",
+      },
     });
     expect(mockWriteAuditLog).not.toHaveBeenCalled();
   });

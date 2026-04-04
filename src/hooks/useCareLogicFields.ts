@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { readErrorMessage } from "@/lib/errors/codes";
 
 export type FetchState = {
   loading: boolean;
@@ -10,7 +11,11 @@ export type FetchState = {
 };
 
 type CareLogicFieldsResponse =
-  | { fields?: Record<string, string>; generated_at?: string; error?: string }
+  | {
+      fields?: Record<string, string>;
+      generated_at?: string;
+      error?: { code?: string; message?: string } | string;
+    }
   | null;
 
 const LOAD_ERROR_MESSAGE = "Unable to load structured fields from this transcript.";
@@ -70,7 +75,7 @@ export function useCareLogicFields(jobId: string) {
         if (!response.ok || !payload?.fields) {
           setState({
             loading: false,
-            error: payload?.error ?? LOAD_ERROR_MESSAGE,
+            error: readErrorMessage(payload) ?? LOAD_ERROR_MESSAGE,
             fields: null,
             generatedAt: null,
           });
@@ -114,7 +119,7 @@ export function useCareLogicFields(jobId: string) {
       if (!response.ok || !payload?.fields) {
         setState((current) => ({
           ...current,
-          error: payload?.error ?? LOAD_ERROR_MESSAGE,
+          error: readErrorMessage(payload) ?? LOAD_ERROR_MESSAGE,
         }));
         return;
       }

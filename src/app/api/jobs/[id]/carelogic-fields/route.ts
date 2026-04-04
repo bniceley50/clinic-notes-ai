@@ -7,6 +7,7 @@ import {
   upsertExtraction,
 } from "@/lib/clinical/queries";
 import { writeAuditLog } from "@/lib/audit";
+import { ErrorCodes } from "@/lib/errors/codes";
 import {
   sanitizeAiError,
   type AnthropicResponse,
@@ -32,7 +33,7 @@ import {
   getIdentifier,
 } from "@/lib/rate-limit";
 import { getMySession } from "@/lib/sessions/queries";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -124,7 +125,10 @@ function getAnthropicApiKeyOrError(): { key: string | null; error: string | null
   }
 }
 
-export const GET = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const GET = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -252,15 +256,27 @@ Extract the EHR fields now based solely on the transcript above.`,
       const payload = (await response.json().catch(() => null)) as AnthropicResponse | null;
 
       if (!response.ok || !payload) {
-        const detail = sanitizeAiError(
-          new Error(
-            payload?.error?.message ??
-              `Claude request failed (${response.status})`,
-          ),
+        const upstreamError = new Error(
+          payload?.error?.message ??
+            `Claude request failed (${response.status})`,
         );
+        const detail = sanitizeAiError(upstreamError);
+        logError({
+          code: ErrorCodes.EHR_EXTRACTION_FAILED,
+          message: "EHR field extraction failed while calling Anthropic",
+          cause: upstreamError,
+          jobId: jobResult.data.id,
+          sessionId: jobResult.data.session_id,
+          orgId: result.user.orgId,
+          userId: result.user.userId,
+          sanitizedDetail: detail,
+        });
         return jsonNoStore(
           {
-            error: detail,
+            error: {
+              code: ErrorCodes.EHR_EXTRACTION_FAILED,
+              message: "EHR field extraction unavailable.",
+            },
           },
           { status: 502 },
         );
@@ -298,8 +314,22 @@ Extract the EHR fields now based solely on the transcript above.`,
       });
 
       if (storedExtraction.error || !storedExtraction.data) {
+        logError({
+          code: ErrorCodes.EHR_EXTRACTION_FAILED,
+          message: "EHR field extraction failed while storing fields",
+          cause: storedExtraction.error,
+          jobId: jobResult.data.id,
+          sessionId: jobResult.data.session_id,
+          orgId: result.user.orgId,
+          userId: result.user.userId,
+        });
         return jsonNoStore(
-          { error: "Failed to store EHR fields" },
+          {
+            error: {
+              code: ErrorCodes.EHR_EXTRACTION_FAILED,
+              message: "EHR field extraction unavailable.",
+            },
+          },
           { status: 500 },
         );
       }
@@ -330,17 +360,23 @@ Extract the EHR fields now based solely on the transcript above.`,
   } catch (error) {
     const detail = sanitizeAiError(error);
 
-    console.error(
-      JSON.stringify({
-        route: "/api/jobs/[id]/carelogic-fields",
-        error: detail,
-        job_id: jobResult.data.id,
-      }),
-    );
+    logError({
+      code: ErrorCodes.EHR_EXTRACTION_FAILED,
+      message: "EHR field extraction failed",
+      cause: error,
+      jobId: jobResult.data.id,
+      sessionId: jobResult.data.session_id,
+      orgId: result.user.orgId,
+      userId: result.user.userId,
+      sanitizedDetail: detail,
+    });
 
     return jsonNoStore(
       {
-        error: detail,
+        error: {
+          code: ErrorCodes.EHR_EXTRACTION_FAILED,
+          message: "EHR field extraction unavailable.",
+        },
       },
       { status: detail.includes("fetch") ? 502 : 500 },
     );

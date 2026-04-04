@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { readErrorMessage } from "@/lib/errors/codes";
 
 const MAX_SIZE_MB = 24;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
@@ -89,8 +90,8 @@ function isValidAudioSignature(bytes: Uint8Array): boolean {
 }
 
 async function parseError(response: Response, fallback: string): Promise<string> {
-  const payload = await response.json().catch(() => null) as { error?: string } | null;
-  return payload?.error ?? fallback;
+  const payload = await response.json().catch(() => null);
+  return readErrorMessage(payload) ?? fallback;
 }
 
 export async function validateAudioFile(file: File): Promise<string | null> {

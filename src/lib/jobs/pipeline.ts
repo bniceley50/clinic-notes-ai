@@ -1,5 +1,7 @@
 import "server-only";
 
+import { ErrorCodes } from "@/lib/errors/codes";
+import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { JobRow } from "./queries";
 import {
@@ -111,11 +113,21 @@ async function uploadTextArtifact(
   }
 }
 
-async function failJob(job: JobRow, message: string): Promise<void> {
+async function failJob(job: JobRow, cause: unknown, message: string): Promise<void> {
+  logError({
+    code: ErrorCodes.JOB_PROCESSOR_ERROR,
+    message,
+    cause,
+    jobId: job.id,
+    sessionId: job.session_id,
+    orgId: job.org_id,
+    userId: job.created_by,
+  });
+
   await updateJobWorkerFieldsForOrg(job.org_id, job.id, {
     status: "failed",
     stage: "failed",
-    error_message: message,
+    error_message: ErrorCodes.JOB_PROCESSOR_ERROR,
   });
 }
 
@@ -266,9 +278,7 @@ export async function runStubPipeline(jobId: string): Promise<PipelineRunResult>
 
     return { jobId, status: "completed" };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Stub pipeline failed";
-    await failJob(current, message);
+    await failJob(current, error, "Stub pipeline exception during job execution");
     return { jobId, status: "failed" };
   }
 }

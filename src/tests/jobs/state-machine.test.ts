@@ -290,7 +290,7 @@ describe("job state machine", () => {
         status: "queued",
         stage: "queued",
         progress: 0,
-        error_message: "Failed to download audio",
+        error_message: "JOB_PROCESSOR_ERROR",
         claimed_at: null,
         lease_expires_at: null,
         run_token: null,
@@ -318,7 +318,7 @@ describe("job state machine", () => {
       {
         status: "failed",
         stage: "failed",
-        error_message: "Failed to download audio",
+        error_message: "JOB_PROCESSOR_ERROR",
         claimed_at: null,
         lease_expires_at: null,
         run_token: null,

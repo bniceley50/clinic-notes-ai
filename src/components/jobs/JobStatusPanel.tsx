@@ -21,9 +21,14 @@ export type JobSnapshot = {
   progress: number;
   note_type: string;
   attempt_count: number;
-  error_message: string | null;
-  audio_storage_path: string | null;
-  transcript_storage_path: string | null;
+  errorCode?: string | null;
+  hasAudio?: boolean;
+  hasTranscript?: boolean;
+  hasDraft?: boolean;
+  error_message?: string | null;
+  audio_storage_path?: string | null;
+  transcript_storage_path?: string | null;
+  draft_storage_path?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -45,6 +50,36 @@ const PROGRESS_BAR_COLOR: Record<string, string> = {
 
 const POLL_INTERVAL_MS = 10_000;
 const MAX_TRANSCRIPTION_ATTEMPTS = 3;
+
+function jobErrorCode(job: JobSnapshot): string | null {
+  return job.errorCode ?? job.error_message ?? null;
+}
+
+function jobHasAudio(job: JobSnapshot): boolean {
+  return job.hasAudio ?? !!job.audio_storage_path;
+}
+
+function jobHasTranscript(job: JobSnapshot): boolean {
+  return job.hasTranscript ?? !!job.transcript_storage_path;
+}
+
+function deriveSnapshotState(job: JobSnapshot): JobState {
+  return deriveJobState({
+    stage: job.stage,
+    status: job.status,
+    audio_storage_path: jobHasAudio(job) ? "__present__" : null,
+    transcript_storage_path: jobHasTranscript(job) ? "__present__" : null,
+  });
+}
+
+function isJobSnapshot(value: unknown): value is JobSnapshot {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as { id?: unknown }).id === "string"
+  );
+}
+
 function formatNoteType(noteType: string): string {
   return noteType.toUpperCase();
 }
@@ -64,7 +99,7 @@ function reducer(state: State, action: Action): State {
     case "init": {
       const polling = new Set<string>();
       for (const j of action.jobs) {
-        if (isJobActive(deriveJobState(j))) polling.add(j.id);
+        if (isJobActive(deriveSnapshotState(j))) polling.add(j.id);
       }
       return { jobs: action.jobs, polling };
     }
@@ -73,7 +108,7 @@ function reducer(state: State, action: Action): State {
         j.id === action.job.id ? action.job : j,
       );
       const polling = new Set(state.polling);
-      if (!isJobActive(deriveJobState(action.job))) {
+      if (!isJobActive(deriveSnapshotState(action.job))) {
         polling.delete(action.job.id);
       }
       return { jobs, polling };
@@ -100,19 +135,19 @@ export function JobStatusPanel({
   const [state, dispatch] = useReducer(reducer, initialJobs, (jobs) => {
     const polling = new Set<string>();
     for (const j of jobs) {
-      if (isJobActive(deriveJobState(j))) polling.add(j.id);
+      if (isJobActive(deriveSnapshotState(j))) polling.add(j.id);
     }
     return { jobs, polling };
   });
   const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
   const lastKnownStateRef = useRef<Record<string, JobState>>(
-    Object.fromEntries(initialJobs.map((job) => [job.id, deriveJobState(job)])),
+    Object.fromEntries(initialJobs.map((job) => [job.id, deriveSnapshotState(job)])),
   );
 
   useEffect(() => {
     dispatch({ type: "init", jobs: initialJobs });
     lastKnownStateRef.current = Object.fromEntries(
-      initialJobs.map((job) => [job.id, deriveJobState(job)]),
+      initialJobs.map((job) => [job.id, deriveSnapshotState(job)]),
     );
   }, [initialJobs]);
 
@@ -123,9 +158,20 @@ export function JobStatusPanel({
         dispatch({ type: "stop_polling", id: jobId });
         return;
       }
-      const job: JobSnapshot = await res.json();
+      const payload = await res.json().catch(() => null);
+      const job = isJobSnapshot(payload)
+        ? payload
+        : payload &&
+            typeof payload === "object" &&
+            isJobSnapshot((payload as { job?: unknown }).job)
+          ? (payload as { job: JobSnapshot }).job
+          : null;
+      if (!job) {
+        dispatch({ type: "stop_polling", id: jobId });
+        return;
+      }
       const previousState = lastKnownStateRef.current[job.id] ?? null;
-      const nextState = deriveJobState(job);
+      const nextState = deriveSnapshotState(job);
       lastKnownStateRef.current[job.id] = nextState;
       dispatch({ type: "update", job });
 
@@ -175,7 +221,7 @@ export function JobStatusPanel({
       {state.jobs.map((job) => (
         <div key={job.id} className="card-ql p-4">
           {(() => {
-             const jobState = deriveJobState(job);
+             const jobState = deriveSnapshotState(job);
              const retrying = isRetrying(job);
              const exhaustedRetries =
                job.status === "failed" && job.attempt_count >= MAX_TRANSCRIPTION_ATTEMPTS;
@@ -249,16 +295,16 @@ export function JobStatusPanel({
           {shouldAllowAudioUpload(jobState) && (
             <AudioUpload
               jobId={job.id}
-              onUploaded={(path) =>
+              onUploaded={() =>
                 dispatch({
                   type: "update",
-                  job: { ...job, audio_storage_path: path },
+                  job: { ...job, hasAudio: true },
                 })
               }
             />
           )}
 
-          {job.audio_storage_path && (
+          {jobHasAudio(job) && (
             <p className="mt-2 text-xs font-medium text-success">
               &#10003; Audio uploaded
             </p>
@@ -277,9 +323,9 @@ export function JobStatusPanel({
             </div>
           )}
 
-          {job.error_message && (
+          {jobState.isFailed && jobErrorCode(job) && (
             <p className="mt-2 text-xs font-medium text-alert">
-              {job.error_message}
+              Something went wrong. If this persists, contact support.
             </p>
           )}
 

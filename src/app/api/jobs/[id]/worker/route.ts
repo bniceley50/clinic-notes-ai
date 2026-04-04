@@ -15,12 +15,14 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { jobsRunnerToken } from "@/lib/config";
+import { ErrorCodes } from "@/lib/errors/codes";
 import {
   getGlobalJobById,
   updateJobWorkerFieldsForOrg,
 } from "@/lib/jobs/queries";
 import { workerLimit, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
+import { serializeJobForClient } from "@/lib/jobs/serialize-job-for-client";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -41,7 +43,10 @@ const VALID_STAGES = new Set([
   "cancelled",
 ]);
 
-export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const token = jobsRunnerToken();
   if (!token) {
     return NextResponse.json(
@@ -74,7 +79,12 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
 
   if (TERMINAL_STATUSES.has(current.status)) {
     return NextResponse.json(
-      { error: `Job is already ${current.status}` },
+      {
+        error: {
+          code: ErrorCodes.JOB_STATUS_CONFLICT,
+          message: "Job is not in a processable state.",
+        },
+      },
       { status: 409 },
     );
   }
@@ -150,11 +160,25 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   );
 
   if (error || !data) {
+    logError({
+      code: ErrorCodes.JOB_PROCESS_FAILED,
+      message: "Worker status update failed",
+      cause: error,
+      jobId: id,
+      sessionId: current.session_id,
+      orgId: current.org_id,
+    });
+
     return NextResponse.json(
-      { error: error ?? "Update failed" },
+      {
+        error: {
+          code: ErrorCodes.JOB_PROCESS_FAILED,
+          message: "Job processing failed.",
+        },
+      },
       { status: 500 },
     );
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({ job: serializeJobForClient(data) });
 });

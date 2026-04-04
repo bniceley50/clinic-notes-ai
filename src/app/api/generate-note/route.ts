@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { writeAuditLog } from "@/lib/audit";
+import { ErrorCodes } from "@/lib/errors/codes";
 import {
   getLatestTranscriptForSession,
   getTranscriptForJob,
@@ -31,7 +32,7 @@ import {
   getIdentifier,
   checkRateLimit,
 } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 const NOTE_COLUMNS =
   "id, session_id, org_id, content, note_type, created_at";
@@ -213,7 +214,9 @@ function getAnthropicApiKeyOrError(): { key: string | null; error: RouteError | 
   }
 }
 
-export const POST = withLogging(async (request: NextRequest) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -330,7 +333,15 @@ export const POST = withLogging(async (request: NextRequest) => {
 
       const { key, error } = getAnthropicApiKeyOrError();
       if (error || !key) {
-        return NextResponse.json({ error: error?.message ?? "Note generation is unavailable" }, { status: error?.status ?? 503 });
+        return NextResponse.json(
+          {
+            error: {
+              code: ErrorCodes.NOTE_GENERATION_FAILED,
+              message: "Note generation failed.",
+            },
+          },
+          { status: error?.status ?? 503 },
+        );
       }
 
       content = await generateRealNote(body.note_type, transcript);
@@ -351,10 +362,21 @@ export const POST = withLogging(async (request: NextRequest) => {
       .single();
 
     if (error || !data) {
+      logError({
+        code: ErrorCodes.NOTE_GENERATION_FAILED,
+        message: "Note generation failed while inserting the generated note",
+        cause: error,
+        sessionId: body.session_id,
+        orgId: result.user.orgId,
+        userId: result.user.userId,
+      });
+
       return NextResponse.json(
         {
-          error: "Note generation failed",
-          detail: error?.message ?? "Failed to write note",
+          error: {
+            code: ErrorCodes.NOTE_GENERATION_FAILED,
+            message: "Note generation failed.",
+          },
         },
         { status: 500 },
       );
@@ -384,17 +406,24 @@ export const POST = withLogging(async (request: NextRequest) => {
   } catch (error) {
     const detail = sanitizeAiError(error);
 
-    console.error(
-      JSON.stringify({
-        route: "/api/generate-note",
-        error: detail,
-        session_id: body.session_id,
-        note_type: body.note_type,
-      }),
-    );
+    logError({
+      code: ErrorCodes.NOTE_GENERATION_FAILED,
+      message: "Note generation failed",
+      cause: error,
+      sessionId: body.session_id,
+      orgId: result.user.orgId,
+      userId: result.user.userId,
+      noteType: body.note_type,
+      sanitizedDetail: detail,
+    });
 
     return NextResponse.json(
-      { error: "Note generation failed", detail },
+      {
+        error: {
+          code: ErrorCodes.NOTE_GENERATION_FAILED,
+          message: "Note generation failed.",
+        },
+      },
       { status: detail.includes("Anthropic request failed") ? 502 : 500 },
     );
   }

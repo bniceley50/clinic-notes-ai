@@ -186,7 +186,14 @@ describe('POST /api/jobs consent enforcement', () => {
     expect(response.status).toBe(201)
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(payload).toEqual({
-      job: { id: 'job-1', status: 'queued' },
+      job: {
+        id: 'job-1',
+        status: 'queued',
+        errorCode: null,
+        hasAudio: false,
+        hasDraft: false,
+        hasTranscript: false,
+      },
     })
     expect(mockCreateJob).toHaveBeenCalledWith(authenticatedResult.user, {
       session_id: 'session-1',
@@ -314,8 +321,18 @@ describe('POST /api/jobs consent enforcement', () => {
 
     expect(response.status).toBe(409)
     expect(payload).toEqual({
-      error: 'This session already has an active job. Wait for it to finish or cancel it first.',
-      job: { id: 'job-existing', status: 'running' },
+      error: {
+        code: 'JOB_CREATE_FAILED',
+        message: 'This session already has an active job. Wait for it to finish or cancel it first.',
+      },
+      job: {
+        id: 'job-existing',
+        status: 'running',
+        errorCode: null,
+        hasAudio: false,
+        hasDraft: false,
+        hasTranscript: false,
+      },
     })
     expect(mockCreateJob).not.toHaveBeenCalled()
   })

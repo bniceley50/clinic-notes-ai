@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { readErrorMessage } from "@/lib/errors/codes";
 import {
   deriveConsentStatus,
   deriveDeclinedConsentStatus,
@@ -45,8 +46,8 @@ type CreateJobSuccess = {
   job: JobSnapshot;
 };
 
-type CreateJobError = {
-  error?: string;
+type ApiErrorPayload = {
+  error?: { code?: string; message?: string } | string;
 };
 
 type GenerateNoteSuccess = {
@@ -56,10 +57,6 @@ type GenerateNoteSuccess = {
 type TriggerJobSuccess = {
   job_id: string;
   status: string;
-};
-
-type TriggerJobError = {
-  error?: string;
 };
 
 export function CreateJobForm({
@@ -111,14 +108,11 @@ export function CreateJobForm({
 
       const payload = (await response.json().catch(() => null)) as
         | CreateJobSuccess
-        | CreateJobError
+        | ApiErrorPayload
         | null;
 
       if (!response.ok || !payload || !("job" in payload) || !payload.job?.id) {
-        setError(
-          (payload && "error" in payload && payload.error) ||
-            "Failed to create job",
-        );
+        setError(readErrorMessage(payload) ?? "Failed to create job");
         return;
       }
 
@@ -134,7 +128,7 @@ export function CreateJobForm({
     }
   }
 
-  async function startProcessing(audioJobId: string, audioStoragePath?: string) {
+  async function startProcessing(audioJobId: string) {
     setTriggerPending(true);
     setTriggerError(null);
 
@@ -145,14 +139,11 @@ export function CreateJobForm({
 
       const payload = (await response.json().catch(() => null)) as
         | TriggerJobSuccess
-        | TriggerJobError
+        | ApiErrorPayload
         | null;
 
       if (!response.ok) {
-        throw new Error(
-          (payload && "error" in payload && payload.error) ||
-            "Failed to start processing",
-        );
+        throw new Error(readErrorMessage(payload) ?? "Failed to start processing");
       }
 
       setAudioUploaded(true);
@@ -166,14 +157,14 @@ export function CreateJobForm({
           progress: 0,
           note_type: noteType,
           attempt_count: 0,
-          error_message: null,
-          audio_storage_path: null,
-          transcript_storage_path: null,
+          errorCode: null,
+          hasAudio: false,
+          hasTranscript: false,
+          hasDraft: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }),
-        audio_storage_path:
-          audioStoragePath ?? createdJob?.audio_storage_path ?? null,
+        hasAudio: true,
       });
     } catch (triggerError) {
       setAudioUploaded(false);
@@ -188,7 +179,7 @@ export function CreateJobForm({
     }
   }
 
-  function handleAudioUploaded(audioStoragePath?: string) {
+  function handleAudioUploaded() {
     if (!jobId) {
       setTriggerError("Failed to start processing");
       return;
@@ -196,7 +187,7 @@ export function CreateJobForm({
 
     setError(null);
     setUploadComplete(true);
-    void startProcessing(jobId, audioStoragePath);
+    void startProcessing(jobId);
   }
 
   async function handleGenerateNote(event: React.FormEvent<HTMLFormElement>) {
@@ -223,19 +214,11 @@ export function CreateJobForm({
 
       const payload = (await response.json().catch(() => null)) as
         | GenerateNoteSuccess
-        | CreateJobError
+        | ApiErrorPayload
         | null;
 
       if (!response.ok || !payload || !("note_id" in payload)) {
-        const detail =
-          payload && "detail" in payload && typeof payload.detail === "string"
-            ? payload.detail
-            : null;
-        setError(
-          detail ||
-            (payload && "error" in payload && payload.error) ||
-            "Failed to generate note",
-        );
+        setError(readErrorMessage(payload) ?? "Failed to generate note");
         return;
       }
 
@@ -398,15 +381,15 @@ export function CreateJobForm({
               {audioMode === "record" ? (
                 <AudioRecorder
                   jobId={jobId}
-                  onUploaded={(storagePath) => {
-                    handleAudioUploaded(storagePath);
+                  onUploaded={() => {
+                    handleAudioUploaded();
                   }}
                 />
               ) : (
                 <AudioUpload
                   jobId={jobId}
-                  onUploaded={(storagePath) => {
-                    handleAudioUploaded(storagePath);
+                  onUploaded={() => {
+                    handleAudioUploaded();
                   }}
                 />
               )}

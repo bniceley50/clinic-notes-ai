@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { readErrorMessage } from "@/lib/errors/codes";
 import type { SessionRow } from "@/lib/sessions/queries";
 
 const SESSION_STATUS_CHIP: Record<string, string> = {
@@ -47,15 +48,11 @@ export function SessionDeleteButton({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
         | { deleted?: boolean }
         | null;
 
       if (!response.ok) {
-        window.alert(
-          (payload && "error" in payload && payload.error) ||
-            "Failed to delete session",
-        );
+        window.alert(readErrorMessage(payload) ?? "Failed to delete session");
         return;
       }
 

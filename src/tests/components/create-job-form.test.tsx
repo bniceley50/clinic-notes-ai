@@ -188,9 +188,10 @@ describe("CreateJobForm trigger failures", () => {
       progress: 0,
       note_type: "soap",
       attempt_count: 0,
-      error_message: null,
-      audio_storage_path: null,
-      transcript_storage_path: null,
+      errorCode: null,
+      hasAudio: false,
+      hasTranscript: false,
+      hasDraft: false,
       created_at: "2026-03-22T00:00:00.000Z",
       updated_at: "2026-03-22T00:00:00.000Z",
     };
@@ -207,7 +208,7 @@ describe("CreateJobForm trigger failures", () => {
     expect(reloadMock).not.toHaveBeenCalled();
     expect(onJobStarted).toHaveBeenCalledWith({
       ...createdJob,
-      audio_storage_path: "org-1/session-1/job-1/recording.webm",
+      hasAudio: true,
     });
   });
 });

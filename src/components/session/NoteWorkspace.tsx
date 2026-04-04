@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { buildEhrCopyText, buildDocxFilename } from "@/lib/clinical/note-format";
+import { readErrorMessage } from "@/lib/errors/codes";
 import { CareLogicFormsPanel as EhrFieldsPanel } from "./CareLogicFormsPanel";
 import { NoteViewer } from "./NoteViewer";
 
@@ -89,14 +90,10 @@ export function NoteWorkspace({
 
       const payload = (await response.json().catch(() => null)) as
         | SavePayload
-        | { error?: string }
         | null;
 
       if (!response.ok || !payload || !("note" in payload)) {
-        setError(
-          (payload && "error" in payload && payload.error) ||
-            "Failed to save note",
-        );
+        setError(readErrorMessage(payload) ?? "Failed to save note");
         return false;
       }
 
@@ -130,10 +127,8 @@ export function NoteWorkspace({
       const response = await fetch(`/api/sessions/${sessionId}/notes/${noteId}/export`);
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        setError(payload?.error ?? "Failed to export note");
+        const payload = await response.json().catch(() => null);
+        setError(readErrorMessage(payload) ?? "Failed to export note");
         return;
       }
 
