@@ -5,11 +5,12 @@
  *
  * org_id and created_by are derived from the authenticated context.
  * Only session_id and note_type come from input; session_id is
- * validated by the composite FK and ownership filter in createJob.
+ * validated by an ownership check before createJob runs.
  */
 
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/lib/auth/loader";
+import { getMySession } from "@/lib/sessions/queries";
 import { createJob } from "./queries";
 
 export type JobActionResult = { error: string | null };
@@ -42,6 +43,11 @@ export async function createJobAction(
     VALID_NOTE_TYPES.includes(rawNoteType as NoteType)
       ? (rawNoteType as NoteType)
       : "soap";
+
+  const session = await getMySession(user, sessionId.trim());
+  if (session.error || !session.data) {
+    return { error: "Session not found or access denied." };
+  }
 
   const { data, error } = await createJob(user, {
     session_id: sessionId.trim(),
