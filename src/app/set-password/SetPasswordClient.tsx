@@ -27,7 +27,7 @@ export function SetPasswordClient() {
     }
 
     return createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: true },
+      auth: { persistSession: false },
     });
   });
 

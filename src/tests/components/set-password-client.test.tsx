@@ -56,6 +56,8 @@ describe("SetPasswordClient", () => {
     vi.resetModules();
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    window.localStorage.clear();
+    window.sessionStorage.clear();
 
     fetchMock = vi.fn();
     replaceMock = vi.fn();
@@ -155,6 +157,13 @@ describe("SetPasswordClient", () => {
     await submitForm();
     await flushPromises();
 
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      "https://example.supabase.co",
+      "anon-key",
+      {
+        auth: { persistSession: false },
+      },
+    );
     expect(getSessionMock).toHaveBeenCalled();
     expect(onAuthStateChangeMock).toHaveBeenCalled();
     expect(updateUserMock).toHaveBeenCalledWith({ password: "Password123!" });
@@ -163,6 +172,11 @@ describe("SetPasswordClient", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ access_token: "supabase-token" }),
     });
+    expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
+      replaceMock.mock.invocationCallOrder[0],
+    );
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
     expect(replaceMock).toHaveBeenCalledWith("/sessions");
   });
 

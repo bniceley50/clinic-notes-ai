@@ -57,7 +57,15 @@ export const POST = withLogging(async (
 
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${token}`) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json(
+      {
+        error: {
+          code: ErrorCodes.UNAUTHORIZED,
+          message: "Authentication required.",
+        },
+      },
+      { status: 401 },
+    );
   }
 
   const limited = await checkRateLimit(workerLimit, "worker:update");
