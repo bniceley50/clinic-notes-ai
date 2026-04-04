@@ -12,9 +12,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isDevLoginAllowed } from "@/lib/config";
 import { createSessionCookie } from "@/lib/auth/session";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { SessionRole } from "@/lib/auth/types";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 const DEV_LOGIN_EMAIL = "dev@example.com";
 const DEV_LOGIN_NAME = "Dev Login";
@@ -132,7 +133,9 @@ async function ensureDevProfile(userId: string) {
   return { orgId, role: DEV_LOGIN_ROLE };
 }
 
-export const GET = withLogging(async (request: NextRequest) => {
+export const GET = withLogging(async (
+  request: NextRequest,
+) => {
   if (!isDevLoginAllowed()) {
     return NextResponse.json({ error: "Dev login is disabled" }, { status: 403 });
   }
@@ -164,9 +167,20 @@ export const GET = withLogging(async (request: NextRequest) => {
     response.headers.append("Set-Cookie", cookie);
     return response;
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create dev session";
+    logError({
+      code: ErrorCodes.DEV_LOGIN_FAILED,
+      message: "Dev login failed",
+      cause: error,
+    });
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: {
+          code: ErrorCodes.DEV_LOGIN_FAILED,
+          message: "Dev login failed.",
+        },
+      },
+      { status: 500 },
+    );
   }
 });

@@ -76,6 +76,7 @@ vi.mock("@/lib/config", async () => {
 
 vi.mock("@/lib/logger", () => ({
   withLogging: <T>(handler: T) => handler,
+  logError: vi.fn(),
 }));
 
 import { GET } from "@/app/api/jobs/[id]/carelogic-fields/route";
@@ -566,7 +567,10 @@ describe("GET /api/jobs/[id]/carelogic-fields", () => {
 
     expect(response.status).toBe(500);
     expect(payload).toEqual({
-      error: "Failed to store EHR fields",
+      error: {
+        code: "EHR_EXTRACTION_FAILED",
+        message: "EHR field extraction unavailable.",
+      },
     });
     expect(mockWriteAuditLog).not.toHaveBeenCalled();
   });

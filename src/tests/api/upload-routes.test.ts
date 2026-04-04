@@ -44,6 +44,7 @@ vi.mock("@/lib/audit", () => ({
 
 vi.mock("@/lib/logger", () => ({
   withLogging: (handler: (...args: unknown[]) => unknown) => handler,
+  logError: vi.fn(),
 }));
 
 import { POST as postUploadUrl } from "../../app/api/jobs/[id]/upload-url/route";
@@ -299,7 +300,10 @@ describe("POST /api/jobs/[id]/upload-complete", () => {
 
     expect(response.status).toBe(500);
     expect(payload).toEqual({
-      error: "Uploaded audio content does not match a supported format",
+      error: {
+        code: "JOB_UPLOAD_COMPLETE_FAILED",
+        message: "Unable to finalize upload.",
+      },
     });
   });
 });

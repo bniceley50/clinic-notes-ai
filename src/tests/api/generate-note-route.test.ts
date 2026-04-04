@@ -84,6 +84,7 @@ vi.mock("@/lib/audit", () => ({
 
 vi.mock("@/lib/logger", () => ({
   withLogging: (handler: (...args: unknown[]) => unknown) => handler,
+  logError: vi.fn(),
 }));
 
 import { POST } from "@/app/api/generate-note/route";
@@ -240,7 +241,12 @@ describe("POST /api/generate-note", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(503);
-    expect(payload).toEqual({ error: "Anthropic note generation is not configured" });
+    expect(payload).toEqual({
+      error: {
+        code: "NOTE_GENERATION_FAILED",
+        message: "Note generation failed.",
+      },
+    });
   });
 
   it("uses the stored transcript instead of client-supplied transcript text", async () => {

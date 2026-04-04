@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ErrorCodes } from "@/lib/errors/codes";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   claimJobForProcessingGlobally,
@@ -8,6 +9,7 @@ import {
   type JobNoteType,
   type JobRow,
 } from "@/lib/jobs/queries";
+import { logError } from "@/lib/logger";
 import { downloadAudioBlobGlobally } from "@/lib/storage/audio-download";
 import { uploadTranscript } from "@/lib/storage/transcript";
 import { transcribeAudioChunked } from "@/lib/ai/whisper";
@@ -60,20 +62,42 @@ async function updateClaimedJob(
   return updated;
 }
 
-async function failJob(job: JobRow, runToken: string, error: string): Promise<ProcessResult> {
+async function failJob(
+  job: JobRow,
+  runToken: string,
+  cause: unknown,
+  message: string,
+): Promise<ProcessResult> {
+  const internalError =
+    typeof cause === "string"
+      ? cause
+      : cause instanceof Error
+        ? cause.message
+        : ErrorCodes.JOB_PROCESSOR_ERROR;
+
+  logError({
+    code: ErrorCodes.JOB_PROCESSOR_ERROR,
+    message,
+    cause,
+    jobId: job.id,
+    sessionId: job.session_id,
+    orgId: job.org_id,
+    userId: job.created_by,
+  });
+
   const terminal = job.attempt_count >= MAX_PROCESS_ATTEMPTS;
   const failed = await updateClaimedJob(job.org_id, job.id, runToken, {
     ...(terminal
       ? {
           status: "failed",
           stage: "failed",
-          error_message: error,
+          error_message: ErrorCodes.JOB_PROCESSOR_ERROR,
         }
       : {
           status: "queued",
           stage: "queued",
           progress: 0,
-          error_message: error,
+          error_message: ErrorCodes.JOB_PROCESSOR_ERROR,
         }),
     ...clearedClaimFields(),
   });
@@ -82,7 +106,7 @@ async function failJob(job: JobRow, runToken: string, error: string): Promise<Pr
     return { success: false, error: failed.error };
   }
 
-  return { success: false, error };
+  return { success: false, error: internalError };
 }
 
 export async function generateNoteForJob(jobId: string): Promise<ProcessResult> {
@@ -176,12 +200,22 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     runToken = claimedRunToken;
 
     if (!job.audio_storage_path) {
-      return await failJob(job, claimedRunToken, "No audio uploaded");
+      return await failJob(
+        job,
+        claimedRunToken,
+        "No audio uploaded",
+        "Processor failed before audio was available",
+      );
     }
 
     const downloaded = await downloadAudioBlobGlobally(job.audio_storage_path);
     if (downloaded.error || !downloaded.data) {
-      return await failJob(job, claimedRunToken, downloaded.error ?? "Failed to download audio");
+      return await failJob(
+        job,
+        claimedRunToken,
+        downloaded.error ?? "Failed to download audio",
+        "Processor failed while downloading audio",
+      );
     }
 
     void writeAuditLog({
@@ -215,6 +249,7 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
         job,
         claimedRunToken,
         transcription.error ?? "Failed to transcribe audio",
+        "Processor failed while transcribing audio",
       );
     }
 
@@ -241,7 +276,12 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     });
 
     if (transcriptRow.error || !transcriptRow.data) {
-      return await failJob(job, claimedRunToken, transcriptRow.error ?? "Failed to store transcript");
+      return await failJob(
+        job,
+        claimedRunToken,
+        transcriptRow.error ?? "Failed to store transcript",
+        "Processor failed while storing transcript",
+      );
     }
 
     const completed = await updateClaimedJob(job.org_id, jobId, claimedRunToken, {
@@ -255,7 +295,12 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     if (completed.error) {
       return completed.error === CLAIM_LOST_ERROR
         ? { success: false, error: CLAIM_LOST_ERROR }
-        : await failJob(job, claimedRunToken, completed.error ?? "Failed to complete job");
+        : await failJob(
+            job,
+            claimedRunToken,
+            completed.error ?? "Failed to complete job",
+            "Processor failed while completing the job",
+          );
     }
 
     // NOTE GENERATION: disabled in the default pipeline.
@@ -272,6 +317,11 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
       return { success: false, error: CLAIM_LOST_ERROR };
     }
 
-    return await failJob(claimedJob, runToken, message);
+    return await failJob(
+      claimedJob,
+      runToken,
+      error,
+      "Processor exception during job execution",
+    );
   }
 }

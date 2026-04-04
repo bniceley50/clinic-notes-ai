@@ -2,10 +2,11 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { getMyJob } from "@/lib/jobs/queries";
 import { createSignedAudioUploadForOrg } from "@/lib/storage/audio";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -16,7 +17,10 @@ type UploadUrlBody = {
 
 const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
 
-export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -70,8 +74,23 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   });
 
   if (error || !path || !token) {
+    logError({
+      code: ErrorCodes.JOB_UPLOAD_URL_FAILED,
+      message: "Signed upload URL creation failed",
+      cause: error,
+      jobId: job.id,
+      sessionId: job.session_id,
+      orgId: user.orgId,
+      userId: user.userId,
+    });
+
     return NextResponse.json(
-      { error: error ?? "Failed to create upload URL" },
+      {
+        error: {
+          code: ErrorCodes.JOB_UPLOAD_URL_FAILED,
+          message: "Unable to create upload URL.",
+        },
+      },
       { status: 500 },
     );
   }

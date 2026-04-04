@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { readErrorMessage } from "@/lib/errors/codes";
 import type { SessionRow } from "@/lib/sessions/queries";
 
 type SessionDetailManagerProps = {
@@ -38,11 +39,10 @@ export function SessionDetailManager({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
         | null;
 
       if (!response.ok) {
-        setError(payload?.error ?? "Failed to update session");
+        setError(readErrorMessage(payload) ?? "Failed to update session");
         return;
       }
 
@@ -62,11 +62,10 @@ export function SessionDetailManager({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
         | null;
 
       if (!response.ok) {
-        setError(payload?.error ?? "Failed to archive session");
+        setError(readErrorMessage(payload) ?? "Failed to archive session");
         return;
       }
 

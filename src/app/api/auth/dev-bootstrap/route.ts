@@ -19,9 +19,12 @@ import { isDevLoginAllowed, supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createSessionCookie } from "@/lib/auth/session";
 import type { SessionRole } from "@/lib/auth/types";
-import { withLogging } from "@/lib/logger";
+import { ErrorCodes } from "@/lib/errors/codes";
+import { logError, withLogging } from "@/lib/logger";
 
-export const POST = withLogging(async (request: NextRequest) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+) => {
   if (!isDevLoginAllowed()) {
     return NextResponse.json(
       { error: "Dev bootstrap is disabled" },
@@ -74,8 +77,20 @@ export const POST = withLogging(async (request: NextRequest) => {
       .single();
 
     if (orgError || !newOrg) {
+      logError({
+        code: ErrorCodes.DEV_BOOTSTRAP_FAILED,
+        message: "Dev bootstrap failed while creating the org",
+        cause: orgError,
+        userId: user.id,
+      });
+
       return NextResponse.json(
-        { error: "Failed to create org", detail: orgError?.message },
+        {
+          error: {
+            code: ErrorCodes.DEV_BOOTSTRAP_FAILED,
+            message: "Dev bootstrap failed.",
+          },
+        },
         { status: 500 },
       );
     }
@@ -91,8 +106,21 @@ export const POST = withLogging(async (request: NextRequest) => {
     });
 
     if (profileError) {
+      logError({
+        code: ErrorCodes.DEV_BOOTSTRAP_FAILED,
+        message: "Dev bootstrap failed while creating the profile",
+        cause: profileError,
+        userId: user.id,
+        orgId,
+      });
+
       return NextResponse.json(
-        { error: "Failed to create profile", detail: profileError.message },
+        {
+          error: {
+            code: ErrorCodes.DEV_BOOTSTRAP_FAILED,
+            message: "Dev bootstrap failed.",
+          },
+        },
         { status: 500 },
       );
     }

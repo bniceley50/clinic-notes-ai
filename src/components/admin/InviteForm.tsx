@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { readErrorMessage } from "@/lib/errors/codes";
 
 type InviteRole = "provider" | "admin";
 
-type InviteResponse = { ok: boolean; error?: string };
+type InviteResponse = { ok?: boolean };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -55,7 +56,7 @@ export function InviteForm() {
           return;
         }
 
-        setError(payload?.error ?? "Failed to send invite");
+        setError(readErrorMessage(payload) ?? "Failed to send invite");
         return;
       }
 

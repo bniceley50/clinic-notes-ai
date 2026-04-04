@@ -3,13 +3,14 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
 import { getMyJob } from "@/lib/jobs/queries";
+import { ErrorCodes } from "@/lib/errors/codes";
 import {
   buildAudioStoragePath,
   finalizeJobAudioUploadForOrg,
 } from "@/lib/storage/audio";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -20,7 +21,10 @@ type UploadCompleteBody = {
 
 const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
 
-export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -82,8 +86,23 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   });
 
   if (error || !savedPath) {
+    logError({
+      code: ErrorCodes.JOB_UPLOAD_COMPLETE_FAILED,
+      message: "Upload completion failed while finalizing audio storage",
+      cause: error,
+      jobId: job.id,
+      sessionId: job.session_id,
+      orgId: user.orgId,
+      userId: user.userId,
+    });
+
     return NextResponse.json(
-      { error: error ?? "Upload failed" },
+      {
+        error: {
+          code: ErrorCodes.JOB_UPLOAD_COMPLETE_FAILED,
+          message: "Unable to finalize upload.",
+        },
+      },
       { status: 500 },
     );
   }

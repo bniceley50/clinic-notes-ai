@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { jsonNoStore } from "@/lib/http/response";
 import { createSession, listMySessions } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
 
@@ -30,7 +31,9 @@ export const GET = withLogging(async (request: NextRequest) => {
   return jsonNoStore({ sessions: data });
 });
 
-export const POST = withLogging(async (request: NextRequest) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -67,7 +70,23 @@ export const POST = withLogging(async (request: NextRequest) => {
   });
 
   if (error || !data) {
-    return jsonNoStore({ error: error ?? "Failed to create session" }, { status: 500 });
+    logError({
+      code: ErrorCodes.SESSION_CREATE_FAILED,
+      message: "Session creation failed",
+      cause: error,
+      orgId: result.user.orgId,
+      userId: result.user.userId,
+    });
+
+    return jsonNoStore(
+      {
+        error: {
+          code: ErrorCodes.SESSION_CREATE_FAILED,
+          message: "Unable to create session.",
+        },
+      },
+      { status: 500 },
+    );
   }
 
   return jsonNoStore({ session: data }, { status: 201 });

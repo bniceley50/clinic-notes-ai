@@ -20,17 +20,21 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { getMyJob } from "@/lib/jobs/queries";
 import { uploadJobAudioForOrg } from "@/lib/storage/audio";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 const TERMINAL_STATUSES = new Set(["complete", "failed", "cancelled"]);
 
-export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const POST = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -122,8 +126,23 @@ export const POST = withLogging(async (request: NextRequest, ctx: RouteContext) 
   });
 
   if (uploadError || !storagePath) {
+    logError({
+      code: ErrorCodes.JOB_UPLOAD_FAILED,
+      message: "Direct audio upload failed",
+      cause: uploadError,
+      jobId: job.id,
+      sessionId: job.session_id,
+      orgId: user.orgId,
+      userId: user.userId,
+    });
+
     return NextResponse.json(
-      { error: uploadError ?? "Upload failed" },
+      {
+        error: {
+          code: ErrorCodes.JOB_UPLOAD_FAILED,
+          message: "Upload failed.",
+        },
+      },
       { status: 500 },
     );
   }

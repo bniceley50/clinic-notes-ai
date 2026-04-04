@@ -125,7 +125,7 @@ describe("JobStatusPanel", () => {
     ]);
 
     expect(container.textContent).toContain("Transcription failed after 3 attempts");
-    expect(container.textContent).toContain("Whisper request failed");
+    expect(container.textContent).toContain("Something went wrong. If this persists, contact support.");
     expect(container.textContent).toContain("What to do next");
     expect(container.textContent).toContain(
       "The transcription could not be completed after 3 attempts. Please try uploading the audio again or contact support if the problem continues.",

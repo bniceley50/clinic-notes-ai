@@ -8,7 +8,7 @@ import {
 
 type Props = {
   jobId: string;
-  onUploaded: (storagePath: string) => void;
+  onUploaded: () => void;
 };
 
 const ACCEPTED_TYPES = ".webm,.mp3,.mp4,.m4a,.wav,.ogg,audio/webm,audio/mp4,audio/mpeg,audio/mp3,audio/x-m4a,audio/m4a,audio/ogg,audio/wav,audio/x-wav";
@@ -36,8 +36,8 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
     setUploading(true);
 
     try {
-      const storagePath = await uploadAudioForJobDirect(jobId, file);
-      onUploaded(storagePath);
+      await uploadAudioForJobDirect(jobId, file);
+      onUploaded();
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -63,8 +63,8 @@ export function AudioUpload({ jobId, onUploaded }: Props) {
     }
     setUploading(true);
     try {
-      const storagePath = await uploadAudioForJobDirect(jobId, file);
-      onUploaded(storagePath);
+      await uploadAudioForJobDirect(jobId, file);
+      onUploaded();
     } catch (uploadError) {
       setError(
         uploadError instanceof Error

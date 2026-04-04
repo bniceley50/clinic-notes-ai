@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { loadCurrentUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
 import { jsonNoStore } from "@/lib/http/response";
 import {
   getMySession,
@@ -7,7 +8,7 @@ import {
   updateMySession,
 } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
-import { withLogging } from "@/lib/logger";
+import { logError, withLogging } from "@/lib/logger";
 import { writeAuditLog } from "@/lib/audit";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
@@ -106,7 +107,10 @@ export const PATCH = withLogging(async (request: NextRequest, ctx: RouteContext)
   return jsonNoStore({ session: data });
 });
 
-export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext) => {
+export const DELETE = withLogging(async (
+  request: NextRequest,
+  ctx: RouteContext,
+) => {
   const result = await loadCurrentUser();
 
   if (result.status !== "authenticated") {
@@ -127,9 +131,23 @@ export const DELETE = withLogging(async (request: NextRequest, ctx: RouteContext
   try {
     await softDeleteSession(sessionId, result.user.orgId);
   } catch (cascadeError) {
-    const message =
-      cascadeError instanceof Error ? cascadeError.message : "Failed to delete session";
-    return jsonNoStore({ error: message }, { status: 500 });
+    logError({
+      code: ErrorCodes.SESSION_DELETE_FAILED,
+      message: "Session deletion failed",
+      cause: cascadeError,
+      sessionId,
+      orgId: result.user.orgId,
+      userId: result.user.userId,
+    });
+    return jsonNoStore(
+      {
+        error: {
+          code: ErrorCodes.SESSION_DELETE_FAILED,
+          message: "Unable to delete session.",
+        },
+      },
+      { status: 500 },
+    );
   }
 
   void writeAuditLog({
