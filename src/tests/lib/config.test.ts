@@ -78,3 +78,57 @@ describe("anthropicModel", () => {
     expect(anthropicModel()).toBe("claude-test-model");
   });
 });
+
+describe("validateConfig", () => {
+  function setBaselineEnv() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    process.env.SESSION_TTL_SECONDS = "14400";
+    process.env.DEFAULT_PRACTICE_ID = "practice-1";
+    delete process.env.AI_ENABLE_REAL_APIS;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+  }
+
+  it("throws when AUTH_COOKIE_SECRET is missing", async () => {
+    setBaselineEnv();
+    delete process.env.AUTH_COOKIE_SECRET;
+
+    const { validateConfig } = await loadConfigModule();
+
+    expect(() => validateConfig()).toThrow(
+      "Environment configuration error — missing or invalid:",
+    );
+  });
+
+  it("throws when AUTH_COOKIE_SECRET is too weak", async () => {
+    setBaselineEnv();
+    process.env.AUTH_COOKIE_SECRET = "changeme";
+
+    const { validateConfig } = await loadConfigModule();
+
+    expect(() => validateConfig()).toThrow(
+      "AUTH_COOKIE_SECRET must encode at least 32 random bytes. Generate with: openssl rand -hex 32",
+    );
+  });
+
+  it("accepts a valid 64-character hex AUTH_COOKIE_SECRET", async () => {
+    setBaselineEnv();
+    process.env.AUTH_COOKIE_SECRET =
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    const { validateConfig } = await loadConfigModule();
+
+    expect(() => validateConfig()).not.toThrow();
+  });
+
+  it("accepts a valid 43-character base64url AUTH_COOKIE_SECRET", async () => {
+    setBaselineEnv();
+    process.env.AUTH_COOKIE_SECRET =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi01234567_";
+
+    const { validateConfig } = await loadConfigModule();
+
+    expect(() => validateConfig()).not.toThrow();
+  });
+});
