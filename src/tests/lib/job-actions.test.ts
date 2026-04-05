@@ -24,11 +24,17 @@ vi.mock("@/lib/jobs/queries", () => ({
   createJob: mockCreateJob,
 }));
 
+vi.mock("@/lib/logger", () => ({
+  logError: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
 
 import { createJobAction } from "@/lib/jobs/actions";
+
+const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 
 const providerUser = {
   userId: "user-1",
@@ -64,7 +70,7 @@ const adminUser = {
 };
 
 function makeFormData(
-  sessionId = "session-1",
+  sessionId = SESSION_ID,
   noteType = "soap",
 ): FormData {
   const formData = new FormData();
@@ -82,9 +88,15 @@ describe("createJobAction", () => {
     mockRequireAppUser.mockResolvedValue(providerUser);
     mockGetMySession.mockResolvedValue({ data: null, error: "Not found" });
 
-    const result = await createJobAction({ error: null }, makeFormData("session-2"));
+    const result = await createJobAction(
+      { error: null },
+      makeFormData("22222222-2222-4222-8222-222222222222"),
+    );
 
-    expect(mockGetMySession).toHaveBeenCalledWith(providerUser, "session-2");
+    expect(mockGetMySession).toHaveBeenCalledWith(
+      providerUser,
+      "22222222-2222-4222-8222-222222222222",
+    );
     expect(mockCreateJob).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
     expect(result).toEqual({ error: "Session not found or access denied." });
@@ -112,13 +124,35 @@ describe("createJobAction", () => {
       error: null,
     });
 
-    await createJobAction({ error: null }, makeFormData("session-2", "dap"));
+    await createJobAction(
+      { error: null },
+      makeFormData("22222222-2222-4222-8222-222222222222", "dap"),
+    );
 
-    expect(mockGetMySession).toHaveBeenCalledWith(adminUser, "session-2");
+    expect(mockGetMySession).toHaveBeenCalledWith(
+      adminUser,
+      "22222222-2222-4222-8222-222222222222",
+    );
     expect(mockCreateJob).toHaveBeenCalledWith(adminUser, {
-      session_id: "session-2",
+      session_id: "22222222-2222-4222-8222-222222222222",
       note_type: "dap",
     });
-    expect(mockRedirect).toHaveBeenCalledWith("/sessions/session-2");
+    expect(mockRedirect).toHaveBeenCalledWith(
+      "/sessions/22222222-2222-4222-8222-222222222222",
+    );
+  });
+
+  it("returns Invalid request for a non-UUID session_id", async () => {
+    mockRequireAppUser.mockResolvedValue(providerUser);
+
+    const result = await createJobAction(
+      { error: null },
+      makeFormData("session-2"),
+    );
+
+    expect(result).toEqual({ error: "Invalid request." });
+    expect(mockGetMySession).not.toHaveBeenCalled();
+    expect(mockCreateJob).not.toHaveBeenCalled();
+    expect(mockRedirect).not.toHaveBeenCalled();
   });
 });
