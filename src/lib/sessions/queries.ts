@@ -194,10 +194,11 @@ export async function getSessionForOrg(
 }
 
 export async function softDeleteSession(
+  user: AppUser,
   sessionId: string,
-  orgId: string,
 ): Promise<SessionRow> {
   const db = createServiceClient();
+  const orgId = user.orgId;
 
   const { data: session, error: sessionLoadError } = await db
     .from("sessions")

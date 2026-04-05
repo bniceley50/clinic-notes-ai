@@ -59,7 +59,7 @@ describeSmoke("smoke happy path", () => {
   afterEach(async () => {
     if (sessionIds.length === 0) return;
     for (const sessionId of sessionIds.splice(0)) {
-      await softDeleteSession(sessionId, appUser.orgId);
+      await softDeleteSession(appUser, sessionId);
     }
     vi.unstubAllGlobals();
   });
