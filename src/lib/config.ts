@@ -225,4 +225,14 @@ export function validateConfig(): void {
       `Environment configuration error — missing or invalid:\n  • ${missing.join("\n  • ")}\n\nSee .env.example for required variables.`,
     );
   }
+
+  const secret = requiredString("AUTH_COOKIE_SECRET");
+  const isHex32Plus = /^[0-9a-fA-F]{64,}$/.test(secret);
+  const isBase64Url32Plus = /^[A-Za-z0-9_-]{43,}$/.test(secret);
+
+  if (!isHex32Plus && !isBase64Url32Plus) {
+    throw new Error(
+      "AUTH_COOKIE_SECRET must encode at least 32 random bytes. Generate with: openssl rand -hex 32",
+    );
+  }
 }
