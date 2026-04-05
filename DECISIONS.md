@@ -426,3 +426,108 @@ local examples, deployment templates, cookie expiry, and Redis revocation TTL.
   when corrections are required
 - Encounter-scoped billing provenance stays auditable even when coding inputs
   are corrected later
+
+
+---
+
+## D017: Post-Vibe-Code Security Audit — Findings and Remediations
+
+**Date:** 2026-04-04
+**Status:** Closed (all findings remediated on main)
+
+### Context
+A systematic security audit was run against the codebase using a 26-check
+prompt targeting Next.js/Supabase/Vercel SaaS attack surface. All high-value
+findings were remediated across four PRs. One low-urgency item is intentionally
+deferred.
+
+### Findings and dispositions
+
+**Check 19 — Raw error text leaking to clients (CRITICAL)**
+Multiple API routes and SSE streams forwarded raw Supabase/vendor error strings,
+stack traces, and stored job.error_message text to authenticated clients.
+Remediation: error code registry (src/lib/errors/codes.ts), job serializer
+(serializeJobForClient), structured server-side logging via AsyncLocalStorage-backed
+logError(), and scrubbed error responses across all 17 affected routes and
+10 client consumers. Write-side processor fix: jobs.error_message now persists
+stable JOB_PROCESSOR_ERROR code instead of raw exception text.
+PR: Check 19 hardening (40 files, merged main)
+
+**Check 03 — Supabase session persisted to localStorage on password reset**
+SetPasswordClient.tsx used persistSession: true, leaving Supabase access/refresh
+tokens in localStorage on the password reset flow. Main login correctly used
+persistSession: false.
+Remediation: persistSession: false in SetPasswordClient.tsx; existing
+/api/auth/session exchange retained; redirect ordering confirmed correct.
+PR: security hotfix (PR #1, merged main)
+
+**Check 12 — Worker route returned 403 for unauthenticated callers**
+/api/jobs/[id]/worker returned 403 Forbidden for missing/invalid bearer token.
+Unauthenticated requests must return 401.
+Remediation: status code corrected to 401 for missing/invalid auth; 409
+conflict path unchanged.
+PR: security hotfix (PR #1, merged main)
+
+**Check 13 — Intra-org IDOR in createJobAction**
+createJobAction accepted session_id from FormData without verifying ownership.
+Insert used service role client, bypassing the RLS jobs_insert policy. A
+provider could create a job against a colleague's session within the same org.
+Remediation: getMySession(user, sessionId) ownership check added before
+createJob() call, matching the pattern already used in /api/jobs/route.ts.
+PR: security hotfix (PR #1, merged main)
+
+**Check 24 — No entropy validation on AUTH_COOKIE_SECRET**
+requiredString() check passed on any non-empty value including "secret" or
+"changeme". No runtime enforcement of the 32-byte minimum documented in
+.env.example.
+Remediation: validateConfig() now rejects secrets that match neither 64+ char
+hex nor 43+ char base64url. Error message includes openssl rand -hex 32.
+PR: config hardening (PR #2, merged main)
+
+**Dependabot — No automated dependency monitoring**
+No .github/dependabot.yml configured.
+Remediation: weekly npm ecosystem monitoring added, major version PRs excluded.
+PR: config hardening (PR #2, merged main)
+
+**Check 06 — Dead Zod schemas, no server-side input validation**
+Schemas existed in note-validation.ts but were never imported. All 27 route
+handlers used manual typeof checks. validateBody() helper leaked Zod issue
+details to clients. Note content fields had no HTML sanitization.
+Remediation: four new schemas written matching live route contracts
+(GenerateNoteRouteSchema, UpdateNoteRouteSchema, CreateSessionSchema,
+CreateJobSchema); validateBody() fixed to log issues server-side only;
+VALIDATION_ERROR added to error code registry; HTML sanitization transform
+added to note content field; schemas wired into 4 routes and 2 Server Actions.
+PR: validation hardening (PR #105, security/check-06-zod-validation, merged main)
+
+### Intentionally deferred
+src/app/admin/page.tsx and src/lib/admin/health.ts may still render raw
+historic exception text for job rows written before the Check 19 fix.
+New job failures normalize to JOB_PROCESSOR_ERROR. Admin-only surface,
+no client risk. Deferred until admin UX becomes a priority.
+
+### Checks confirmed N/A for this stack
+- SQL injection: Supabase parameterized query builder used throughout
+- Weak JWT signing secret: Supabase manages its own signing key
+- Server running as root: Vercel managed runtime
+- Database port exposed: Supabase managed Postgres
+- HTTPS enforcement: Vercel enforces TLS (SSL Labs A+ confirmed)
+- CVE-2025-29927: Next.js 15.5.14 is above the patched threshold
+
+
+---
+
+## D015 Status Update — 2026-04-05
+
+**D015 is fully implemented on main. No remaining code work.**
+
+Verified live state:
+- script-src: nonce-based per-request CSP via middleware, 'unsafe-inline' absent from production
+- style-src: production is 'self' only (class-based), dev retains 'unsafe-inline' for tooling
+- CSP generation moved from static next.config.ts headers to request-scoped middleware
+- Zero inline style attributes remaining in src/ (style={{, style={, CSS-in-JS all absent)
+- Per-request nonce generated via Web Crypto API in middleware.ts, attached to all HTML responses
+
+Phase 1 (186 inline color styles converted to Tailwind classes) was absorbed into main.
+fix/style-src-phase2-3 branch has no surviving unique D015 diff and can be deleted.
+The D015 finding from the 2026-03-31 ZAP scan is fully closed.
