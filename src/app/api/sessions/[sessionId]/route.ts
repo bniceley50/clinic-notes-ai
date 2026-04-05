@@ -129,7 +129,7 @@ export const DELETE = withLogging(async (
   }
 
   try {
-    await softDeleteSession(sessionId, result.user.orgId);
+    await softDeleteSession(result.user, sessionId);
   } catch (cascadeError) {
     logError({
       code: ErrorCodes.SESSION_DELETE_FAILED,

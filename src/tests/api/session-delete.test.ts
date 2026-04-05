@@ -130,7 +130,7 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(payload).toEqual({ deleted: true });
     expect(mockGetMySession).toHaveBeenCalledWith(providerAuth.user, "session-1");
-    expect(mockSoftDeleteSession).toHaveBeenCalledWith("session-1", "org-1");
+    expect(mockSoftDeleteSession).toHaveBeenCalledWith(providerAuth.user, "session-1");
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
       actorId: "user-1",
@@ -178,7 +178,13 @@ describe("DELETE /api/sessions/[sessionId]", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(mockSoftDeleteSession).toHaveBeenCalledWith("session-1", "org-1");
+    expect(mockSoftDeleteSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "admin-1",
+        orgId: "org-1",
+      }),
+      "session-1",
+    );
   });
 
   it("returns 404 when a provider tries to delete another provider's session in the same org", async () => {

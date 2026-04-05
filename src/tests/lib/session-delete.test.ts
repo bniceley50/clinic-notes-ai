@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppUser } from "../../lib/auth/loader";
 
 const {
   callOrder,
@@ -109,6 +110,26 @@ vi.mock("../../lib/supabase/server", () => ({
 
 import { softDeleteSession } from "../../lib/sessions/queries";
 
+const testUser: AppUser = {
+  userId: "user-1",
+  orgId: "org-1",
+  role: "provider",
+  email: "provider@example.com",
+  profile: {
+    id: "profile-1",
+    user_id: "user-1",
+    org_id: "org-1",
+    display_name: "Provider One",
+    role: "provider",
+    created_at: "2026-03-15T10:00:00.000Z",
+  },
+  org: {
+    id: "org-1",
+    name: "Org One",
+    created_at: "2026-03-15T10:00:00.000Z",
+  },
+};
+
 describe("softDeleteSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -117,7 +138,7 @@ describe("softDeleteSession", () => {
   });
 
   it("marks the session and child rows as deleted without removing storage artifacts", async () => {
-    const result = await softDeleteSession("session-1", "org-1");
+    const result = await softDeleteSession(testUser, "session-1");
 
     expect(result).toMatchObject({
       id: "session-1",
@@ -156,7 +177,7 @@ describe("softDeleteSession", () => {
   it("returns the current row without writes when the session is already soft-deleted", async () => {
     sessionState.row.deleted_at = "2026-03-29T12:00:00.000Z";
 
-    const result = await softDeleteSession("session-1", "org-1");
+    const result = await softDeleteSession(testUser, "session-1");
 
     expect(result.deleted_at).toBe("2026-03-29T12:00:00.000Z");
     expect(callOrder).toEqual(["session.load"]);
