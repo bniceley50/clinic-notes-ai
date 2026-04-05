@@ -36,6 +36,7 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/logger", () => ({
   withLogging: <T>(handler: T) => handler,
+  logError: vi.fn(),
 }));
 
 import { PATCH } from "@/app/api/sessions/[sessionId]/notes/[noteId]/route";
@@ -156,5 +157,43 @@ describe("PATCH /api/sessions/[sessionId]/notes/[noteId]", () => {
         updated_at: "2026-03-22T10:00:00.000Z",
       },
     });
+  });
+
+  it("sanitizes HTML from note content before update", async () => {
+    await PATCH(
+      makeRequest({
+        content: "<script>alert('x')</script> Updated <b>note</b> content ",
+      }) as never,
+      {
+        params: Promise.resolve({ sessionId: "session-1", noteId: "note-1" }),
+      },
+    );
+
+    expect(mockUpdateMyNoteContent).toHaveBeenCalledWith(
+      authenticatedResult.user,
+      "session-1",
+      "note-1",
+      "Updated note content",
+    );
+  });
+
+  it("returns 400 with VALIDATION_ERROR for invalid body", async () => {
+    const response = await PATCH(
+      makeRequest({ note_type: "soap" }) as never,
+      {
+        params: Promise.resolve({ sessionId: "session-1", noteId: "note-1" }),
+      },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toEqual({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid request.",
+      },
+    });
+    expect(mockGetMyNote).not.toHaveBeenCalled();
+    expect(mockUpdateMyNoteContent).not.toHaveBeenCalled();
   });
 });

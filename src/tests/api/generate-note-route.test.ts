@@ -89,6 +89,8 @@ vi.mock("@/lib/logger", () => ({
 
 import { POST } from "@/app/api/generate-note/route";
 
+const SESSION_ID = "11111111-1111-4111-8111-111111111111";
+
 const authenticatedResult = {
   status: "authenticated" as const,
   user: {
@@ -128,7 +130,7 @@ describe("POST /api/generate-note", () => {
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMySession.mockResolvedValue({
       data: {
-        id: "session-1",
+        id: SESSION_ID,
         patient_label: "Patient A",
         session_type: "general",
       },
@@ -137,7 +139,7 @@ describe("POST /api/generate-note", () => {
     mockGetLatestTranscriptForSession.mockResolvedValue({
       data: {
         id: "transcript-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         job_id: "job-1",
         content: "Server-stored transcript content.",
@@ -150,7 +152,7 @@ describe("POST /api/generate-note", () => {
     mockGetTranscriptForJob.mockResolvedValue({
       data: {
         id: "transcript-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         job_id: "job-1",
         content: "Server-stored transcript content.",
@@ -170,7 +172,7 @@ describe("POST /api/generate-note", () => {
     mockNoteSingle.mockResolvedValue({
       data: {
         id: "note-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         content: "Generated note content",
         note_type: "soap",
@@ -217,7 +219,7 @@ describe("POST /api/generate-note", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -234,7 +236,7 @@ describe("POST /api/generate-note", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -259,7 +261,7 @@ describe("POST /api/generate-note", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         transcript: "Client injected transcript should be ignored.",
         note_type: "SOAP",
       }) as never,
@@ -271,7 +273,7 @@ describe("POST /api/generate-note", () => {
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: "org-1",
       actorId: "user-1",
-      sessionId: "session-1",
+      sessionId: SESSION_ID,
       action: "note.generated",
       metadata: {
         note_type: "soap",
@@ -296,7 +298,7 @@ describe("POST /api/generate-note", () => {
     mockGetLatestTranscriptForSession.mockResolvedValue({
       data: {
         id: "transcript-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         job_id: "job-1",
         content: "x".repeat(MAX_TRANSCRIPT_CHARS + 1),
@@ -309,7 +311,7 @@ describe("POST /api/generate-note", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -330,7 +332,7 @@ describe("POST /api/generate-note", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -340,6 +342,26 @@ describe("POST /api/generate-note", () => {
     expect(payload).toEqual({
       error: "Stored transcript is required before generating a note",
     });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 with VALIDATION_ERROR for a non-UUID session_id", async () => {
+    const response = await POST(
+      makeRequest({
+        session_id: "session-1",
+        note_type: "SOAP",
+      }) as never,
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toEqual({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid request.",
+      },
+    });
+    expect(mockGetMySession).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });

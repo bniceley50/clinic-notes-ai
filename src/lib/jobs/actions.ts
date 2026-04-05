@@ -10,21 +10,13 @@
 
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
+import { logError } from "@/lib/logger";
 import { getMySession } from "@/lib/sessions/queries";
-import { createJob } from "./queries";
+import { CreateJobSchema } from "@/lib/validation/note-validation";
+import { createJob, type JobNoteType } from "./queries";
 
 export type JobActionResult = { error: string | null };
-
-const VALID_NOTE_TYPES = [
-  "soap",
-  "dap",
-  "birp",
-  "girp",
-  "intake",
-  "progress",
-] as const;
-
-type NoteType = (typeof VALID_NOTE_TYPES)[number];
 
 export async function createJobAction(
   _prev: JobActionResult,
@@ -32,25 +24,30 @@ export async function createJobAction(
 ): Promise<JobActionResult> {
   const user = await requireAppUser();
 
-  const sessionId = formData.get("session_id");
-  if (typeof sessionId !== "string" || !sessionId.trim()) {
-    return { error: "Session ID is required" };
+  const parsed = CreateJobSchema.safeParse({
+    session_id: formData.get("session_id"),
+    note_type: formData.get("note_type"),
+  });
+  if (!parsed.success) {
+    logError({
+      code: ErrorCodes.VALIDATION_ERROR,
+      cause: parsed.error,
+      message: "createJobAction validation failed",
+      userId: user.userId,
+    });
+    return { error: "Invalid request." };
   }
 
-  const rawNoteType = formData.get("note_type");
-  const noteType: NoteType =
-    typeof rawNoteType === "string" &&
-    VALID_NOTE_TYPES.includes(rawNoteType as NoteType)
-      ? (rawNoteType as NoteType)
-      : "soap";
+  const sessionId = parsed.data.session_id;
+  const noteType = parsed.data.note_type as JobNoteType;
 
-  const session = await getMySession(user, sessionId.trim());
+  const session = await getMySession(user, sessionId);
   if (session.error || !session.data) {
     return { error: "Session not found or access denied." };
   }
 
   const { data, error } = await createJob(user, {
-    session_id: sessionId.trim(),
+    session_id: sessionId,
     note_type: noteType,
   });
 
@@ -58,5 +55,5 @@ export async function createJobAction(
     return { error: error ?? "Failed to create job" };
   }
 
-  redirect(`/sessions/${sessionId.trim()}`);
+  redirect(`/sessions/${sessionId}`);
 }

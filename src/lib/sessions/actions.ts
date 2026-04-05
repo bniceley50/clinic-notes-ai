@@ -13,6 +13,9 @@
 
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/lib/auth/loader";
+import { ErrorCodes } from "@/lib/errors/codes";
+import { logError } from "@/lib/logger";
+import { CreateSessionSchema } from "@/lib/validation/note-validation";
 import { createSession } from "./queries";
 
 export type ActionResult = { error: string | null };
@@ -23,25 +26,23 @@ export async function createSessionAction(
 ): Promise<ActionResult> {
   const user = await requireAppUser();
 
-  const rawLabel = formData.get("patient_label");
-  const patientLabel =
-    typeof rawLabel === "string" ? rawLabel.trim() : "";
-
-  if (!patientLabel) {
-    return { error: "Patient label is required" };
+  const parsed = CreateSessionSchema.safeParse({
+    patient_label: formData.get("patient_label"),
+    session_type: formData.get("session_type"),
+  });
+  if (!parsed.success) {
+    logError({
+      code: ErrorCodes.VALIDATION_ERROR,
+      cause: parsed.error,
+      message: "createSessionAction validation failed",
+      userId: user.userId,
+    });
+    return { error: "Invalid request." };
   }
 
-  const sessionType = formData.get("session_type");
-  const validTypes = ["intake", "follow-up", "general"] as const;
-  const type =
-    typeof sessionType === "string" &&
-    validTypes.includes(sessionType as (typeof validTypes)[number])
-      ? (sessionType as (typeof validTypes)[number])
-      : "general";
-
   const { data, error } = await createSession(user, {
-    patient_label: patientLabel,
-    session_type: type,
+    patient_label: parsed.data.patient_label,
+    session_type: parsed.data.session_type,
   });
 
   if (error || !data) {

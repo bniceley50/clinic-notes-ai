@@ -108,6 +108,8 @@ vi.mock("@/lib/logger", () => ({
 
 import { POST } from "@/app/api/generate-note/route";
 
+const SESSION_ID = "11111111-1111-4111-8111-111111111111";
+
 const authenticatedResult = {
   status: "authenticated" as const,
   user: {
@@ -153,7 +155,7 @@ describe("POST /api/generate-note consent enforcement", () => {
     mockGetLatestTranscriptForSession.mockResolvedValue({
       data: {
         id: "transcript-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         job_id: "job-1",
         content: "Stored transcript content.",
@@ -166,7 +168,7 @@ describe("POST /api/generate-note consent enforcement", () => {
     mockGetTranscriptForJob.mockResolvedValue({
       data: {
         id: "transcript-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         job_id: "11111111-1111-4111-8111-111111111111",
         content: "Stored transcript content.",
@@ -179,7 +181,7 @@ describe("POST /api/generate-note consent enforcement", () => {
     mockCheckRateLimit.mockResolvedValue(null);
     mockGetMySession.mockResolvedValue({
       data: {
-        id: "session-1",
+        id: SESSION_ID,
         patient_label: "Patient A",
         session_type: "therapy",
       },
@@ -195,7 +197,7 @@ describe("POST /api/generate-note consent enforcement", () => {
     mockNoteSingle.mockResolvedValue({
       data: {
         id: "note-1",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         content: "Stub note content",
         note_type: "soap",
@@ -230,7 +232,7 @@ describe("POST /api/generate-note consent enforcement", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -252,7 +254,7 @@ describe("POST /api/generate-note consent enforcement", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -269,7 +271,7 @@ describe("POST /api/generate-note consent enforcement", () => {
   it("proceeds to note creation when consent exists", async () => {
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );
@@ -278,13 +280,13 @@ describe("POST /api/generate-note consent enforcement", () => {
     expect(response.status).toBe(200);
     expect(payload).toEqual({
       note_id: "note-1",
-      session_id: "session-1",
+      session_id: SESSION_ID,
       note_type: "SOAP",
       content: "Stub note content",
       created_at: "2026-03-17T12:00:00.000Z",
       stub_mode: true,
     });
-    expect(mockConsentEqSession).toHaveBeenCalledWith("session_id", "session-1");
+    expect(mockConsentEqSession).toHaveBeenCalledWith("session_id", SESSION_ID);
     expect(mockConsentEqOrg).toHaveBeenCalledWith("org_id", "org-1");
     expect(mockBuildStubNote).toHaveBeenCalledWith("soap", {
       patientLabel: "Patient A",
@@ -293,11 +295,11 @@ describe("POST /api/generate-note consent enforcement", () => {
     });
     expect(mockGetLatestTranscriptForSession).toHaveBeenCalledWith(
       authenticatedResult.user,
-      "session-1",
+      SESSION_ID,
     );
     expect(mockGetJobForOrg).not.toHaveBeenCalled();
     expect(mockNoteInsert).toHaveBeenCalledWith({
-      session_id: "session-1",
+      session_id: SESSION_ID,
       org_id: "org-1",
       job_id: null,
       content: "Stub note content",
@@ -311,7 +313,7 @@ describe("POST /api/generate-note consent enforcement", () => {
     mockGetJobForOrg.mockResolvedValue({
       data: {
         id: "11111111-1111-4111-8111-111111111111",
-        session_id: "session-1",
+        session_id: SESSION_ID,
         org_id: "org-1",
         created_by: "user-2",
         status: "complete",
@@ -331,7 +333,7 @@ describe("POST /api/generate-note consent enforcement", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
         jobId: "11111111-1111-4111-8111-111111111111",
       }) as never,
@@ -346,11 +348,11 @@ describe("POST /api/generate-note consent enforcement", () => {
     );
     expect(mockGetTranscriptForJob).toHaveBeenCalledWith(
       authenticatedResult.user,
-      "session-1",
+      SESSION_ID,
       "11111111-1111-4111-8111-111111111111",
     );
     expect(mockNoteInsert).toHaveBeenCalledWith({
-      session_id: "session-1",
+      session_id: SESSION_ID,
       org_id: "org-1",
       job_id: "11111111-1111-4111-8111-111111111111",
       content: "Stub note content",
@@ -368,7 +370,7 @@ describe("POST /api/generate-note consent enforcement", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
         jobId: "11111111-1111-4111-8111-111111111111",
       }) as never,
@@ -388,7 +390,7 @@ describe("POST /api/generate-note consent enforcement", () => {
 
     const response = await POST(
       makeRequest({
-        session_id: "session-1",
+        session_id: SESSION_ID,
         note_type: "SOAP",
       }) as never,
     );

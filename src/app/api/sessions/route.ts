@@ -5,8 +5,10 @@ import { jsonNoStore } from "@/lib/http/response";
 import { createSession, listMySessions } from "@/lib/sessions/queries";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { logError, withLogging } from "@/lib/logger";
-
-const VALID_SESSION_TYPES = ["general", "intake", "follow-up"] as const;
+import {
+  CreateSessionSchema,
+  validateBody,
+} from "@/lib/validation/note-validation";
 
 export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
@@ -44,29 +46,17 @@ export const POST = withLogging(async (
   const limited = await checkRateLimit(apiLimit, identifier);
   if (limited) return limited;
 
-  const body = await request.json().catch(() => null);
-  const patientLabel =
-    body && typeof body.patient_label === "string" ? body.patient_label.trim() : "";
-  const sessionType =
-    body && typeof body.session_type === "string" ? body.session_type : "general";
-
-  if (!patientLabel) {
-    return jsonNoStore(
-      { error: "patient_label is required" },
-      { status: 400 },
-    );
-  }
-
-  if (!VALID_SESSION_TYPES.includes(sessionType as (typeof VALID_SESSION_TYPES)[number])) {
-    return jsonNoStore(
-      { error: "session_type must be one of: general, intake, follow-up" },
-      { status: 400 },
-    );
-  }
+  const rawBody = await request.json().catch(() => null);
+  const validation = validateBody(
+    CreateSessionSchema.safeParse(rawBody),
+    { userId: result.user.userId },
+  );
+  if (validation.error) return validation.error;
+  const body = validation.data;
 
   const { data, error } = await createSession(result.user, {
-    patient_label: patientLabel,
-    session_type: sessionType as (typeof VALID_SESSION_TYPES)[number],
+    patient_label: body.patient_label,
+    session_type: body.session_type,
   });
 
   if (error || !data) {

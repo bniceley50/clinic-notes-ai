@@ -6,6 +6,10 @@ import { ErrorCodes } from "@/lib/errors/codes";
 import { jsonNoStore } from "@/lib/http/response";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { logError, withLogging } from "@/lib/logger";
+import {
+  UpdateNoteRouteSchema,
+  validateBody,
+} from "@/lib/validation/note-validation";
 
 type RouteContext = {
   params: Promise<{ sessionId: string; noteId: string }>;
@@ -46,26 +50,15 @@ export const PATCH = withLogging(async (
   const limited = await checkRateLimit(apiLimit, identifier);
   if (limited) return limited;
 
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return jsonNoStore({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  if ("note_type" in body) {
-    return jsonNoStore(
-      { error: "note_type cannot be edited" },
-      { status: 400 },
-    );
-  }
-
-  if (typeof body.content !== "string") {
-    return jsonNoStore(
-      { error: "content must be a string" },
-      { status: 400 },
-    );
-  }
-
   const { sessionId, noteId } = await ctx.params;
+  const rawBody = await request.json().catch(() => null);
+  const validation = validateBody(
+    UpdateNoteRouteSchema.safeParse(rawBody),
+    { sessionId, userId: result.user.userId },
+  );
+  if (validation.error) return validation.error;
+  const body = validation.data;
+
   const current = await getMyNote(result.user, sessionId, noteId);
 
   if (current.error || !current.data) {

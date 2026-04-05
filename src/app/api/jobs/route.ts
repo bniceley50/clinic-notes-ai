@@ -7,7 +7,6 @@ import {
   createJob,
   getActiveJobForSession,
   getJobsForSession,
-  JOB_NOTE_TYPES,
   type JobNoteType,
 } from "@/lib/jobs/queries";
 import { serializeJobForClient } from "@/lib/jobs/serialize-job-for-client";
@@ -15,6 +14,10 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
 import { apiLimit, getIdentifier, checkRateLimit } from "@/lib/rate-limit";
 import { logError, withLogging } from "@/lib/logger";
+import {
+  CreateJobSchema,
+  validateBody,
+} from "@/lib/validation/note-validation";
 
 export const GET = withLogging(async (request: NextRequest) => {
   const result = await loadCurrentUser();
@@ -62,29 +65,15 @@ export const POST = withLogging(async (request: NextRequest) => {
   const limited = await checkRateLimit(apiLimit, identifier);
   if (limited) return limited;
 
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return jsonNoStore({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const sessionId =
-    typeof body.session_id === "string" ? body.session_id.trim() : "";
-  const noteType =
-    typeof body.note_type === "string" ? body.note_type : "soap";
-
-  if (!sessionId) {
-    return jsonNoStore(
-      { error: "session_id is required" },
-      { status: 400 },
-    );
-  }
-
-  if (!JOB_NOTE_TYPES.includes(noteType as JobNoteType)) {
-    return jsonNoStore(
-      { error: `note_type must be one of: ${JOB_NOTE_TYPES.join(", ")}` },
-      { status: 400 },
-    );
-  }
+  const rawBody = await request.json().catch(() => null);
+  const validation = validateBody(
+    CreateJobSchema.safeParse(rawBody),
+    { userId: result.user.userId },
+  );
+  if (validation.error) return validation.error;
+  const body = validation.data;
+  const sessionId = body.session_id;
+  const noteType = body.note_type as JobNoteType;
 
   const session = await getMySession(result.user, sessionId);
   if (session.error || !session.data) {

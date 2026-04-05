@@ -1,7 +1,10 @@
 // src/lib/validation/note-schemas.ts
 // Zod schemas for all note generation API routes
 
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ErrorCodes } from "@/lib/errors/codes";
+import { logError } from "@/lib/logger";
 
 // Shared primitives
 
@@ -71,6 +74,12 @@ export const GenerateNoteSchema = z.object({
 
 export type GenerateNoteInput = z.infer<typeof GenerateNoteSchema>;
 
+export const GenerateNoteRouteSchema = z.object({
+  session_id: z.string().uuid(),
+  note_type: z.enum(["SOAP", "DAP", "BIRP", "GIRP"]),
+  jobId: z.string().uuid().optional(),
+});
+
 // Save Note
 
 export const SaveNoteSchema = z.object({
@@ -113,6 +122,37 @@ export const UpdateNoteSchema = z.object({
 
 export type UpdateNoteInput = z.infer<typeof UpdateNoteSchema>;
 
+export const UpdateNoteRouteSchema = z.object({
+  content: z
+    .string()
+    .max(100000)
+    .transform((val) =>
+      val
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .trim(),
+    )
+    .refine((val) => val.length > 0, {
+      message: "Content must not be empty",
+    }),
+}).strict();
+
+export const CreateSessionSchema = z.object({
+  patient_label: z.string().trim().min(1).max(500),
+  session_type: z
+    .enum(["intake", "follow-up", "general"])
+    .optional()
+    .default("general"),
+});
+
+export const CreateJobSchema = z.object({
+  session_id: z.string().uuid(),
+  note_type: z
+    .enum(["soap", "dap", "birp", "girp", "intake", "progress"])
+    .optional()
+    .default("soap"),
+});
+
 // Note ID param
 
 export const NoteIdParamSchema = z.object({
@@ -140,30 +180,37 @@ export const ListNotesQuerySchema = z.object({
 
 // Helpers
 
-export async function validateBody<T extends z.ZodTypeAny>(
-  request: Request,
-  schema: T
-): Promise<z.infer<T>> {
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    throw new Response(
-      JSON.stringify({ error: "Invalid JSON in request body" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+type ParsedBody<T> =
+  | { success: true; data: T }
+  | { success: false; error: z.ZodError<T> };
+
+export function validateBody<T>(
+  parsed: ParsedBody<T>,
+  context?: { jobId?: string; sessionId?: string; userId?: string }
+): { data: T; error: null } | { data: null; error: Response } {
+  if (parsed.success) {
+    return { data: parsed.data, error: null };
   }
-  const result = schema.safeParse(raw);
-  if (!result.success) {
-    throw new Response(
-      JSON.stringify({
-        error: "Validation failed",
-        issues: result.error.flatten().fieldErrors,
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-  return result.data;
+
+  logError({
+    code: ErrorCodes.VALIDATION_ERROR,
+    message: "Request body validation failed",
+    cause: parsed.error,
+    ...context,
+  });
+
+  return {
+    data: null,
+    error: NextResponse.json(
+      {
+        error: {
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "Invalid request.",
+        },
+      },
+      { status: 400 },
+    ),
+  };
 }
 
 export function validateQuery<T extends z.ZodTypeAny>(

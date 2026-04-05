@@ -77,6 +77,9 @@ vi.mock('../../lib/audit', () => ({
 
 import { POST } from '../../app/api/jobs/route'
 
+const SESSION_ID = "11111111-1111-4111-8111-111111111111";
+const OTHER_SESSION_ID = "22222222-2222-4222-8222-222222222222";
+
 const authenticatedResult = {
   status: 'authenticated' as const,
   user: {
@@ -118,7 +121,7 @@ describe('POST /api/jobs consent enforcement', () => {
     mockLoadCurrentUser.mockResolvedValue(authenticatedResult)
     mockCheckRateLimit.mockResolvedValue(null)
     mockGetMySession.mockResolvedValue({
-      data: { id: 'session-1' },
+      data: { id: SESSION_ID },
       error: null,
     })
     mockMaybeSingle.mockResolvedValue({
@@ -143,7 +146,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -161,7 +164,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -179,7 +182,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -196,13 +199,13 @@ describe('POST /api/jobs consent enforcement', () => {
       },
     })
     expect(mockCreateJob).toHaveBeenCalledWith(authenticatedResult.user, {
-      session_id: 'session-1',
+      session_id: SESSION_ID,
       note_type: 'soap',
     })
     expect(mockWriteAuditLog).toHaveBeenCalledWith({
       orgId: 'org-1',
       actorId: 'user-1',
-      sessionId: 'session-1',
+      sessionId: SESSION_ID,
       jobId: 'job-1',
       action: 'job.created',
       requestId: 'test-request-id',
@@ -218,20 +221,26 @@ describe('POST /api/jobs consent enforcement', () => {
 
     expect(response.status).toBe(400)
     expect(payload).toEqual({
-      error: 'session_id is required',
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request.',
+      },
     })
     expect(mockGetMySession).not.toHaveBeenCalled()
   })
 
   it('request with invalid note_type returns 400', async () => {
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'invalid' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'invalid' }) as never,
     )
     const payload = await response.json()
 
     expect(response.status).toBe(400)
     expect(payload).toEqual({
-      error: 'note_type must be one of: soap, dap, birp, girp, intake, progress',
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request.',
+      },
     })
     expect(mockGetMySession).not.toHaveBeenCalled()
   })
@@ -250,7 +259,10 @@ describe('POST /api/jobs consent enforcement', () => {
 
     expect(response.status).toBe(400)
     expect(payload).toEqual({
-      error: 'Invalid JSON body',
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request.',
+      },
     })
     expect(mockGetMySession).not.toHaveBeenCalled()
     expect(mockCreateServiceClient).not.toHaveBeenCalled()
@@ -263,7 +275,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -271,7 +283,7 @@ describe('POST /api/jobs consent enforcement', () => {
     expect(payload).toEqual({
       error: 'Patient consent must be recorded before starting a job',
     })
-    expect(mockEqSession).toHaveBeenCalledWith('session_id', 'session-1')
+    expect(mockEqSession).toHaveBeenCalledWith('session_id', SESSION_ID)
     expect(mockEqOrg).toHaveBeenCalledWith('org_id', 'org-1')
   })
 
@@ -282,7 +294,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-other', note_type: 'soap' }) as never,
+      makeRequest({ session_id: OTHER_SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -290,7 +302,7 @@ describe('POST /api/jobs consent enforcement', () => {
     expect(payload).toEqual({
       error: 'Patient consent must be recorded before starting a job',
     })
-    expect(mockEqSession).toHaveBeenCalledWith('session_id', 'session-other')
+    expect(mockEqSession).toHaveBeenCalledWith('session_id', OTHER_SESSION_ID)
     expect(mockEqOrg).toHaveBeenCalledWith('org_id', 'org-1')
   })
 
@@ -298,7 +310,7 @@ describe('POST /api/jobs consent enforcement', () => {
     mockLoadCurrentUser.mockResolvedValue({ status: 'no_session' })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 
@@ -315,7 +327,7 @@ describe('POST /api/jobs consent enforcement', () => {
     })
 
     const response = await POST(
-      makeRequest({ session_id: 'session-1', note_type: 'soap' }) as never,
+      makeRequest({ session_id: SESSION_ID, note_type: 'soap' }) as never,
     )
     const payload = await response.json()
 

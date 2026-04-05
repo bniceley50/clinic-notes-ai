@@ -19,6 +19,10 @@ import {
   type AnthropicTextBlock,
 } from "@/lib/ai/types";
 import {
+  GenerateNoteRouteSchema,
+  validateBody,
+} from "@/lib/validation/note-validation";
+import {
   MAX_TRANSCRIPT_CHARS,
   aiClaudeTimeoutMs,
   aiRealApisEnabled,
@@ -43,17 +47,7 @@ const NOTE_TYPE_MAP = {
   BIRP: "birp",
   GIRP: "girp",
 } as const satisfies Record<string, JobNoteType>;
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 type SupportedNoteType = keyof typeof NOTE_TYPE_MAP;
-
-type GenerateNoteBody = {
-  session_id: string;
-  note_type: SupportedNoteType;
-  jobId: string | null;
-};
 
 type NoteInsertRow = {
   id: string;
@@ -68,66 +62,6 @@ type RouteError = {
   message: string;
   status: number;
 };
-
-function getRequiredString(
-  body: Record<string, unknown>,
-  field: keyof GenerateNoteBody,
-): string | null {
-  const value = body[field];
-  if (typeof value !== "string" || value.trim() === "") {
-    return null;
-  }
-
-  return value.trim();
-}
-
-function parseRequestBody(raw: unknown): GenerateNoteBody | null {
-  if (!raw || typeof raw !== "object") {
-    return null;
-  }
-
-  const body = raw as Record<string, unknown>;
-  const sessionId = getRequiredString(body, "session_id");
-  if (!sessionId) return null;
-
-  const noteType = getRequiredString(body, "note_type");
-  if (!noteType) return null;
-
-  const jobId =
-    typeof body.jobId === "string" && body.jobId.trim() !== ""
-      ? body.jobId.trim()
-      : null;
-  if (!(noteType in NOTE_TYPE_MAP)) {
-    return null;
-  }
-
-  return {
-    session_id: sessionId,
-    note_type: noteType as SupportedNoteType,
-    jobId,
-  };
-}
-
-function missingFieldError(raw: unknown): string {
-  if (!raw || typeof raw !== "object") {
-    return "Missing required field: session_id";
-  }
-
-  const body = raw as Record<string, unknown>;
-  const requiredFields: Array<keyof GenerateNoteBody> = [
-    "session_id",
-    "note_type",
-  ];
-
-  for (const field of requiredFields) {
-    const value = body[field];
-    if (typeof value !== "string" || value.trim() === "") {
-      return `Missing required field: ${field}`;
-    }
-  }
-
-  return "Missing required field: note_type";
-}
 
 async function generateRealNote(
   noteType: SupportedNoteType,
@@ -228,14 +162,12 @@ export const POST = withLogging(async (
   if (limited) return limited;
 
   const rawBody = await request.json().catch(() => null);
-  const body = parseRequestBody(rawBody);
-
-  if (!body) {
-    return NextResponse.json(
-      { error: missingFieldError(rawBody) },
-      { status: 400 },
-    );
-  }
+  const validation = validateBody(
+    GenerateNoteRouteSchema.safeParse(rawBody),
+    { userId: result.user.userId },
+  );
+  if (validation.error) return validation.error;
+  const body = validation.data;
 
   const session = await getMySession(result.user, body.session_id);
   if (session.error || !session.data) {
@@ -244,10 +176,6 @@ export const POST = withLogging(async (
 
   let noteJobId: string | null = null;
   if (body.jobId) {
-    if (!UUID_PATTERN.test(body.jobId)) {
-      return NextResponse.json({ error: "Invalid jobId" }, { status: 400 });
-    }
-
     const job = await getJobForOrg(result.user, body.jobId);
     if (job.error) {
       return NextResponse.json(
